@@ -170,6 +170,47 @@ html[data-theme="light"] body::before{
 .nc-tx{flex:1;font-size:12.5px;color:var(--muted);line-height:1.4}
 .nc-go{flex:none;color:var(--faint)} .nc-go svg{width:18px;height:18px}
 
+/* site footer */
+.sitefoot{margin-top:26px;padding-top:18px;border-top:1px solid var(--line);
+  display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:13px}
+.sf-ref{margin:0;font-size:12px;color:var(--faint);line-height:1.5;flex:1 1 220px;min-width:0}
+.sf-meta{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.sf-by{font-size:12.5px;color:var(--muted)} .sf-by b{color:var(--ink);font-weight:700}
+.sf-fb{display:inline-flex;align-items:center;gap:7px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;
+  color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:9px 14px;
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 6px 18px var(--shadow);transition:border-color .15s,transform .08s}
+.sf-fb:hover{border-color:var(--accent)} .sf-fb:active{transform:translateY(1px)}
+.sf-fb svg{width:16px;height:16px;color:var(--accent)}
+
+/* feedback modal */
+.modal-bg{position:fixed;inset:0;z-index:200;display:grid;place-items:center;padding:18px;
+  background:rgba(8,6,12,.62);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);animation:fade .18s ease both}
+.modal-bg[hidden]{display:none}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.modal{width:100%;max-width:440px;background:var(--pop);border:1px solid var(--line);border-radius:22px;
+  padding:20px;box-shadow:0 30px 80px rgba(0,0,0,.5);animation:rise .26s cubic-bezier(.2,.7,.2,1) both}
+.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.modal-head h3{margin:0;font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:19px;color:var(--ink)}
+.modal-x{width:34px;height:34px;flex:none;display:grid;place-items:center;cursor:pointer;font-size:21px;line-height:1;
+  color:var(--muted);background:transparent;border:1px solid var(--line);border-radius:10px;transition:border-color .15s,color .15s}
+.modal-x:hover{border-color:var(--accent);color:var(--ink)}
+.fb-seg{display:flex;gap:8px;margin-bottom:16px}
+.fb-opt{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;font-family:inherit;
+  font-size:13.5px;font-weight:700;color:var(--muted);background:var(--input);border:1.5px solid var(--line);
+  border-radius:12px;padding:11px;transition:color .14s,background .14s,border-color .14s}
+.fb-opt svg{width:16px;height:16px}
+.fb-opt.active{color:#1a1208;background:linear-gradient(95deg,#ffb43d,#ff7f5e,#ff5e9a);border-color:transparent}
+.fb-l{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:14px;letter-spacing:.01em}
+.fb-opt-tag{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--faint)}
+.modal textarea,.modal input[type=text]{font-family:"Inter",sans-serif;font-size:14.5px;text-transform:none;letter-spacing:normal;
+  padding:11px 13px;border:1.5px solid var(--line);border-radius:11px;background:var(--input);color:var(--ink);outline:none;
+  transition:border-color .15s,box-shadow .15s;resize:vertical;width:100%}
+.modal textarea:focus,.modal input[type=text]:focus{border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-soft)}
+.modal textarea::placeholder,.modal input::placeholder{color:var(--faint)}
+.fb-note{margin:0 0 14px;font-size:11.5px;color:var(--faint);line-height:1.45}
+.fb-send{width:100%;height:46px}
+.modal .err{margin:0 0 12px} .modal .ok{margin:0 0 12px;font-size:13px;color:var(--dna);display:none} .modal .ok.show{display:block}
+
 .lookup{position:relative;z-index:30;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;
   backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 12px 40px var(--shadow)}
 .lookup h2{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:17px;margin:0 0 3px;color:var(--ink)}
@@ -436,6 +477,14 @@ footer{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);font-si
       <span class="nc-tx">Tentative weekly schedule — confirm any room/time changes with the department.</span>
       <span class="nc-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
     </div>
+
+    <footer class="sitefoot">
+      <p class="sf-ref">ClassicMaarlbros Got You Covered · for quick reference — always confirm against official notices.</p>
+      <div class="sf-meta">
+        <button class="sf-fb" id="fbBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4L4 21l1.1-3.6A8.4 8.4 0 1 1 21 11.5z"/></svg>Feedback</button>
+        <span class="sf-by">Built by <b>Iman Maity</b></span>
+      </div>
+    </footer>
   </section>
 
   <section id="view-tt" class="view" hidden>
@@ -496,6 +545,29 @@ __SHAREDSECTION__
 
     <footer>Books are shared only in legitimate ways — library access, open editions, or peer lending.</footer>
   </section>
+
+  <div class="modal-bg" id="fbModal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="fbTitle">
+      <div class="modal-head">
+        <h3 id="fbTitle">Share feedback</h3>
+        <button class="modal-x" id="fbClose" aria-label="Close">&times;</button>
+      </div>
+      <div class="fb-seg" id="fbSeg">
+        <button type="button" class="fb-opt active" data-kind="Problem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5l9 16H3z"/><path d="M12 10v4.5M12 17.5h.01"/></svg>Problem</button>
+        <button type="button" class="fb-opt" data-kind="Suggestion"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 18h5M10.5 21h3M12 3a6 6 0 0 0-3.8 10.7c.6.5 1 1.2 1.1 2.3h5.4c.1-1.1.5-1.8 1.1-2.3A6 6 0 0 0 12 3z"/></svg>Suggestion</button>
+      </div>
+      <label class="fb-l">What's on your mind?
+        <textarea id="fb_text" rows="4" placeholder="Describe it — what you expected and what actually happened…"></textarea>
+      </label>
+      <label class="fb-l">Contact <span class="fb-opt-tag">optional</span>
+        <input id="fb_contact" type="text" placeholder="Email or roll no. — only if you'd like a reply">
+      </label>
+      <p class="fb-note">Goes straight to Iman by email. Leave a contact only if you'd like a reply — otherwise it's anonymous.</p>
+      <div class="err" id="fbErr"></div>
+      <div class="ok" id="fbOk"></div>
+      <button class="go fb-send" id="fbSend">Send feedback</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -765,6 +837,31 @@ function sendRequest(){
 }
 $("reqBtn").addEventListener("click",sendRequest);
 setupBooks();
+
+// feedback modal
+(function(){
+  const m=$("fbModal"), seg=$("fbSeg"); if(!m) return;
+  let kind="Problem";
+  const open=()=>{ m.hidden=false; setTimeout(()=>{const t=$("fb_text"); if(t)t.focus();},60); };
+  const close=()=>{ m.hidden=true; const e=$("fbErr"),o=$("fbOk"); if(e)e.classList.remove("show"); if(o)o.classList.remove("show"); };
+  const fb=$("fbBtn"); if(fb) fb.addEventListener("click",open);
+  const fx=$("fbClose"); if(fx) fx.addEventListener("click",close);
+  m.addEventListener("click",e=>{ if(e.target===m) close(); });
+  document.addEventListener("keydown",e=>{ if(e.key==="Escape" && !m.hidden) close(); });
+  if(seg) seg.addEventListener("click",e=>{ const b=e.target.closest(".fb-opt"); if(!b) return;
+    kind=b.dataset.kind; seg.querySelectorAll(".fb-opt").forEach(x=>x.classList.toggle("active",x===b)); });
+  const send=$("fbSend"); if(send) send.addEventListener("click",()=>{
+    const v=id=>($(id)?$(id).value.trim():"");
+    const txt=v("fb_text"), ct=v("fb_contact");
+    const err=$("fbErr"), ok=$("fbOk"); err.classList.remove("show"); ok.classList.remove("show");
+    if(!txt){ err.textContent="Please describe the "+kind.toLowerCase()+" first."; err.classList.add("show"); return; }
+    if(REQ_FORM){ window.open(REQ_FORM,"_blank","noopener"); ok.textContent="Opening the feedback form in a new tab."; ok.classList.add("show"); return; }
+    const body=[kind+":", txt, "", "Contact: "+(ct||"(anonymous)")].join("\n");
+    window.location.href="mailto:"+REQ_EMAIL+"?subject="+encodeURIComponent("ClassicMaarlbros feedback — "+kind)+"&body="+encodeURIComponent(body);
+    ok.textContent="Opening your email app to send this to "+REQ_EMAIL+". If nothing opens, email that address directly.";
+    ok.classList.add("show");
+  });
+})();
 showView();
 </script>
 </body>
