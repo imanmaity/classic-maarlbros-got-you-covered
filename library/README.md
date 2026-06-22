@@ -20,6 +20,21 @@ The card title and author come from the file name:
 So name files `Title - Author.ext` (a hyphen with spaces around it). Underscores
 become spaces. Supported: pdf, epub, mobi, azw3, djvu, doc(x), ppt(x), txt, zip.
 
+## Optional: colour-coded subject tag
+Add a subject code in **[square brackets]** anywhere in the file name and the
+card shows a coloured pill matching that subject's colour in the timetable grid:
+
+| File name                                        | Card shows                |
+|--------------------------------------------------|---------------------------|
+| `Consumer Behavior - Schiffman [CB].pdf`         | CB pill (Marketing)       |
+| `Financial Statement Analysis - Author [FSA].pdf`| FSA pill (Finance)        |
+
+Valid codes are the abbreviations used in the timetable:
+BI, BM, CB, ERP, FSA, I&PM, IB, IPM, MBC, MFS, PML, RMKT, S&DM, SBM, TQM.
+Use the exact code (`I&PM` and `IPM` are different subjects). If you skip the
+tag, the app still tries to match the title to a course name automatically; if
+nothing matches, the card simply shows no pill.
+
 ## To remove a book
 Delete the file from this folder and re-run the workflow.
 
