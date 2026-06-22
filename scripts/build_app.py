@@ -37,7 +37,7 @@ TEMPLATE = r"""<!DOCTYPE html>
 <style>
 :root{
   --bg:#15110d; --ink:#f5efe6; --muted:#b6a895; --faint:#897b6c; --line:rgba(255,255,255,.14);
-  --card:rgba(22,18,14,.58); --card2:rgba(28,23,18,.66); --input:rgba(20,16,12,.6);
+  --card:rgba(22,18,14,.58); --card2:rgba(28,23,18,.66); --input:rgba(20,16,12,.6); --pop:#1b1726;
   --boxfill:rgba(18,14,11,.66); --eyebrow:#ffffff; --scrim:rgba(14,11,8,.3);
   --accent:#ff9e3d; --accent-soft:rgba(255,158,61,.16); --shadow:rgba(0,0,0,.5);
   --fin:#7aa2ff; --fin-bg:rgba(28,39,64,.85);
@@ -55,7 +55,7 @@ TEMPLATE = r"""<!DOCTYPE html>
 }
 html[data-theme="light"]{
   --bg:#fdf3e6; --ink:#2a2018; --muted:#7a6a58; --faint:#a8967f; --line:rgba(120,80,40,.2);
-  --card:rgba(255,252,247,.74); --card2:rgba(255,252,247,.86); --input:rgba(255,250,242,.9);
+  --card:rgba(255,252,247,.74); --card2:rgba(255,252,247,.86); --input:rgba(255,250,242,.9); --pop:#fffaf3;
   --boxfill:rgba(255,252,247,.86); --eyebrow:#9a4a18; --scrim:rgba(255,251,244,.5);
   --accent:#e07a2a; --accent-soft:rgba(224,122,42,.16); --shadow:rgba(150,90,30,.18);
   --fin:#2f55c8; --fin-bg:rgba(232,236,253,.92);
@@ -76,35 +76,101 @@ body{font-family:"Inter",system-ui,sans-serif;color:var(--ink);background:var(--
   -webkit-font-smoothing:antialiased;line-height:1.5;min-height:100vh}
 body::before{content:"";position:fixed;inset:0;z-index:-2;
   background:
-    radial-gradient(46% 34% at 10% 4%, rgba(255,138,61,.32), transparent 60%),
-    radial-gradient(44% 32% at 95% 3%, rgba(241,92,198,.26), transparent 62%),
-    radial-gradient(54% 44% at 90% 98%, rgba(176,112,255,.30), transparent 60%),
-    radial-gradient(48% 36% at 2% 97%, rgba(255,94,143,.22), transparent 62%),
-    #0f0e15}
+    radial-gradient(82% 62% at 105% 100%, rgba(255,140,76,.56), transparent 60%),
+    radial-gradient(66% 54% at 101% 66%, rgba(255,98,158,.42), transparent 62%),
+    radial-gradient(70% 55% at 50% -8%, rgba(126,86,206,.26), transparent 60%),
+    radial-gradient(55% 45% at -6% 26%, rgba(78,56,134,.20), transparent 60%),
+    #131019}
 html[data-theme="light"] body::before{
   background:
-    radial-gradient(38% 30% at 12% 7%, #ffd58a, transparent 60%),
-    radial-gradient(40% 32% at 92% 4%, #ffb6c8, transparent 62%),
-    radial-gradient(48% 38% at 88% 96%, #ffd089, transparent 60%),
-    radial-gradient(40% 30% at 5% 95%, #ffc6a0, transparent 62%),
-    #fdf3e6}
+    radial-gradient(60% 48% at 82% 10%, rgba(205,180,242,.55), transparent 62%),
+    radial-gradient(70% 55% at 10% 6%, rgba(214,196,244,.5), transparent 62%),
+    linear-gradient(168deg, #d3c8f1 0%, #e6d2e6 38%, #f5dac8 72%, #fde6cd 100%)}
 .wrap{max-width:640px;margin:0 auto;padding:26px 16px 72px}
 
-header{margin-bottom:20px}
-.eyebrow{font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--eyebrow);font-weight:700;margin:0;text-shadow:0 1px 10px rgba(0,0,0,.45)}
-.htop{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px}
-.toggle{width:36px;height:36px;flex:none;display:grid;place-items:center;cursor:pointer;
-  border:1.5px solid var(--line);border-radius:11px;background:var(--card);color:var(--ink);
-  backdrop-filter:blur(8px);transition:border-color .15s,transform .08s}
-.toggle:hover{border-color:var(--accent)} .toggle:active{transform:translateY(1px)} .toggle svg{width:18px;height:18px}
-.monthrow{display:flex;align-items:flex-start;justify-content:flex-end;gap:11px}
-.month{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:54px;line-height:.82;
-  color:var(--ink);letter-spacing:-.025em;text-shadow:0 2px 24px var(--shadow)}
-.year{display:flex;flex-direction:column;font-family:"Bricolage Grotesque",sans-serif;font-weight:700;
-  font-size:21px;line-height:1.0;color:var(--accent);padding-top:3px}
-.subweek{margin-top:8px;text-align:right;font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted)}
+/* frosted icon button — app bar + topbars */
+.iconbtn{width:44px;height:44px;flex:none;display:grid;place-items:center;cursor:pointer;text-decoration:none;
+  border:1px solid var(--line);border-radius:14px;background:var(--card);color:var(--ink);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 6px 18px var(--shadow);
+  transition:border-color .15s,transform .08s}
+.iconbtn:hover{border-color:var(--accent)} .iconbtn:active{transform:translateY(1px)}
+.iconbtn svg{width:20px;height:20px}
 
-.lookup{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;
+/* glass app bar */
+.appbar{display:flex;align-items:center;gap:12px;margin-bottom:24px;padding:9px 11px;
+  background:var(--card);border:1px solid var(--line);border-radius:22px;
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:0 12px 34px var(--shadow)}
+.ab-title{flex:1;min-width:0;text-align:center;display:flex;flex-direction:column;gap:2px}
+.ab-1{font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ink);line-height:1.3}
+.ab-2{font-size:10px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+.menuwrap{position:relative}
+.menu{position:absolute;top:calc(100% + 10px);left:0;z-index:50;min-width:212px;padding:8px;
+  background:var(--pop);border:1px solid var(--line);border-radius:16px;box-shadow:0 18px 44px var(--shadow)}
+.menu[hidden]{display:none}
+.menu a,.menu .m-soon{display:block;padding:11px 14px;border-radius:11px;text-decoration:none;color:var(--ink);font-size:14.5px;font-weight:600}
+.menu a:hover{background:var(--accent-soft)}
+.menu .m-soon{color:var(--faint);font-weight:500;cursor:default}
+
+/* hero */
+.hero{margin-bottom:24px}
+.month{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:62px;line-height:.86;
+  color:var(--ink);letter-spacing:-.03em;text-shadow:0 2px 28px var(--shadow);display:block}
+.year{display:inline-block;font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:30px;line-height:1;
+  letter-spacing:-.01em;margin-top:2px;background:linear-gradient(95deg,#9b6cff,#ff6fae);
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.subweek{margin-top:11px;font-family:"JetBrains Mono",monospace;font-size:13px;color:var(--muted)}
+.todaypill{display:inline-flex;align-items:center;gap:9px;margin-top:18px;padding:10px 16px;border-radius:999px;
+  background:var(--card);border:1px solid var(--line);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  box-shadow:0 6px 18px var(--shadow);font-size:14.5px}
+.tp-dot{width:9px;height:9px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent)}
+.tp-today{color:var(--accent);font-weight:700} .tp-sep{color:var(--faint)} .tp-date{color:var(--ink);font-weight:600}
+
+/* glass cards */
+.gcard{display:flex;align-items:center;gap:16px;text-decoration:none;color:var(--ink);margin-bottom:16px;
+  background:var(--card);border:1px solid var(--line);border-radius:24px;padding:20px;
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:0 16px 42px var(--shadow);
+  transition:transform .12s,border-color .15s}
+.gcard:hover{border-color:color-mix(in srgb,var(--accent) 55%,transparent);transform:translateY(-1px)}
+.gcard:active{transform:scale(.995)}
+.gc-ic{flex:none;width:64px;height:64px;border-radius:19px;display:grid;place-items:center;color:#1a1208;box-shadow:0 8px 22px rgba(0,0,0,.25)}
+.gc-ic svg{width:32px;height:32px}
+.ic-cal{background:linear-gradient(140deg,#ffa23d,#ff6f9a,#c069ff)}
+.ic-book{background:linear-gradient(140deg,#b56bff,#ff6fae,#ff9a5c)}
+.ic-pyq{background:linear-gradient(140deg,#34d8c9,#3d9bff,#9b6cff);color:#06121a}
+.gc-body{flex:1;min-width:0;display:flex;flex-direction:column}
+.gc-title{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:23px;color:var(--ink);line-height:1.1}
+.gc-sub{font-size:14px;color:var(--muted);line-height:1.35;margin-top:3px}
+.gc-chip{align-self:flex-start;margin-top:9px;font-family:"JetBrains Mono",monospace;font-size:12px;font-weight:700;
+  color:var(--ink);background:var(--input);border:1px solid var(--line);border-radius:9px;padding:5px 11px}
+.gc-go{flex:none;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;
+  background:var(--input);border:1px solid var(--line);color:var(--ink)}
+.gc-go svg{width:20px;height:20px}
+.gcard.soon{opacity:.72} .gcard.soon:hover{transform:none;border-color:var(--line)}
+
+/* at a glance */
+.sec-h{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:19px;color:var(--ink);margin:28px 0 14px}
+.statrow{display:flex;gap:13px;margin-bottom:16px}
+.stat{flex:1;min-width:0;display:flex;align-items:center;gap:11px;padding:14px;
+  background:var(--card);border:1px solid var(--line);border-radius:20px;
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 10px 28px var(--shadow)}
+.stat-ic{flex:none;width:40px;height:40px;border-radius:12px;display:grid;place-items:center;
+  background:var(--input);border:1px solid var(--line);color:var(--accent)}
+.stat-ic svg{width:21px;height:21px}
+.stat-tx{display:flex;flex-direction:column;min-width:0}
+.stat-big{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:20px;color:var(--ink);line-height:1.1;white-space:nowrap}
+.stat-lb{font-size:12px;color:var(--ink);font-weight:600;margin-top:2px;white-space:nowrap}
+.stat-cap{font-size:11px;color:var(--muted);letter-spacing:.01em;line-height:1.3;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden} .stat-cap.top{margin-bottom:1px}
+
+/* bottom notice card */
+.notecard{display:flex;align-items:center;gap:13px;margin-top:6px;padding:15px 16px;
+  background:var(--card);border:1px solid var(--line);border-radius:18px;
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 8px 24px var(--shadow)}
+.nc-ic{flex:none;color:var(--accent)} .nc-ic svg{width:21px;height:21px}
+.nc-tx{flex:1;font-size:12.5px;color:var(--muted);line-height:1.4}
+.nc-go{flex:none;color:var(--faint)} .nc-go svg{width:18px;height:18px}
+
+.lookup{position:relative;z-index:30;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;
   backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 12px 40px var(--shadow)}
 .lookup h2{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:17px;margin:0 0 3px;color:var(--ink)}
 .lookup p{margin:0 0 14px;color:var(--muted);font-size:13px}
@@ -257,14 +323,14 @@ footer{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);font-si
 .tt-t{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:18px;color:var(--ink)}
 .tt-s{font-size:12.5px;color:var(--muted);margin-top:2px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .tt-arrow{margin-left:auto;flex:none;color:var(--accent);font-size:26px;font-weight:700;line-height:1}
-.topbar{display:flex;align-items:center;gap:12px;margin-bottom:18px;padding-right:46px}
+.topbar{display:flex;align-items:center;gap:12px;margin-bottom:20px}
 .back{display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:var(--muted);font-weight:600;font-size:14px}
 .back svg{width:16px;height:16px} .back:hover{color:var(--accent)}
-.tt-title{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:20px;color:var(--ink)}
+.tt-title{flex:1;min-width:0;font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:20px;color:var(--ink)}
 .rollwrap{position:relative;flex:1;min-width:0}
 .rollwrap input{width:100%}
-.acdrop{position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:30;background:var(--card2);border:1px solid var(--line);border-radius:12px;
-  box-shadow:0 14px 36px var(--shadow);max-height:264px;overflow-y:auto;display:none;backdrop-filter:blur(12px)}
+.acdrop{position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:45;background:var(--pop);border:1px solid var(--line);border-radius:12px;
+  box-shadow:0 14px 36px var(--shadow);max-height:264px;overflow-y:auto;display:none}
 .acdrop.show{display:block}
 .acitem{display:flex;flex-direction:column;gap:1px;padding:9px 13px;cursor:pointer;border-bottom:1px solid var(--line)}
 .acitem:last-child{border-bottom:none}
@@ -288,6 +354,8 @@ footer{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);font-si
 .res-s{display:block;font-size:12px;color:var(--muted);margin-top:3px;line-height:1.4}
 .sh-tag{display:inline-block;margin-top:8px;font-size:10.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;
   color:var(--accent);background:var(--accent-soft);border-radius:6px;padding:3px 8px}
+.sh-subj{display:inline-block;margin-top:8px;margin-right:7px;font-size:10.5px;font-weight:800;letter-spacing:.03em;
+  color:var(--c);background:var(--cb);border:1px solid color-mix(in srgb,var(--c) 38%,transparent);border-radius:6px;padding:3px 8px}
 .shbook .res-t{display:flex;align-items:center;gap:7px}
 .shbook .res-t::before{content:"";flex:none;width:15px;height:15px;background:var(--accent);
   -webkit-mask:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg>') center/contain no-repeat;
@@ -310,37 +378,71 @@ footer{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);font-si
 <body>
 <div id="loader"><div class="inner"><div class="orb"></div><div class="lbl">My Week</div></div></div>
 <div class="wrap">
-  <button class="toggle" id="themeBtn" aria-label="Switch theme"></button>
-
   <section id="view-home" class="view">
-    <header class="hhead">
-      <p class="eyebrow" id="inst"></p>
-      <div class="monthrow"><span class="month" id="month"></span><span class="year" id="year"></span></div>
+    <div class="appbar">
+      <div class="menuwrap">
+        <button class="iconbtn" id="menuBtn" aria-label="Menu" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+        <nav class="menu" id="menu" hidden>
+          <a href="#timetable">My Timetable</a>
+          <a href="#books">Request E-books</a>
+          <span class="m-soon">PYQs · Coming soon</span>
+        </nav>
+      </div>
+      <div class="ab-title"><span class="ab-1" id="abInst"></span><span class="ab-2" id="abTerm"></span></div>
+      <button class="iconbtn js-theme" aria-label="Switch theme"></button>
+    </div>
+
+    <header class="hero">
+      <span class="month" id="month"></span>
+      <span class="year" id="year"></span>
       <div class="subweek" id="subweek"></div>
+      <div class="todaypill"><span class="tp-dot"></span><span class="tp-today">Today</span><span class="tp-sep">·</span><span class="tp-date" id="todayDate"></span></div>
     </header>
-    <p class="today-line" id="todayLine"></p>
-    <a class="ttcard" href="#timetable" id="ttcard">
-      <span class="tt-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9.5h18M8 3v3M16 3v3"/></svg></span>
-      <span class="tt-tx"><span class="tt-t">My Timetable</span><span class="tt-s" id="ttsub">Look up your weekly classes by roll number</span></span>
-      <span class="tt-arrow">&rsaquo;</span>
+
+    <a class="gcard" href="#timetable" id="ttcard">
+      <span class="gc-ic ic-cal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9.5h18M8 3v3M16 3v3"/></svg></span>
+      <span class="gc-body"><span class="gc-title">My Timetable</span><span class="gc-sub" id="ttsub">Look up your weekly classes by roll number</span><span class="gc-chip" id="ttchip" hidden></span></span>
+      <span class="gc-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
     </a>
-    <a class="ttcard rqcard" href="#books" id="bkcard">
-      <span class="tt-ic ic2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H12v15.5H5.5A1.5 1.5 0 0 1 4 18z"/><path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H12v15.5h6.5A1.5 1.5 0 0 0 20 18z"/></svg></span>
-      <span class="tt-tx"><span class="tt-t">Request E-books</span><span class="tt-s">Don't Buy Books !! Find it free, or request a copy</span></span>
-      <span class="tt-arrow">&rsaquo;</span>
+
+    <a class="gcard" href="#books" id="bkcard">
+      <span class="gc-ic ic-book"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6.6C10.5 5.4 8.3 4.9 5.6 5.1c-.9.05-1.6.8-1.6 1.7v10.7c0 .95.85 1.7 1.8 1.6 2.4-.2 4.5.3 6.2 1.4 1.7-1.1 3.8-1.6 6.2-1.4.95.08 1.8-.65 1.8-1.6V6.8c0-.9-.7-1.65-1.6-1.7-2.7-.2-4.9.3-6.4 1.5z"/><path d="M12 6.6v12.3"/></svg></span>
+      <span class="gc-body"><span class="gc-title">Request E-books</span><span class="gc-sub">Don't Buy Books !! Find it free, or request a copy</span></span>
+      <span class="gc-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
     </a>
-    <div class="ttcard soon" id="pyqcard">
-      <span class="tt-ic ic3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2.5h7l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1z"/><path d="M13 2.5V8h5"/><path d="M8.5 13h7M8.5 16.5h5"/></svg></span>
-      <span class="tt-tx"><span class="tt-t">PYQs</span><span class="tt-s">Previous year question papers — exam prep in one place</span></span>
+
+    <div class="gcard soon" id="pyqcard">
+      <span class="gc-ic ic-pyq"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2.5h7l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1z"/><path d="M13 2.5V8h5"/><path d="M8.5 13h7M8.5 16.5h5"/></svg></span>
+      <span class="gc-body"><span class="gc-title">PYQs</span><span class="gc-sub">Previous year question papers — exam prep in one place</span></span>
       <span class="soon-pill">Coming soon</span>
     </div>
-    <footer>Tentative weekly schedule — confirm any room/time changes with the department.</footer>
+
+    <div id="glance" hidden>
+      <h3 class="sec-h">At a Glance</h3>
+      <div class="statrow">
+        <div class="stat">
+          <span class="stat-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-4 9 4-9 4-9-4z"/><path d="M21 9v5"/><path d="M7 11v4c0 1.1 2.2 2 5 2s5-.9 5-2v-4"/></svg></span>
+          <div class="stat-tx"><span class="stat-big" id="stClasses">0</span><span class="stat-lb">Classes Today</span><span class="stat-cap" id="stClassesSub">Stay on track</span></div>
+        </div>
+        <div class="stat">
+          <span class="stat-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></span>
+          <div class="stat-tx"><span class="stat-cap top">Next Class</span><span class="stat-big" id="stNext">—</span><span class="stat-cap" id="stNextSub"></span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="notecard">
+      <span class="nc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span>
+      <span class="nc-tx">Tentative weekly schedule — confirm any room/time changes with the department.</span>
+      <span class="nc-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
+    </div>
   </section>
 
   <section id="view-tt" class="view" hidden>
     <div class="topbar">
-      <a class="back" href="#" id="backBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>Home</a>
+      <a class="iconbtn" href="#" id="backBtn" aria-label="Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></a>
       <span class="tt-title">My Timetable</span>
+      <button class="iconbtn js-theme" aria-label="Switch theme"></button>
     </div>
     <div class="lookup">
       <h2>Find your schedule</h2>
@@ -361,8 +463,9 @@ footer{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);font-si
 
   <section id="view-books" class="view" hidden>
     <div class="topbar">
-      <a class="back" href="#" id="backBtn2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>Home</a>
+      <a class="iconbtn" href="#" id="backBtn2" aria-label="Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></a>
       <span class="tt-title">Books &amp; Resources</span>
+      <button class="iconbtn js-theme" aria-label="Switch theme"></button>
     </div>
     <p class="bk-intro">Most MBA texts are available <b>free and legally</b> — start here. If you still can't find it, request a copy and we'll point you to a legitimate one.</p>
 
@@ -412,15 +515,15 @@ const SUN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-wid
 const MOON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A8.5 8.5 0 1 1 11.2 3a6.5 6.5 0 0 0 9.8 9.8z"/></svg>';
 const root=document.documentElement;
 function setTheme(t){ root.setAttribute("data-theme",t); try{localStorage.setItem("imnu-theme",t);}catch(e){}
-  const b=$("themeBtn"); if(b){ b.innerHTML=t==="dark"?SUN:MOON; b.setAttribute("aria-label",t==="dark"?"Switch to light theme":"Switch to dark theme"); } }
+  document.querySelectorAll(".js-theme").forEach(b=>{ b.innerHTML=t==="dark"?SUN:MOON; b.setAttribute("aria-label",t==="dark"?"Switch to light theme":"Switch to dark theme"); }); }
 setTheme(root.getAttribute("data-theme")||"dark");
-$("themeBtn").addEventListener("click",()=>setTheme(root.getAttribute("data-theme")==="dark"?"light":"dark"));
+document.addEventListener("click",e=>{ if(e.target.closest(".js-theme")) setTheme(root.getAttribute("data-theme")==="dark"?"light":"dark"); });
 
 // page loader
 window.addEventListener("load",()=>{ const l=$("loader"); if(!l) return;
   setTimeout(()=>{ l.classList.add("hide"); setTimeout(()=>l.remove(),650); }, 480); });
 
-$("inst").textContent=DATA.meta.institute+" · "+DATA.meta.term;
+$("abInst").textContent=DATA.meta.institute; $("abTerm").textContent=DATA.meta.term;
 const fmt=d=>d.toLocaleDateString("en-GB",{day:"numeric",month:"short"});
 const fmtDM=ds=>new Date(ds+"T00:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short"});
 const dateStr=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
@@ -432,18 +535,46 @@ const WK_MON=mondayOf(new Date((DATA.meta.week_of||dateStr(TODAY))+"T00:00:00"))
 const WK_END=new Date(WK_MON); WK_END.setDate(WK_MON.getDate()+6);
 let currentRoll=null;
 
-// home header reflects the schedule's week
+// home hero reflects the schedule's week
 (function(){const m=WK_MON, e=WK_END;
   $("month").textContent=m.toLocaleDateString("en-GB",{month:"long"});
-  const yr=String(m.getFullYear()); $("year").innerHTML=`<span>${yr.slice(0,2)}</span><span>${yr.slice(2)}</span>`;
+  $("year").textContent=String(m.getFullYear());
   $("subweek").textContent="Week of "+fmt(m)+" – "+fmt(e);
-  $("todayLine").textContent="Today · "+TODAY.toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long"});})();
+  $("todayDate").textContent=TODAY.toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long"});})();
 
 // remembered roll
 const getRoll=()=>{try{return localStorage.getItem("imnu-roll")||"";}catch(e){return "";}};
 const putRoll=r=>{try{localStorage.setItem("imnu-roll",r);}catch(e){}};
 function refreshHomeCard(){const r=getRoll(), st=r&&DATA.students[r];
-  $("ttsub").textContent= st ? ("Continue as "+st.n+" · "+r) : "Look up your weekly classes by roll number";}
+  $("ttsub").textContent= st ? ("Continue as "+st.n) : "Look up your weekly classes by roll number";
+  const chip=$("ttchip"); if(st){ chip.textContent=r; chip.hidden=false; } else chip.hidden=true;
+  homeStats(st);}
+function cleanSub(n){ return String(n||"").split("*")[0].split("(")[0].replace(/\s+/g," ").trim(); }
+function prettyTime(t){ const m=String(t).match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i); return m?((+m[1])+":"+m[2]+" "+m[3].toUpperCase()):t; }
+function homeStats(st){ const g=$("glance"); if(!st){ g.hidden=true; return; }
+  const secs=st.s.map(id=>DATA.sections[id]).filter(Boolean);
+  const M=[]; secs.forEach(s=>(s.meetings||[]).forEach(m=>M.push({day:m.day,start:m.start,name:cleanSub(s.name)||s.abbr})));
+  const dayName=TODAY.toLocaleDateString("en-US",{weekday:"long"});
+  const toMin=hhmm=>{const m=String(hhmm).match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i); if(!m)return 0; let h=(+m[1])%12; if(/pm/i.test(m[3]||""))h+=12; return h*60+(+m[2]);};
+  const todays=M.filter(m=>m.day===dayName).sort((a,b)=>toMin(a.start)-toMin(b.start));
+  $("stClasses").textContent=todays.length;
+  $("stClassesSub").textContent= todays.length? "Stay on track" : "No classes today";
+  const now=TODAY.getHours()*60+TODAY.getMinutes();
+  let next=todays.find(m=>toMin(m.start)>now)||null, when="today";
+  if(!next){ const order=DATA.days||[], ti=order.indexOf(dayName);
+    for(let off=1; off<=order.length && !next; off++){ const d=order[(ti+off)%order.length];
+      const dm=M.filter(m=>m.day===d).sort((a,b)=>toMin(a.start)-toMin(b.start));
+      if(dm.length){ next=dm[0]; when=d.slice(0,3); } } }
+  if(next){ $("stNext").textContent=prettyTime(next.start); $("stNextSub").textContent= next.name + (when!=="today"? " · "+when : ""); }
+  else { $("stNext").textContent="—"; $("stNextSub").textContent="No upcoming classes"; }
+  g.hidden=false;}
+// app-bar menu
+(function(){ const mb=$("menuBtn"), mn=$("menu"); if(!mb||!mn) return;
+  const close=()=>{ mn.hidden=true; mb.setAttribute("aria-expanded","false"); };
+  mb.addEventListener("click",e=>{ e.stopPropagation(); const willOpen=mn.hidden; mn.hidden=!willOpen; mb.setAttribute("aria-expanded",String(willOpen)); });
+  document.addEventListener("click",e=>{ if(!mn.hidden && !e.target.closest("#menu") && !e.target.closest("#menuBtn")) close(); });
+  mn.addEventListener("click",e=>{ if(e.target.closest("a")) close(); });
+})();
 
 // routing: Home <-> Timetable
 function showView(){const h=location.hash, tt=h==="#timetable", bk=h==="#books";
@@ -652,6 +783,35 @@ import shutil
 BOOK_EXTS = {".pdf":"PDF", ".epub":"EPUB", ".mobi":"MOBI", ".azw3":"AZW3", ".djvu":"DjVu",
              ".doc":"DOC", ".docx":"DOCX", ".ppt":"PPT", ".pptx":"PPTX", ".txt":"TXT", ".zip":"ZIP"}
 
+import json as _json, re as _re
+# Map subject abbreviations -> (display abbr, area-colour class) from the dataset,
+# so a book tagged with a subject code shows the same colour as the timetable grid.
+try:
+    _D = _json.loads(data)
+except Exception:
+    _D = {}
+_AREA_SLUG = {"Finance":"finance","Marketing":"marketing","DnA":"dna","OB":"ob","OM":"om","E & S":"es"}
+_ABBR2 = {}   # "S&DM" -> ("S&DM","a-marketing")
+_NAME2 = {}   # normalised full name -> "ABBR"
+def _normsub(s): return _re.sub(r"[^a-z0-9]", "", str(s).lower())
+for _s in (_D.get("sections") or {}).values():
+    _ab = str(_s.get("abbr","")).strip()
+    if not _ab: continue
+    _ABBR2[_ab.upper()] = (_ab, "a-" + _AREA_SLUG.get(_s.get("area",""), "gen"))
+    _nm = str(_s.get("name","")).split("*")[0].split("(")[0].strip()
+    if _nm: _NAME2[_normsub(_nm)] = _ab.upper()
+
+def _resolve_subj(code, title):
+    """code = bracket tag from filename (may be ''); fall back to title match."""
+    key = str(code or "").strip().upper()
+    if key and key in _ABBR2: return _ABBR2[key]
+    if key: return (key, "a-gen")            # tag given but not in dataset
+    nt = _normsub(title)                     # auto-match exact course name in title
+    for nm_norm, ab_up in _NAME2.items():
+        if len(nm_norm) >= 7 and nm_norm in nt and ab_up in _ABBR2:
+            return _ABBR2[ab_up]
+    return ("", "")
+
 shelf = []
 # 1) files the user uploaded to <repo>/library/ — copied into the published
 #    site folder (next to index.html) so GitHub Pages serves them.
@@ -673,6 +833,12 @@ if os.path.isdir(LIB_DIR):
         except OSError:
             pass
         stem = os.path.splitext(fn)[0].replace("_", " ").strip()
+        # optional subject code in [brackets], e.g. "Consumer Behavior - Schiffman [CB].pdf"
+        subj_code = ""
+        _mt = _re.search(r"\[([^\]]{1,12})\]", stem)
+        if _mt:
+            subj_code = _mt.group(1).strip()
+            stem = _re.sub(r"\s{2,}", " ", (stem[:_mt.start()] + stem[_mt.end():])).strip()
         title, author = stem, ""
         for sep in (" \u2014 ", " - ", " \u2013 "):  # em / hyphen / en dash
             if sep in stem:
@@ -681,19 +847,24 @@ if os.path.isdir(LIB_DIR):
             tag = BOOK_EXTS[ext] + " \u00b7 " + _fmt_size(os.path.getsize(src))
         except OSError:
             tag = BOOK_EXTS[ext]
-        shelf.append({"title": title, "author": author, "link": "library/" + quote(fn), "source": tag})
+        subj_disp, subj_cls = _resolve_subj(subj_code, title)
+        shelf.append({"title": title, "author": author, "link": "library/" + quote(fn),
+                      "source": tag, "subj": subj_disp, "subjcls": subj_cls})
 # 2) optional externally-hosted entries from the config list
 for bk in SHARED_BOOKS:
+    _sd, _sc = _resolve_subj(bk.get("abbr",""), bk.get("title",""))
     shelf.append({"title": bk["title"], "author": bk.get("author",""),
-                  "link": bk.get("link","#"), "source": bk.get("source","")})
+                  "link": bk.get("link","#"), "source": bk.get("source",""),
+                  "subj": _sd, "subjcls": _sc})
 
 if shelf:
     _cards = ""
     for bk in shelf:
         _tag  = '<span class="sh-tag">%s</span>' % _esc(bk["source"]) if bk.get("source") else ""
+        _subj = '<span class="sh-subj %s">%s</span>' % (_esc(bk.get("subjcls") or "a-gen"), _esc(bk["subj"])) if bk.get("subj") else ""
         _auth = '<span class="res-s">%s</span>'  % _esc(bk["author"]) if bk.get("author") else ""
         _cards += ('<a class="rescard shbook" href="%s" target="_blank" rel="noopener">'
-                   '<span class="res-t">%s</span>%s%s</a>') % (_esc(bk["link"]), _esc(bk["title"]), _auth, _tag)
+                   '<span class="res-t">%s</span>%s%s%s</a>') % (_esc(bk["link"]), _esc(bk["title"]), _auth, _subj, _tag)
     SHARED_HTML = ('\n    <h3 class="bk-h">Books In Stock</h3>'
                    '\n    <p class="bk-note">Books available to download right now. Tap to open.</p>'
                    '\n    <div class="reslist">%s</div>') % _cards
