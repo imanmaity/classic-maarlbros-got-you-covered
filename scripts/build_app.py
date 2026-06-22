@@ -15,6 +15,18 @@ BG_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBAUEBAYFBQUGBgYHCQ4JCQgICRINDQoOFR
 REQUEST_EMAIL = "25MBA420@nirmauni.ac.in"
 REQUEST_FORM_URL = ""
 
+# ---- Shared shelf — e-books/resources you've cleared to share freely ----
+# Add ONLY materials you have the right to distribute: your own notes/summaries,
+# open-access or public-domain books, or files a faculty member has authorised.
+# To add one: put the file on Google Drive (Share > "Anyone with the link") or
+# in the repo's library/ folder, then add a line below and re-run the build.
+# Each entry: title, author (optional), link, source/licence tag (optional).
+SHARED_BOOKS = [
+    {"title": "Principles of Marketing", "author": "OpenStax (Gomez Albrecht, Green, Hoffman)",
+     "link": "https://openstax.org/details/books/principles-marketing", "source": "Open access · CC BY"},
+    # {"title": "My SCM notes", "author": "Iman Maity", "link": "https://drive.google.com/...", "source": "My notes"},
+]
+
 TEMPLATE = r"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -246,15 +258,17 @@ footer{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);font-si
 .back{display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:var(--muted);font-weight:600;font-size:14px}
 .back svg{width:16px;height:16px} .back:hover{color:var(--accent)}
 .tt-title{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:20px;color:var(--ink)}
-#weeknav{display:flex;align-items:center;gap:10px;margin:0 0 16px}
-.wkbtn{width:42px;height:42px;flex:none;display:grid;place-items:center;cursor:pointer;border:1.5px solid var(--line);
-  border-radius:13px;background:var(--card);color:var(--ink);backdrop-filter:blur(8px);transition:border-color .15s,transform .08s}
-.wkbtn:hover{border-color:var(--accent)} .wkbtn:active{transform:translateY(1px)} .wkbtn:disabled{opacity:.3;cursor:not-allowed}
-.wkmid{flex:1;text-align:center;min-width:0}
-.wkmonth{display:block;font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:17px;color:var(--ink);letter-spacing:-.01em}
-.wkrange{display:block;font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted);margin-top:1px}
-.proj{display:flex;gap:9px;align-items:flex-start;background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);
-  border-radius:12px;padding:9px 12px;margin-bottom:14px;font-size:12px;line-height:1.4;color:var(--muted);backdrop-filter:blur(8px)}
+.rollwrap{position:relative;flex:1;min-width:0}
+.rollwrap input{width:100%}
+.acdrop{position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:30;background:var(--card2);border:1px solid var(--line);border-radius:12px;
+  box-shadow:0 14px 36px var(--shadow);max-height:264px;overflow-y:auto;display:none;backdrop-filter:blur(12px)}
+.acdrop.show{display:block}
+.acitem{display:flex;flex-direction:column;gap:1px;padding:9px 13px;cursor:pointer;border-bottom:1px solid var(--line)}
+.acitem:last-child{border-bottom:none}
+.acitem:hover,.acitem.active{background:var(--accent-soft)}
+.ac-roll{font-family:"JetBrains Mono",monospace;font-size:11.5px;font-weight:700;color:var(--accent);letter-spacing:.03em}
+.ac-name{font-size:13.5px;color:var(--ink)}
+.weeklabel{text-align:center;font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--muted);margin:0 0 14px;font-weight:700}
 .ic2{background:linear-gradient(135deg,#b070ff,#ff5e9a,#ff8a3d)}
 .bk-intro{margin:0 0 18px;font-size:13.5px;color:var(--muted);line-height:1.5} .bk-intro b{color:var(--ink)}
 .bk-h{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:15px;color:var(--ink);margin:6px 0 10px}
@@ -264,6 +278,12 @@ footer{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);font-si
 .rescard:hover{border-color:var(--accent)} .rescard:active{transform:scale(.995)}
 .res-t{display:block;font-weight:700;font-size:14px;color:var(--ink)}
 .res-s{display:block;font-size:12px;color:var(--muted);margin-top:3px;line-height:1.4}
+.sh-tag{display:inline-block;margin-top:8px;font-size:10.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;
+  color:var(--accent);background:var(--accent-soft);border-radius:6px;padding:3px 8px}
+.shbook .res-t{display:flex;align-items:center;gap:7px}
+.shbook .res-t::before{content:"";flex:none;width:15px;height:15px;background:var(--accent);
+  -webkit-mask:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg>') center/contain no-repeat;
+  mask:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg>') center/contain no-repeat}
 .bk-note{margin:0 0 12px;font-size:12.5px;color:var(--muted);line-height:1.45}
 .reqform{display:flex;flex-direction:column;gap:11px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;backdrop-filter:blur(10px)}
 .reqform label{display:flex;flex-direction:column;gap:5px;font-size:11.5px;font-weight:600;color:var(--muted);letter-spacing:.01em}
@@ -298,7 +318,7 @@ footer{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);font-si
     </a>
     <a class="ttcard rqcard" href="#books" id="bkcard">
       <span class="tt-ic ic2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H12v15.5H5.5A1.5 1.5 0 0 1 4 18z"/><path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H12v15.5h6.5A1.5 1.5 0 0 0 20 18z"/></svg></span>
-      <span class="tt-tx"><span class="tt-t">Request E-books</span><span class="tt-s">Can't afford a book? Find it free, or request a copy</span></span>
+      <span class="tt-tx"><span class="tt-t">Request E-books</span><span class="tt-s">Don't Buy Books !! Find it free, or request a copy</span></span>
       <span class="tt-arrow">&rsaquo;</span>
     </a>
     <footer>Tentative weekly schedule — confirm any room/time changes with the department.</footer>
@@ -313,16 +333,15 @@ footer{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);font-si
       <h2>Find your schedule</h2>
       <p>Enter your roll number to see your weekly classes.</p>
       <div class="field">
-        <input type="text" id="roll" placeholder="e.g. 25MBA420" autocomplete="off" spellcheck="false" aria-label="Roll number">
+        <div class="rollwrap">
+          <input type="text" id="roll" placeholder="e.g. 25MBA420 or your name" autocomplete="off" spellcheck="false" aria-label="Roll number" role="combobox" aria-autocomplete="list" aria-expanded="false">
+          <div class="acdrop" id="acdrop" role="listbox"></div>
+        </div>
         <button class="go" id="btn">Show</button>
       </div>
       <div class="err" id="err"></div>
     </div>
-    <div id="weeknav" hidden>
-      <button class="wkbtn" id="prevW" aria-label="Previous week"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
-      <div class="wkmid"><span class="wkmonth" id="wkmonth"></span><span class="wkrange" id="wkrange"></span></div>
-      <button class="wkbtn" id="nextW" aria-label="Next week"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
-    </div>
+    <div class="weeklabel" id="weeklabel" hidden></div>
     <div id="result"></div>
     <footer>Tentative weekly schedule — confirm any room/time changes with the department.</footer>
   </section>
@@ -343,7 +362,7 @@ footer{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);font-si
       <a class="rescard" href="https://openstax.org/subjects" target="_blank" rel="noopener"><span class="res-t">OpenStax</span><span class="res-s">Free, peer-reviewed open textbooks — business, economics, statistics</span></a>
       <a class="rescard" href="https://www.doabooks.org/" target="_blank" rel="noopener"><span class="res-t">DOAB — Directory of Open Access Books</span><span class="res-s">Thousands of free, openly-licensed academic books</span></a>
     </div>
-
+__SHAREDSECTION__
     <h3 class="bk-h">Can't find it? Request a copy</h3>
     <p class="bk-note">Tell us the book — we'll point you to a legitimate copy: a library edition, an open version, or a classmate who can lend it.</p>
     <div class="reqform" id="reqInline">
@@ -395,13 +414,13 @@ const dateStr=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`
 function mondayOf(d){const x=new Date(d);x.setHours(0,0,0,0);const w=(x.getDay()+6)%7;x.setDate(x.getDate()-w);return x;}
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 
-const TODAY=new Date(), BASE_MON=mondayOf(TODAY);
-const MIN_OFF=-10, MAX_OFF=20;
-let weekOffset=0, currentRoll=null;
-const dispMon=()=>{const m=new Date(BASE_MON);m.setDate(m.getDate()+weekOffset*7);return m;};
+const TODAY=new Date();
+const WK_MON=mondayOf(new Date((DATA.meta.week_of||dateStr(TODAY))+"T00:00:00"));
+const WK_END=new Date(WK_MON); WK_END.setDate(WK_MON.getDate()+6);
+let currentRoll=null;
 
-// home header reflects the current week
-(function(){const m=new Date(BASE_MON), e=new Date(BASE_MON); e.setDate(e.getDate()+6);
+// home header reflects the schedule's week
+(function(){const m=WK_MON, e=WK_END;
   $("month").textContent=m.toLocaleDateString("en-GB",{month:"long"});
   const yr=String(m.getFullYear()); $("year").innerHTML=`<span>${yr.slice(0,2)}</span><span>${yr.slice(2)}</span>`;
   $("subweek").textContent="Week of "+fmt(m)+" – "+fmt(e);
@@ -420,18 +439,10 @@ function showView(){const h=location.hash, tt=h==="#timetable", bk=h==="#books";
   window.scrollTo(0,0);}
 function enterBooks(){ const r=getRoll(), st=r&&DATA.students[r];
   if(st && $("q_who") && !$("q_who").value) $("q_who").value=st.n+" · "+r; }
-function enterTT(){weekOffset=0; const r=getRoll();
+function enterTT(){ const r=getRoll();
   if(r && DATA.students[r]){ $("roll").value=r; doLookup(); }
-  else { $("weeknav").hidden=true; $("result").classList.remove("show"); $("result").innerHTML=""; setTimeout(()=>$("roll").focus(),60); }}
+  else { $("weeklabel").hidden=true; $("result").classList.remove("show"); $("result").innerHTML=""; setTimeout(()=>$("roll").focus(),60); }}
 window.addEventListener("hashchange",showView);
-
-// week navigation
-function setWeek(delta){ weekOffset=clamp(weekOffset+delta,MIN_OFF,MAX_OFF); if(currentRoll) render(); updateNav(); }
-function updateNav(){const m=dispMon(), e=new Date(m); e.setDate(e.getDate()+6);
-  $("wkmonth").textContent=m.toLocaleDateString("en-GB",{month:"long"})+" "+m.getFullYear();
-  let lbl=weekOffset===0?"This week":weekOffset===1?"Next week":weekOffset===-1?"Last week":(weekOffset>0?("In "+weekOffset+" weeks"):(Math.abs(weekOffset)+" weeks ago"));
-  $("wkrange").textContent=lbl+" · "+fmt(m)+" – "+fmt(e);
-  $("prevW").disabled=weekOffset<=MIN_OFF; $("nextW").disabled=weekOffset>=MAX_OFF;}
 
 const AREA_SLUG={"Finance":"finance","Marketing":"marketing","DnA":"dna","OB":"ob","OM":"om","E & S":"es"};
 const slug=a=>"a-"+(AREA_SLUG[a]||"gen");
@@ -443,21 +454,21 @@ function cleanNotice(t){ if(!t) return "";
 function doLookup(){
   const roll=$("roll").value.trim().toUpperCase(); $("roll").value=roll;
   const err=$("err"),res=$("result"); res.classList.remove("show"); err.classList.remove("show");
-  if(!roll){ err.textContent="Type your roll number to continue."; err.classList.add("show"); $("weeknav").hidden=true; return; }
-  if(!DATA.students[roll]){ err.textContent="No student found for "+roll+". Check the roll number and try again."; err.classList.add("show"); $("weeknav").hidden=true; return; }
-  currentRoll=roll; putRoll(roll); weekOffset=0;
-  $("weeknav").hidden=false; render(); updateNav();
+  if(!roll){ err.textContent="Type your roll number to continue."; err.classList.add("show"); $("weeklabel").hidden=true; return; }
+  if(!DATA.students[roll]){ err.textContent="No student found for "+roll+". Check the roll number and try again."; err.classList.add("show"); $("weeklabel").hidden=true; return; }
+  currentRoll=roll; putRoll(roll); closeAC();
+  $("weeklabel").textContent="Week of "+fmt(WK_MON)+" – "+fmt(WK_END); $("weeklabel").hidden=false;
+  render();
 }
 
 const TCOL=40;
 function render(){
   const roll=currentRoll, st=DATA.students[roll]; if(!st) return;
-  const mon=dispMon(), wkEnd=new Date(mon); wkEnd.setDate(mon.getDate()+6);
+  const mon=WK_MON, wkEnd=WK_END;
   const dayDate={}; DATA.days.forEach((d,i)=>{const dt=new Date(mon);dt.setDate(mon.getDate()+i);dayDate[d]=dateStr(dt);});
   const todayDay=Object.keys(dayDate).find(d=>dayDate[d]===dateStr(TODAY))||null;
   const inWk=ds=>{ if(!ds) return false; try{const d=new Date(ds+"T00:00:00"); return d>=mon&&d<=wkEnd;}catch(e){return false;} };
   const weekEvents=(DATA.events||[]).filter(e=>inWk(e.date));
-  const projected=weekOffset!==0;
   const electives=st.s.map(id=>Object.assign({id},DATA.sections[id]));
   const meetings=[];
   electives.forEach(e=>(e.meetings||[]).forEach(m=>meetings.push(Object.assign({sec:e},m))));
@@ -485,7 +496,6 @@ function render(){
   const dnum=d=>fmtDM(dayDate[d]).split(' ')[0];
 
   let html=`<div class="who"><span class="name">${esc(st.n)}</span><span class="chip">${esc(roll)}</span><span class="meta">${electives.length} electives · ${esc(st.b)}</span></div>`;
-  if(projected) html+=`<div class="proj">Showing the regular weekly pattern. The office's plan for ${fmt(mon)} – ${fmt(wkEnd)} may differ once it's announced.</div>`;
 
   if(myChanges.length){ const seen=new Set();
     myChanges.forEach(c=>{const t=cleanNotice(c.raw); if(!t||seen.has(t))return; seen.add(t);
@@ -555,9 +565,40 @@ function render(){
 }
 
 $("btn").addEventListener("click",doLookup);
-$("roll").addEventListener("keydown",e=>{ if(e.key==="Enter") doLookup(); });
-$("prevW").addEventListener("click",()=>setWeek(-1));
-$("nextW").addEventListener("click",()=>setWeek(1));
+
+// ---- name autocomplete on roll lookup ----
+const acdrop=$("acdrop"), allRolls=Object.keys(DATA.students);
+let acItems=[], acActive=-1;
+function closeAC(){ acdrop.classList.remove("show"); acdrop.innerHTML=""; acItems=[]; acActive=-1; $("roll").setAttribute("aria-expanded","false"); }
+function renderAC(q){
+  q=(q||"").trim().toUpperCase(); acActive=-1;
+  if(q.length<2){ closeAC(); return; }
+  const starts=[], names=[];
+  for(const r of allRolls){
+    if(r.indexOf(q)===0) starts.push(r);
+    else if(String(DATA.students[r].n).toUpperCase().indexOf(q)>=0) names.push(r);
+  }
+  starts.sort();
+  acItems=starts.concat(names).slice(0,8);
+  if(!acItems.length){ closeAC(); return; }
+  acdrop.innerHTML=acItems.map((r,i)=>`<div class="acitem" role="option" data-i="${i}" data-roll="${esc(r)}"><span class="ac-roll">${esc(r)}</span><span class="ac-name">${esc(DATA.students[r].n)}</span></div>`).join("");
+  acdrop.classList.add("show"); $("roll").setAttribute("aria-expanded","true");
+}
+function setActive(i){ acActive=i;
+  Array.prototype.forEach.call(acdrop.children,(el,j)=>el.classList.toggle("active",j===i));
+  if(acdrop.children[i]) acdrop.children[i].scrollIntoView({block:"nearest"}); }
+function pickAC(r){ $("roll").value=r; closeAC(); doLookup(); }
+$("roll").addEventListener("input",e=>renderAC(e.target.value));
+$("roll").addEventListener("focus",e=>{ if(e.target.value) renderAC(e.target.value); });
+$("roll").addEventListener("blur",()=>setTimeout(closeAC,150));
+acdrop.addEventListener("mousedown",e=>{ const it=e.target.closest(".acitem"); if(!it)return; e.preventDefault(); pickAC(it.dataset.roll); });
+$("roll").addEventListener("keydown",e=>{
+  const open=acdrop.classList.contains("show")&&acItems.length;
+  if(open && e.key==="ArrowDown"){ e.preventDefault(); setActive((acActive+1)%acItems.length); return; }
+  if(open && e.key==="ArrowUp"){ e.preventDefault(); setActive((acActive-1+acItems.length)%acItems.length); return; }
+  if(open && e.key==="Escape"){ closeAC(); return; }
+  if(e.key==="Enter"){ if(open && acActive>=0){ e.preventDefault(); pickAC(acItems[acActive]); } else doLookup(); }
+});
 refreshHomeCard();
 // ---- book requests ----
 function setupBooks(){ if(REQ_FORM){ $("reqInline").hidden=true; const b=$("reqFormBtn"); b.hidden=false; b.href=REQ_FORM; } }
@@ -585,5 +626,21 @@ showView();
 </body>
 </html>
 """
-open(OUT_PATH, "w", encoding="utf-8").write(TEMPLATE.replace("__BG__", BG_B64).replace("__REQEMAIL__", REQUEST_EMAIL).replace("__REQFORM__", REQUEST_FORM_URL).replace("__DATA__", data))
+def _esc(s):
+    return str(s).replace("&","&amp;").replace("<","&lt;").replace(">","&gt;").replace('"',"&quot;")
+
+if SHARED_BOOKS:
+    _cards = ""
+    for bk in SHARED_BOOKS:
+        _tag = '<span class="sh-tag">%s</span>' % _esc(bk["source"]) if bk.get("source") else ""
+        _auth = '<span class="res-s">%s</span>' % _esc(bk["author"]) if bk.get("author") else ""
+        _cards += ('<a class="rescard shbook" href="%s" target="_blank" rel="noopener">'
+                   '<span class="res-t">%s</span>%s%s</a>') % (_esc(bk.get("link","#")), _esc(bk["title"]), _auth, _tag)
+    SHARED_HTML = ('\n    <h3 class="bk-h">Shared by your batch</h3>'
+                   '\n    <p class="bk-note">Free-to-share materials — open-access books, public-domain works, and notes. Tap to open or download.</p>'
+                   '\n    <div class="reslist">%s</div>') % _cards
+else:
+    SHARED_HTML = ""
+
+open(OUT_PATH, "w", encoding="utf-8").write(TEMPLATE.replace("__BG__", BG_B64).replace("__REQEMAIL__", REQUEST_EMAIL).replace("__REQFORM__", REQUEST_FORM_URL).replace("__SHAREDSECTION__", SHARED_HTML).replace("__DATA__", data))
 print(f"Wrote {OUT_PATH}")
