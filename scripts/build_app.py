@@ -29,6 +29,7 @@ TEMPLATE = r"""<!DOCTYPE html>
   --gen:#5b6776; --gen-bg:#e9ecf0;
   --hol:#9a6b1f; --hol-bg:#f6e8cf;
   --exam:#b02458; --exam-bg:#fbe0ea;
+  --chg:#7c3aed; --chg-bg:#efe7fd;
   --radius:14px;
 }
 html[data-theme="dark"]{
@@ -44,6 +45,7 @@ html[data-theme="dark"]{
   --gen:#9aa6b2; --gen-bg:#242a31;
   --hol:#e3b15c; --hol-bg:#342916;
   --exam:#ff7da6; --exam-bg:#371b27;
+  --chg:#b794f6; --chg-bg:#2a2140;
 }
 *{box-sizing:border-box}
 html,body{margin:0}
@@ -135,6 +137,18 @@ button.go:active{transform:translateY(1px)}
 .blk .rm small{font-weight:500;opacity:.8}
 .ev-holiday{--c:var(--hol);--cb:var(--hol-bg)}
 .ev-exam{--c:var(--exam);--cb:var(--exam-bg)}
+.sw.chg{background:var(--chg-bg);border:1.5px solid var(--chg)}
+.changes{display:grid;gap:9px;margin:0 0 18px}
+.chgcard{background:var(--chg-bg);border:1.5px solid color-mix(in srgb,var(--chg) 35%,transparent);
+  border-left:4px solid var(--chg);border-radius:12px;padding:11px 14px;font-size:13.5px;line-height:1.45}
+.chgcard .lbl{display:inline-block;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
+  color:#fff;background:var(--chg);padding:2px 7px;border-radius:5px;margin-right:8px;vertical-align:middle}
+.chgcard .txt{color:var(--ink)}
+.blk.chg{outline:2px solid var(--chg);outline-offset:1px}
+.blk.chg-out{opacity:.72}
+.blk.chg-out .ab{text-decoration:line-through}
+.cbadge{display:inline-block;margin-top:5px;font-size:8.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  padding:2px 6px;border-radius:5px;background:var(--chg);color:#fff}
 
 .agenda{display:none}
 .day-grp{margin-bottom:18px}
@@ -269,6 +283,7 @@ function legendAndEvents(){
       <span class="li"><span class="sw today"></span>Today</span>
       <span class="li"><span class="sw hol"></span>Holiday</span>
       <span class="li"><span class="sw exam"></span>Exam</span>
+      <span class="li"><span class="sw chg"></span>Changed</span>
     </div>`;
   const evs = DATA.events||[];
   let strip = evs.filter(e=>e.type==="holiday")
@@ -280,10 +295,37 @@ function legendAndEvents(){
   return h + `<div class="events">${strip}</div>`;
 }
 
+function changesSection(myChanges){
+  if(!myChanges || !myChanges.length) return "";
+  const seen=new Set(); let cards="";
+  myChanges.forEach(c=>{ if(seen.has(c.raw)) return; seen.add(c.raw);
+    cards += `<div class="chgcard"><span class="lbl">${esc(c.type||'Changed')}</span><span class="txt">${esc(c.raw)}</span></div>`;
+  });
+  return `<div class="section-label" style="color:var(--chg)">Change in class schedule</div><div class="changes">${cards}</div>`;
+}
+
 function render(roll, st){
   const electives = st.s.map(id => Object.assign({id}, DATA.sections[id]));
   const meetings = [];
   electives.forEach(e => (e.meetings||[]).forEach(m => meetings.push(Object.assign({sec:e}, m))));
+
+  // class-change notices affecting this student's sections
+  const myKey = new Set(electives.map(e=>e.abbr+'|'+(e.division||'')));
+  const myChanges = (DATA.changes||[]).filter(c=>myKey.has(c.abbr+'|'+(c.division||'')));
+  const elBy = {}; electives.forEach(e=>{ elBy[e.abbr+'|'+(e.division||'')]=e; });
+  const normHM = s => { const m=String(s||'').match(/(\d{1,2})[:.](\d{2})/); return m?parseInt(m[1])+':'+m[2]:''; };
+  const sessByHM = hm => DATA.sessions.find(s=>normHM(s.start)===normHM(hm));
+  const changeOut = new Set();
+  myChanges.forEach(c=>{
+    const el = elBy[c.abbr+'|'+(c.division||'')];
+    const ses = sessByHM(c.new_hhmm);
+    if(el && ses && c.new_day && c.type!=='Cancelled'){
+      meetings.push({sec:el, day:c.new_day, session:ses.name, start:ses.start, end:ses.end, changed:'in'});
+    }
+    if(c.old_day) changeOut.add(c.old_day+'|'+c.abbr+'|'+(c.division||''));
+  });
+  meetings.forEach(m=>{ if(!m.changed && changeOut.has(m.day+'|'+m.sec.abbr+'|'+(m.sec.division||''))) m.changed='out'; });
+
   const eventDays = new Set(Object.keys(eventsByDay));
   const usedDays = DATA.days.filter(d => meetings.some(m=>m.day===d) || eventDays.has(d));
   const usedSess = DATA.sessions.filter(s => meetings.some(m=>m.session===s.name));
@@ -298,6 +340,7 @@ function render(roll, st){
 
   html += `<div class="section-label">This week</div>`;
   html += legendAndEvents();
+  html += changesSection(myChanges);
 
   if(usedDays.length===0){
     html += `<p style="color:var(--muted)">No classes are scheduled for you this week.</p>`;
@@ -320,7 +363,7 @@ function render(roll, st){
         if(!list.length && !evHere.length){ html += `<div class="cell empty${todayc}"></div>`; return; }
         html += `<div class="cell${clash}${todayc}">`
               + evHere.map(evBlk).join("")
-              + list.map(m=>blk(m.sec)).join("") + `</div>`;
+              + list.map(m=>blk(m.sec, m.changed)).join("") + `</div>`;
       });
     });
     html += `</div></div>`;
@@ -339,11 +382,14 @@ function render(roll, st){
       meetings.filter(m=>m.day===d)
         .sort((a,b)=>usedSess.findIndex(s=>s.name===a.session)-usedSess.findIndex(s=>s.name===b.session))
         .forEach(m=>{
+          const cc = m.changed==='in'?' chg':m.changed==='out'?' chg chg-out':'';
+          const cb = m.changed==='in'?'<span class="cbadge">Moved here</span>':m.changed==='out'?'<span class="cbadge">Moved</span>':'';
           html += `<div class="arow"><div class="t">${esc(m.start)}<br>${esc(m.end||"")}</div>
-                   <a class="blk ${slug(m.sec.area)}" href="#e-${m.sec.id}">
+                   <a class="blk ${slug(m.sec.area)}${cc}" href="#e-${m.sec.id}">
                      <span class="ab">${esc(m.sec.abbr)}(${esc(m.sec.division||"-")})</span>
                      <span class="nm">${esc(m.sec.name)}</span>
                      <span class="rm">${esc(m.sec.room||"TBA")} · ${esc(m.sec.faculty||"")}</span>
+                     ${cb}
                    </a></div>`;
         });
       html += `</div>`;
@@ -370,10 +416,14 @@ function render(roll, st){
   $("result").classList.add("show");
 }
 
-function blk(s){
-  return `<a class="blk ${slug(s.area)}" href="#e-${s.id}" title="${esc(s.name)} — ${esc(s.faculty||"")}">
+function blk(s, changed){
+  const cc = changed==='in' ? ' chg' : changed==='out' ? ' chg chg-out' : '';
+  const cb = changed==='in' ? '<span class="cbadge">Moved here</span>'
+           : changed==='out' ? '<span class="cbadge">Moved</span>' : '';
+  return `<a class="blk ${slug(s.area)}${cc}" href="#e-${s.id}" title="${esc(s.name)} — ${esc(s.faculty||"")}">
       <span class="ab">${esc(s.abbr)}</span>
       <span class="rm">${esc(s.room||"TBA")} <small>${esc(s.division?"Div "+s.division:"")}</small></span>
+      ${cb}
     </a>`;
 }
 function evBlk(ev){

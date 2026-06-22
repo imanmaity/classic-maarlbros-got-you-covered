@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
-"""Export university.db -> schedule_data.json (normalized: sections stored once)."""
-import sqlite3, json, re, sys, os
+"""Export university.db -> schedule_data.json (normalized: sections stored once).
+Also folds in this week's class-change notices from changes.json (written by
+fetch_email.py) so the app can highlight them."""
+import sqlite3, json, re, sys, os, datetime
 
 DB  = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(__file__), "university.db")
 OUT = sys.argv[2] if len(sys.argv) > 2 else os.path.join(os.path.dirname(__file__), "schedule_data.json")
+WEEK_OF = "2026-06-22"
 
 con = sqlite3.connect(DB); con.row_factory = sqlite3.Row
 cur = con.cursor()
@@ -42,10 +45,27 @@ for s in cur.execute("SELECT roll_no,name,batch FROM students").fetchall():
             cur.execute("SELECT section_id FROM enrollments WHERE roll_no=?", (s["roll_no"],)).fetchall()]
     students[s["roll_no"]] = {"n": s["name"], "b": s["batch"], "s": sids}
 
+# class-change notices (kept only if they touch the displayed week)
+changes = []
+chg_path = os.path.join(os.path.dirname(os.path.abspath(DB)), "changes.json")
+if os.path.exists(chg_path):
+    try:
+        wstart = datetime.date.fromisoformat(WEEK_OF)
+        wend = wstart + datetime.timedelta(days=6)
+        def in_week(ds):
+            try: return wstart <= datetime.date.fromisoformat(ds) <= wend
+            except Exception: return False
+        for c in json.load(open(chg_path, encoding="utf-8")):
+            if in_week(c.get("new_date")) or in_week(c.get("old_date")):
+                changes.append(c)
+    except Exception as e:
+        print("changes.json skipped:", e)
+
 data = {"meta": {"institute": "Institute of Management, Nirma University",
-                 "term": "MBA Term-IV", "week_of": "2026-06-22"},
+                 "term": "MBA Term-IV", "week_of": WEEK_OF},
         "days": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
-        "sessions": sessions, "events": events, "sections": sections, "students": students}
+        "sessions": sessions, "events": events, "changes": changes,
+        "sections": sections, "students": students}
 open(OUT, "w", encoding="utf-8").write(json.dumps(data, separators=(",", ":"), ensure_ascii=False))
-print(f"Wrote {OUT}: {len(sections)} sections, {len(students)} students")
+print(f"Wrote {OUT}: {len(sections)} sections, {len(students)} students, {len(changes)} changes")
 con.close()
