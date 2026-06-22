@@ -209,7 +209,7 @@ footer{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);font-si
 <body>
 <div class="wrap">
   <header>
-    <div><p class="eyebrow" id="inst"></p><h1>Your week</h1></div>
+    <div><p class="eyebrow" id="inst"></p><h1>ClassicMaarlbros Got You Covered</h1></div>
     <div class="hd-right">
       <div class="week"><span>Week of</span><b id="weekof"></b></div>
       <button class="toggle" id="themeBtn" aria-label="Switch theme"></button>
