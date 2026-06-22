@@ -171,11 +171,13 @@ html[data-theme="light"] body::before{
 .nc-go{flex:none;color:var(--faint)} .nc-go svg{width:18px;height:18px}
 
 /* site footer */
-.sitefoot{margin-top:26px;padding-top:18px;border-top:1px solid var(--line);
-  display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:13px}
-.sf-ref{margin:0;font-size:12px;color:var(--faint);line-height:1.5;flex:1 1 220px;min-width:0}
-.sf-meta{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-.sf-by{font-size:12.5px;color:var(--muted)} .sf-by b{color:var(--ink);font-weight:700}
+.sitefoot{margin-top:30px;padding-top:20px;border-top:1px solid var(--line)}
+.sf-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.sf-brand{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:23px;line-height:1.06;letter-spacing:-.02em;color:var(--ink)}
+.sf-right{display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+.sf-by{font-size:13px;color:var(--muted)}
+.sf-by b{font-weight:800;background:linear-gradient(95deg,#9b6cff,#ff6fae);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sf-ref{margin:16px 0 0;text-align:center;font-size:12px;color:var(--faint);line-height:1.5}
 .sf-fb{display:inline-flex;align-items:center;gap:7px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;
   color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:9px 14px;
   backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 6px 18px var(--shadow);transition:border-color .15s,transform .08s}
@@ -479,11 +481,14 @@ footer{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);font-si
     </div>
 
     <footer class="sitefoot">
-      <p class="sf-ref">ClassicMaarlbros Got You Covered · for quick reference — always confirm against official notices.</p>
-      <div class="sf-meta">
-        <button class="sf-fb" id="fbBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4L4 21l1.1-3.6A8.4 8.4 0 1 1 21 11.5z"/></svg>Feedback</button>
-        <span class="sf-by">Built by <b>Iman Maity</b></span>
+      <div class="sf-top">
+        <div class="sf-brand">ClassicMaarlbros<br>Got You Covered</div>
+        <div class="sf-right">
+          <button class="sf-fb" id="fbBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4L4 21l1.1-3.6A8.4 8.4 0 1 1 21 11.5z"/></svg>Feedback</button>
+          <span class="sf-by">Built by <b>Iman Maity</b></span>
+        </div>
       </div>
+      <p class="sf-ref">for quick reference — always confirm against official notices.</p>
     </footer>
   </section>
 
