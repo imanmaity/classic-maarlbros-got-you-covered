@@ -106,39 +106,51 @@ button.go:active{transform:translateY(1px)}
   color:#fff;background:var(--chg);padding:3px 7px;border-radius:5px;margin-top:1px}
 .notice .ntxt{color:var(--ink)}
 
-/* calendar */
-.cal{display:flex;flex-direction:column;gap:11px}
-.day{background:var(--surface);border:1.5px solid var(--line);border-radius:var(--radius);
-  padding:13px 15px;transition:background-color .25s,border-color .25s}
-.day.today{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
-.day-h{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
-.day-h .dn{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:15.5px}
-.day.today .dn{color:var(--accent)}
-.day-h .dd{font-family:"JetBrains Mono",monospace;font-size:11.5px;color:var(--faint);font-weight:700}
+/* legend */
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin:0 0 13px;font-size:12px;color:var(--muted)}
+.legend .li{display:flex;align-items:center;gap:6px}
+.sw{width:14px;height:14px;border-radius:4px;flex:none}
+.sw.cls{background:var(--fin-bg);border:1.5px solid var(--fin)}
+.sw.today{background:var(--accent-soft);border:2px solid var(--accent)}
+.sw.hol{background:var(--hol-bg);border:1.5px solid var(--hol)}
+.sw.exam{background:var(--exam-bg);border:1.5px solid var(--exam)}
+.sw.chg{background:var(--chg-bg);border:1.5px solid var(--chg)}
 .tp{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#fff;
-  background:var(--accent);padding:2px 7px;border-radius:5px;margin-left:8px}
+  background:var(--accent);padding:2px 6px;border-radius:5px;margin-top:3px;display:inline-block}
 
-.banner{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;
-  padding:7px 11px;border-radius:9px;margin-top:9px}
-.banner .lbl{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;opacity:.85}
-.banner.hol{background:var(--hol-bg);color:var(--hol)}
-.banner.exam{background:var(--exam-bg);color:var(--exam)}
-
-.cls{display:flex;gap:12px;padding:11px 0 2px;margin-top:9px;border-top:1px solid var(--line)}
-.cls:first-of-type{border-top:none;margin-top:6px}
-.cls .time{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted);
-  width:56px;flex:none;text-align:right;line-height:1.55;white-space:nowrap}
-.cls .body{flex:1;min-width:0;border-left:3px solid var(--c,var(--gen));padding-left:12px}
-.cls .ttl{font-weight:600;font-size:14.5px;line-height:1.25}
-.cls .sub{font-size:12px;color:var(--muted);margin-top:3px}
+/* grid timetable */
+.grid-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;
+  border:1.5px solid var(--line);border-radius:var(--radius);background:var(--surface)}
+.grid{display:grid;min-width:340px}
+.gcorner{position:sticky;left:0;z-index:3;background:var(--surface);border-bottom:1.5px solid var(--line)}
+.gh{padding:8px 3px;text-align:center;border-bottom:1.5px solid var(--line);border-left:1px solid var(--line)}
+.gh .gd{display:block;font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.gh .gn{display:block;font-family:"JetBrains Mono",monospace;font-size:13px;font-weight:700;color:var(--ink);margin-top:1px}
+.gh.today{background:var(--accent-soft)} .gh.today .gd,.gh.today .gn{color:var(--accent)}
+.gh.hol{background:var(--hol-bg)} .gh.hol .gd{color:var(--hol)}
+.gh.exam{background:var(--exam-bg)} .gh.exam .gd{color:var(--exam)}
+.gt{position:sticky;left:0;z-index:2;background:var(--surface);font-family:"JetBrains Mono",monospace;
+  font-size:9.5px;color:var(--faint);text-align:right;padding:7px 6px;border-bottom:1px solid var(--line);
+  line-height:1.35;white-space:nowrap;font-weight:700}
+.gt span{display:block;opacity:.65;font-weight:500}
+.gc{min-height:48px;border-bottom:1px solid var(--line);border-left:1px solid var(--line);padding:4px}
+.gc.today{background:color-mix(in srgb,var(--accent) 6%,transparent)}
+.gc.clash{outline:1.5px solid var(--accent);outline-offset:-1.5px;border-radius:6px}
+.gblk{display:block;text-decoration:none;border-radius:7px;padding:5px 6px;
+  background:var(--cb,var(--gen-bg));color:var(--c,var(--gen));
+  border:1px solid color-mix(in srgb,var(--c,var(--gen)) 24%,transparent)}
+.gblk+.gblk{margin-top:4px}
+.gblk .ga{display:block;font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:12.5px;line-height:1.05}
+.gblk .ga small{font-weight:600;font-size:9px;opacity:.8}
+.gblk .gr{display:block;font-family:"JetBrains Mono",monospace;font-size:9px;font-weight:700;margin-top:3px;opacity:.85}
+.ev-holiday{--c:var(--hol);--cb:var(--hol-bg)}
+.ev-exam{--c:var(--exam);--cb:var(--exam-bg)}
+.gblk.chg{outline:2px solid var(--chg);outline-offset:1px}
+.gblk.out{opacity:.5} .gblk.out .ga{text-decoration:line-through}
+.gmv{display:block;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;
+  color:#fff;background:var(--chg);border-radius:4px;padding:1px 4px;margin-top:3px;text-align:center}
 .tag{font-family:"JetBrains Mono",monospace;font-weight:700;font-size:11px;
   color:var(--c,var(--gen));background:var(--cb,var(--gen-bg));padding:1px 6px;border-radius:5px;white-space:nowrap}
-.cls.in .body{border-left-color:var(--chg)}
-.cls.out{opacity:.58}
-.cls.out .ttl{text-decoration:line-through}
-.mv{display:inline-block;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;
-  color:#fff;background:var(--chg);padding:2px 6px;border-radius:5px;margin-left:7px;vertical-align:middle}
-.free{font-size:13px;color:var(--faint);font-style:italic;margin-top:8px}
 .empty-week{background:var(--surface);border:1.5px solid var(--line);border-radius:var(--radius);
   padding:22px;text-align:center;color:var(--muted);font-size:14px}
 
@@ -298,30 +310,49 @@ function render(roll, st){
       html += `<div class="notice"><span class="ntag">${esc(c.type||'Changed')}</span><span class="ntxt">${esc(t)}</span></div>`; });
   }
 
-  const shown = DATA.days.filter(d => (byDay[d]&&byDay[d].length) || (evByDay[d]&&evByDay[d].length) || d===todayDay);
-  if(!shown.length){
+  // legend
+  html += `<div class="legend">
+      <span class="li"><span class="sw cls"></span>My Class</span>
+      <span class="li"><span class="sw today"></span>Today</span>
+      <span class="li"><span class="sw hol"></span>Holiday</span>
+      <span class="li"><span class="sw exam"></span>Exam</span>
+      ${myChanges.length?'<span class="li"><span class="sw chg"></span>Changed</span>':''}
+    </div>`;
+
+  // grid timetable
+  const usedDays = DATA.days.filter(d => (byDay[d]&&byDay[d].length) || (evByDay[d]&&evByDay[d].length));
+  const usedSess = DATA.sessions.filter(s => meetings.some(m=>m.session===s.name));
+  const cellMap = {}; meetings.forEach(m=>{ const k=m.day+'|'+m.session; (cellMap[k]=cellMap[k]||[]).push(m); });
+  const shortT = t => String(t||'').replace(/AM$/,'a').replace(/PM$/,'p').replace(/^0/,'');
+  const dnum = d => fmtDM(dayDate[d]).split(' ')[0];
+
+  if(!usedDays.length || !usedSess.length){
     html += `<div class="empty-week">No classes scheduled for you this week.</div>`;
   } else {
-    html += `<div class="cal">`;
-    shown.forEach(d=>{
-      const isToday = d===todayDay, evs = evByDay[d]||[], cls = byDay[d]||[];
-      html += `<div class="day${isToday?' today':''}">`;
-      html += `<div class="day-h"><span class="dn">${d}</span><span class="dd">${fmtDM(dayDate[d])}${isToday?'<span class="tp">Today</span>':''}</span></div>`;
-      evs.forEach(ev=>{ html += `<div class="banner ${ev.type==='holiday'?'hol':'exam'}"><span class="lbl">${ev.type==='holiday'?'Holiday':'Exam'}</span>${esc(ev.name)}</div>`; });
-      cls.forEach(m=>{
-        const cc = m.changed==='in'?' in':m.changed==='out'?' out':'';
-        const mv = m.changed==='in'?'<span class="mv">Moved here</span>':m.changed==='out'?'<span class="mv">Moved</span>':'';
-        html += `<div class="cls ${slug(m.sec.area)}${cc}">
-            <div class="time">${esc(m.start)}<br>${esc(m.end||'')}</div>
-            <div class="body">
-              <div class="ttl">${esc(m.sec.name)}${mv}</div>
-              <div class="sub"><span class="tag">${esc(m.sec.abbr)}(${esc(m.sec.division||'-')})</span> · ${esc(m.sec.room||'TBA')} · ${esc(m.sec.faculty||'')}</div>
-            </div></div>`;
-      });
-      if(!cls.length && !evs.length && isToday) html += `<div class="free">No classes today — enjoy!</div>`;
-      html += `</div>`;
+    const firstSess = usedSess[0].name;
+    html += `<div class="grid-wrap"><div class="grid" style="grid-template-columns:auto repeat(${usedDays.length},minmax(54px,1fr))">`;
+    html += `<div class="gcorner"></div>`;
+    usedDays.forEach(d=>{
+      const isT=d===todayDay, ev=evByDay[d]||[];
+      const hol=ev.some(e=>e.type==='holiday'), exam=ev.some(e=>e.type==='exam');
+      html += `<div class="gh${isT?' today':hol?' hol':exam?' exam':''}"><span class="gd">${d.slice(0,3)}</span><span class="gn">${dnum(d)}</span>${isT?'<span class="tp">Today</span>':''}</div>`;
     });
-    html += `</div>`;
+    usedSess.forEach(s=>{
+      html += `<div class="gt">${esc(shortT(s.start))}<span>${esc(shortT(s.end))}</span></div>`;
+      usedDays.forEach(d=>{
+        const cell = cellMap[d+'|'+s.name]||[];
+        const evHere = (s.name===firstSess)?(evByDay[d]||[]):[];
+        let inner='';
+        evHere.forEach(ev=>{ inner += `<span class="gblk ev-${ev.type==='holiday'?'holiday':'exam'}"><span class="ga">${ev.type==='holiday'?'Holiday':'Exam'}</span><span class="gr">${esc(ev.name)}</span></span>`; });
+        cell.forEach(m=>{
+          const cc=m.changed==='in'?' chg':m.changed==='out'?' chg out':'';
+          const mv=m.changed==='in'?'<span class="gmv">moved here</span>':m.changed==='out'?'<span class="gmv">moved</span>':'';
+          inner += `<span class="gblk ${slug(m.sec.area)}${cc}" title="${esc(m.sec.name)} · ${esc(m.sec.room||'')} · ${esc(m.sec.faculty||'')}"><span class="ga">${esc(m.sec.abbr)}<small>${m.sec.division?(' '+esc(m.sec.division)):''}</small></span><span class="gr">${esc(m.sec.room||'TBA')}</span>${mv}</span>`;
+        });
+        html += `<div class="gc${d===todayDay?' today':''}${cell.length>1?' clash':''}">${inner}</div>`;
+      });
+    });
+    html += `</div></div>`;
   }
 
   // directory (collapsed by default)
