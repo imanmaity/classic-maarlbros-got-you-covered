@@ -2,7 +2,7 @@ name: Weekly schedule update
 
 on:
   schedule:
-    - cron: "30 1 * * 6,0"   # 01:30 UTC every Sat & Sun = 07:00 IST
+    - cron: "30 1,6,10 * * *"   # 07:00, 12:00 & 16:00 IST, every day
   workflow_dispatch:           # lets you run it manually from the Actions tab
 
 permissions:
