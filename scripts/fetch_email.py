@@ -52,7 +52,8 @@ def parse_change(text):
              else 'Cancelled' if 'cancel' in low
              else 'Rescheduled' if ('reschedul' in low or 'shift' in low) else 'Changed')
     old_date = dates[0] if dates else None
-    new_date = dates[-1] if len(dates) >= 2 else (dates[0] if dates else None)
+    new_date = dates[-1] if len(dates) >= 2 else None
+    tba = len(times) == 0  # no new time announced -> "to be announced"
     def day(ds):
         try: return datetime.date.fromisoformat(ds).strftime("%A")
         except Exception: return None
@@ -71,7 +72,7 @@ def parse_change(text):
         out.append({"abbr": ab.upper(), "division": dv.upper(), "type": ctype,
                     "old_date": old_date, "old_day": day(old_date),
                     "new_date": new_date, "new_day": day(new_date),
-                    "new_hhmm": hhmm, "raw": raw})
+                    "new_hhmm": hhmm, "tba": tba, "raw": raw})
     return out
 
 M = imaplib.IMAP4_SSL(HOST); M.login(USER, PWD); M.select("INBOX")

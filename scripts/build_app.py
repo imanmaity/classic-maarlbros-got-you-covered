@@ -33,6 +33,7 @@ TEMPLATE = r"""<!DOCTYPE html>
   --hol:#b5791f; --hol-bg:#f7e6c8;
   --exam:#c0356a; --exam-bg:#fbe0ea;
   --chg:#7c3aed; --chg-bg:#efe7fd;
+  --pp:#dc2626; --pp-bg:#fbe3e3;
   --radius:18px;
 }
 html[data-theme="dark"]{
@@ -51,6 +52,7 @@ html[data-theme="dark"]{
   --hol:#e3b15c; --hol-bg:#342916;
   --exam:#ff7da6; --exam-bg:#371b27;
   --chg:#b794f6; --chg-bg:#2a2140;
+  --pp:#f87171; --pp-bg:#3a1d1d;
 }
 *{box-sizing:border-box}
 html,body{margin:0}
@@ -150,6 +152,12 @@ button.go:hover{filter:brightness(1.04)} button.go:active{transform:translateY(1
 .gblk.chg{outline:2px solid var(--chg);outline-offset:1px}
 .gblk.out{opacity:.5} .gblk.out .ga{text-decoration:line-through}
 .gmv{display:block;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:#fff;background:var(--chg);border-radius:4px;padding:1px 4px;margin-top:3px;text-align:center}
+.gblk.pp{background:var(--pp-bg);color:var(--pp);border:1px solid color-mix(in srgb,var(--pp) 40%,transparent);outline:2px solid var(--pp);outline-offset:1px}
+.gblk.pp .ga{text-decoration:line-through}
+.ppbadge{display:block;font-size:7.5px;font-weight:700;text-transform:uppercase;letter-spacing:.02em;color:#fff;background:var(--pp);border-radius:4px;padding:1px 4px;margin-top:3px;text-align:center}
+.notice.red{background:var(--pp-bg);border-color:color-mix(in srgb,var(--pp) 38%,transparent);border-left-color:var(--pp)}
+.notice.red .ntag{background:var(--pp)}
+.sw.pp{background:var(--pp-bg);border:1.5px solid var(--pp);border-radius:4px}
 
 /* event chips + note (image-style) */
 .belowcal{display:flex;flex-wrap:wrap;gap:9px;margin-top:14px}
@@ -279,16 +287,22 @@ function render(roll,st){
   const meetings=[];
   electives.forEach(e=>(e.meetings||[]).forEach(m=>meetings.push(Object.assign({sec:e},m))));
 
-  const myKey=new Set(electives.map(e=>e.abbr+'|'+(e.division||'')));
-  const myChanges=(DATA.changes||[]).filter(c=>myKey.has(c.abbr+'|'+(c.division||'')));
-  const elBy={}; electives.forEach(e=>{elBy[e.abbr+'|'+(e.division||'')]=e;});
+  // match emails that drop "&" (SDM == S&DM) without merging I&PM into IPM
+  const canon=a=>{const u=String(a||'').toUpperCase(); return u==='I&PM'?'I&PM':u.replace(/&/g,'');};
+  const ckey=(a,d)=>canon(a)+'|'+(d||'');
+  const myKey=new Set(electives.map(e=>ckey(e.abbr,e.division)));
+  const myChanges=(DATA.changes||[]).filter(c=>myKey.has(ckey(c.abbr,c.division)));
+  const elBy={}; electives.forEach(e=>{elBy[ckey(e.abbr,e.division)]=e;});
   const normHM=s=>{const m=String(s||'').match(/(\d{1,2})[:.](\d{2})/); return m?parseInt(m[1])+':'+m[2]:'';};
   const sessByHM=hm=>DATA.sessions.find(s=>normHM(s.start)===normHM(hm));
-  const changeOut=new Set();
-  myChanges.forEach(c=>{ const el=elBy[c.abbr+'|'+(c.division||'')], ses=sessByHM(c.new_hhmm);
-    if(el&&ses&&c.new_day&&c.type!=='Cancelled') meetings.push({sec:el,day:c.new_day,session:ses.name,start:ses.start,end:ses.end,changed:'in'});
-    if(c.old_day) changeOut.add(c.old_day+'|'+c.abbr+'|'+(c.division||'')); });
-  meetings.forEach(m=>{ if(!m.changed && changeOut.has(m.day+'|'+m.sec.abbr+'|'+(m.sec.division||''))) m.changed='out'; });
+  const isTBA=c=>!!(c.tba || !sessByHM(c.new_hhmm));
+  const changeMap=new Map();   // day|canon(abbr)|div -> change
+  myChanges.forEach(c=>{ const el=elBy[ckey(c.abbr,c.division)], ses=sessByHM(c.new_hhmm);
+    if(el&&ses&&c.new_day&&!isTBA(c)&&c.type!=='Cancelled') meetings.push({sec:el,day:c.new_day,session:ses.name,start:ses.start,end:ses.end,changed:'in'});
+    if(c.old_day) changeMap.set(c.old_day+'|'+ckey(c.abbr,c.division), c); });
+  meetings.forEach(m=>{ if(m.changed) return;
+    const c=changeMap.get(m.day+'|'+ckey(m.sec.abbr,m.sec.division));
+    if(c){ m.changed='out'; m.tba=isTBA(c); } });
 
   const byDay={}; meetings.forEach(m=>{(byDay[m.day]=byDay[m.day]||[]).push(m);});
   const cellMap={}; meetings.forEach(m=>{const k=m.day+'|'+m.session;(cellMap[k]=cellMap[k]||[]).push(m);});
@@ -300,14 +314,18 @@ function render(roll,st){
 
   if(myChanges.length){ const seen=new Set();
     myChanges.forEach(c=>{const t=cleanNotice(c.raw); if(!t||seen.has(t))return; seen.add(t);
-      html+=`<div class="notice"><span class="ntag">${esc(c.type||'Changed')}</span><span class="ntxt">${esc(t)}</span></div>`;}); }
+      html+=`<div class="notice${isTBA(c)?' red':''}"><span class="ntag">${esc(c.type||'Changed')}</span><span class="ntxt">${esc(t)}</span></div>`;}); }
+
+  const hasMoved=myChanges.some(c=>!isTBA(c));
+  const hasPostponed=myChanges.some(c=>isTBA(c));
 
   html+=`<div class="legend">
       <span class="li"><span class="sw cls"></span>My Class</span>
       <span class="li"><span class="sw today"></span>Today</span>
       <span class="li"><span class="sw hol"></span>Holiday</span>
       <span class="li"><span class="sw exam"></span>Exam</span>
-      ${myChanges.length?'<span class="li"><span class="sw chg"></span>Changed</span>':''}
+      ${hasMoved?'<span class="li"><span class="sw chg"></span>Changed</span>':''}
+      ${hasPostponed?'<span class="li"><span class="sw pp"></span>Postponed</span>':''}
     </div>`;
 
   const usedDays=DATA.days.filter(d=>(byDay[d]&&byDay[d].length)||(evByDay[d]&&evByDay[d].length));
@@ -333,8 +351,11 @@ function render(roll,st){
         const ev=evByDay[d]||[]; const hol=ev.some(e=>e.type==='holiday'), exam=ev.some(e=>e.type==='exam');
         const flag=d===todayDay?' today':hol?' hol':exam?' exam':'';
         let inner='';
-        cell.forEach(m=>{ const cc=m.changed==='in'?' chg':m.changed==='out'?' chg out':'';
-          const mv=m.changed==='in'?'<span class="gmv">moved here</span>':m.changed==='out'?'<span class="gmv">moved</span>':'';
+        cell.forEach(m=>{ const ppl=m.changed==='out'&&m.tba;
+          const cc=m.changed==='in'?' chg':ppl?' pp':m.changed==='out'?' chg out':'';
+          const mv=m.changed==='in'?'<span class="gmv">moved here</span>'
+                  :ppl?'<span class="ppbadge">Postponed · TBA</span>'
+                  :m.changed==='out'?'<span class="gmv">moved</span>':'';
           inner+=`<span class="gblk ${slug(m.sec.area)}${cc}" title="${esc(m.sec.name)} · ${esc(m.sec.room||'')} · ${esc(m.sec.faculty||'')}"><span class="ga">${PERSON}${esc(m.sec.abbr)}<small>${m.sec.division?(' '+esc(m.sec.division)):''}</small></span><span class="gr">${ROOM}${esc(m.sec.room||'TBA')}</span>${mv}</span>`; });
         html+=`<div class="gc${flag}${cell.length>1?' clash':''}">${inner}</div>`;
       });
