@@ -1,15 +1,32 @@
 #!/usr/bin/env python3
-"""Export university.db -> schedule_data.json (normalized: sections stored once).
-Also folds in this week's class-change notices from changes.json (written by
-fetch_email.py) so the app can highlight them."""
+"""Export university.db -> schedule_data.json, scoped to the CURRENT week.
+
+Everything (classes, holidays, exams, change notices) is filtered to the
+Mon-Sun week that contains today's date (IST). If that week has no classes
+(e.g. the file that arrived is for next week), it falls back to the nearest
+upcoming week present in the data. This keeps far-future calendar entries
+(like September exams) out of the current view, and makes the week advance
+automatically as time passes."""
 import sqlite3, json, re, sys, os, datetime
 
 DB  = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(__file__), "university.db")
 OUT = sys.argv[2] if len(sys.argv) > 2 else os.path.join(os.path.dirname(__file__), "schedule_data.json")
-WEEK_OF = "2026-06-22"
 
 con = sqlite3.connect(DB); con.row_factory = sqlite3.Row
 cur = con.cursor()
+
+# ---- pick the week to display ----
+today = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)).date()  # IST
+mdates = sorted({datetime.date.fromisoformat(r["date"])
+                 for r in cur.execute("SELECT DISTINCT date FROM meetings WHERE date IS NOT NULL")})
+mon = today - datetime.timedelta(days=today.weekday())
+if mdates and not any(mon <= d <= mon + datetime.timedelta(days=6) for d in mdates):
+    upcoming = [d for d in mdates if d >= today] or mdates
+    t = min(upcoming); mon = t - datetime.timedelta(days=t.weekday())
+WK_START, WK_END = mon, mon + datetime.timedelta(days=6)
+def in_week(ds):
+    try: return WK_START <= datetime.date.fromisoformat(ds) <= WK_END
+    except Exception: return False
 
 def to_min(t):
     m = re.match(r"(\d{1,2}):(\d{2})(AM|PM)", t or "")
@@ -19,8 +36,10 @@ def to_min(t):
     if ap == "AM" and h == 12: h = 0
     return h*60 + mi
 
+# sessions actually used this week
 sess = {r["session"]: (r["start_time"], r["end_time"])
-        for r in cur.execute("SELECT DISTINCT session,start_time,end_time FROM meetings")}
+        for r in cur.execute("SELECT DISTINCT session,start_time,end_time FROM meetings WHERE date BETWEEN ? AND ?",
+                             (WK_START.isoformat(), WK_END.isoformat()))}
 sessions = sorted([{"name": k, "start": v[0], "end": v[1]} for k, v in sess.items()],
                   key=lambda s: to_min(s["start"]))
 
@@ -30,14 +49,14 @@ for c in cur.execute("""SELECT sec.section_id sid, s.abbr, s.name sname, s.area,
                         FROM sections sec JOIN subjects s ON s.code=sec.subject_code
                         LEFT JOIN faculty f ON f.faculty_key=sec.faculty_key""").fetchall():
     mtg = [{"day": m["day"], "session": m["session"], "start": m["start_time"], "end": m["end_time"]}
-           for m in cur.execute("SELECT day,session,start_time,end_time FROM meetings WHERE section_id=?",
-                                (c["sid"],)).fetchall()]
+           for m in cur.execute("SELECT day,session,start_time,end_time,date FROM meetings WHERE section_id=?",
+                                (c["sid"],)).fetchall() if in_week(m["date"])]
     sections[str(c["sid"])] = {"abbr": c["abbr"], "name": c["sname"], "area": c["area"],
                                "division": c["division"], "faculty": c["fname"],
                                "email": c["email"], "room": c["room"], "meetings": mtg}
 
 events = [{"date":e["date"],"day":e["day"],"type":e["type"],"name":e["name"]}
-          for e in cur.execute("SELECT date,day,type,name FROM events").fetchall()]
+          for e in cur.execute("SELECT date,day,type,name FROM events").fetchall() if in_week(e["date"])]
 
 students = {}
 for s in cur.execute("SELECT roll_no,name,batch FROM students").fetchall():
@@ -45,16 +64,10 @@ for s in cur.execute("SELECT roll_no,name,batch FROM students").fetchall():
             cur.execute("SELECT section_id FROM enrollments WHERE roll_no=?", (s["roll_no"],)).fetchall()]
     students[s["roll_no"]] = {"n": s["name"], "b": s["batch"], "s": sids}
 
-# class-change notices (kept only if they touch the displayed week)
 changes = []
 chg_path = os.path.join(os.path.dirname(os.path.abspath(DB)), "changes.json")
 if os.path.exists(chg_path):
     try:
-        wstart = datetime.date.fromisoformat(WEEK_OF)
-        wend = wstart + datetime.timedelta(days=6)
-        def in_week(ds):
-            try: return wstart <= datetime.date.fromisoformat(ds) <= wend
-            except Exception: return False
         for c in json.load(open(chg_path, encoding="utf-8")):
             if in_week(c.get("new_date")) or in_week(c.get("old_date")):
                 changes.append(c)
@@ -62,10 +75,10 @@ if os.path.exists(chg_path):
         print("changes.json skipped:", e)
 
 data = {"meta": {"institute": "Institute of Management, Nirma University",
-                 "term": "MBA Term-IV", "week_of": WEEK_OF},
+                 "term": "MBA Term-IV", "week_of": WK_START.isoformat()},
         "days": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
         "sessions": sessions, "events": events, "changes": changes,
         "sections": sections, "students": students}
 open(OUT, "w", encoding="utf-8").write(json.dumps(data, separators=(",", ":"), ensure_ascii=False))
-print(f"Wrote {OUT}: {len(sections)} sections, {len(students)} students, {len(changes)} changes")
+print(f"Week {WK_START}..{WK_END}: {len(sessions)} sessions, {len(events)} events, {len(changes)} changes")
 con.close()
