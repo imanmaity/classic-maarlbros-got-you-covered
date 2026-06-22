@@ -56,7 +56,14 @@ def parse_change(text):
     def day(ds):
         try: return datetime.date.fromisoformat(ds).strftime("%A")
         except Exception: return None
-    raw = re.sub(r'\s+', ' ', text).strip()[:400]
+    # keep the message, drop the office sign-off / signature
+    cut = len(text)
+    for pat in (r'\bregards\b', r'\bthanks\b', r'\bthank you\b', r'\bwarm regards\b',
+                r'\bbest regards\b', r'\bsincerely\b', r'\byours\b',
+                r'(MBA\s+)?Programme Office'):
+        mm = re.search(pat, text, re.I)
+        if mm: cut = min(cut, mm.start())
+    raw = re.sub(r'\s+', ' ', text[:cut]).strip()[:400]
     out = []
     for i, (ab, dv) in enumerate(secs):
         hhmm = (times[i] if len(times) == len(secs) else times[0] if len(times) == 1
