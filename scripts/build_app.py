@@ -15,15 +15,13 @@ BG_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBAUEBAYFBQUGBgYHCQ4JCQgICRINDQoOFR
 REQUEST_EMAIL = "25MBA420@nirmauni.ac.in"
 REQUEST_FORM_URL = ""
 
-# ---- Shared shelf — e-books/resources you've cleared to share freely ----
-# Add ONLY materials you have the right to distribute: your own notes/summaries,
-# open-access or public-domain books, or files a faculty member has authorised.
-# To add one: put the file on Google Drive (Share > "Anyone with the link") or
-# in the repo's library/ folder, then add a line below and re-run the build.
-# Each entry: title, author (optional), link, source/licence tag (optional).
+# ---- "Books In Stock" shelf ----
+# The shelf fills AUTOMATICALLY from files you upload to the repo's library/
+# folder (see library/README.md for how). Name files "Title - Author.pdf" and
+# they appear as download cards. Add only materials you're free to share.
+# Optionally, you can also list externally-hosted books (e.g. on Google Drive)
+# in the list below — same fields. Leave it empty to show only your uploads.
 SHARED_BOOKS = [
-    {"title": "Principles of Marketing", "author": "OpenStax (Gomez Albrecht, Green, Hoffman)",
-     "link": "https://openstax.org/details/books/principles-marketing", "source": "Open access · CC BY"},
     # {"title": "My SCM notes", "author": "Iman Maity", "link": "https://drive.google.com/...", "source": "My notes"},
 ]
 
@@ -629,15 +627,60 @@ showView();
 def _esc(s):
     return str(s).replace("&","&amp;").replace("<","&lt;").replace(">","&gt;").replace('"',"&quot;")
 
-if SHARED_BOOKS:
+def _fmt_size(n):
+    if n >= 1048576: return "%.1f MB" % (n / 1048576.0)
+    if n >= 1024:    return "%.0f KB" % (n / 1024.0)
+    return "%d B" % n
+
+from urllib.parse import quote
+import shutil
+BOOK_EXTS = {".pdf":"PDF", ".epub":"EPUB", ".mobi":"MOBI", ".azw3":"AZW3", ".djvu":"DjVu",
+             ".doc":"DOC", ".docx":"DOCX", ".ppt":"PPT", ".pptx":"PPTX", ".txt":"TXT", ".zip":"ZIP"}
+
+shelf = []
+# 1) files the user uploaded to <repo>/library/ — copied into the published
+#    site folder (next to index.html) so GitHub Pages serves them.
+LIB_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "library")
+PUB_LIB = os.path.join(os.path.dirname(os.path.abspath(OUT_PATH)) or ".", "library")
+if os.path.isdir(LIB_DIR):
+    for fn in sorted(os.listdir(LIB_DIR), key=lambda s: s.lower()):
+        if fn.startswith(".") or fn.lower() in ("readme.md", ".gitkeep"):
+            continue
+        ext = os.path.splitext(fn)[1].lower()
+        if ext not in BOOK_EXTS:
+            continue
+        src = os.path.join(LIB_DIR, fn)
+        try:
+            os.makedirs(PUB_LIB, exist_ok=True)
+            dst = os.path.join(PUB_LIB, fn)
+            if os.path.abspath(src) != os.path.abspath(dst):
+                shutil.copy2(src, dst)
+        except OSError:
+            pass
+        stem = os.path.splitext(fn)[0].replace("_", " ").strip()
+        title, author = stem, ""
+        for sep in (" \u2014 ", " - ", " \u2013 "):  # em / hyphen / en dash
+            if sep in stem:
+                parts = stem.split(sep, 1); title = parts[0].strip(); author = parts[1].strip(); break
+        try:
+            tag = BOOK_EXTS[ext] + " \u00b7 " + _fmt_size(os.path.getsize(src))
+        except OSError:
+            tag = BOOK_EXTS[ext]
+        shelf.append({"title": title, "author": author, "link": "library/" + quote(fn), "source": tag})
+# 2) optional externally-hosted entries from the config list
+for bk in SHARED_BOOKS:
+    shelf.append({"title": bk["title"], "author": bk.get("author",""),
+                  "link": bk.get("link","#"), "source": bk.get("source","")})
+
+if shelf:
     _cards = ""
-    for bk in SHARED_BOOKS:
-        _tag = '<span class="sh-tag">%s</span>' % _esc(bk["source"]) if bk.get("source") else ""
-        _auth = '<span class="res-s">%s</span>' % _esc(bk["author"]) if bk.get("author") else ""
+    for bk in shelf:
+        _tag  = '<span class="sh-tag">%s</span>' % _esc(bk["source"]) if bk.get("source") else ""
+        _auth = '<span class="res-s">%s</span>'  % _esc(bk["author"]) if bk.get("author") else ""
         _cards += ('<a class="rescard shbook" href="%s" target="_blank" rel="noopener">'
-                   '<span class="res-t">%s</span>%s%s</a>') % (_esc(bk.get("link","#")), _esc(bk["title"]), _auth, _tag)
-    SHARED_HTML = ('\n    <h3 class="bk-h">Shared by your batch</h3>'
-                   '\n    <p class="bk-note">Free-to-share materials — open-access books, public-domain works, and notes. Tap to open or download.</p>'
+                   '<span class="res-t">%s</span>%s%s</a>') % (_esc(bk["link"]), _esc(bk["title"]), _auth, _tag)
+    SHARED_HTML = ('\n    <h3 class="bk-h">Books In Stock</h3>'
+                   '\n    <p class="bk-note">Books available to download right now. Tap to open.</p>'
                    '\n    <div class="reslist">%s</div>') % _cards
 else:
     SHARED_HTML = ""
