@@ -75,7 +75,12 @@ html,body{margin:0}
 body{font-family:"Inter",system-ui,sans-serif;color:var(--ink);background:var(--bg);
   -webkit-font-smoothing:antialiased;line-height:1.5;min-height:100vh}
 body::before{content:"";position:fixed;inset:0;z-index:-2;
-  background:#15110d url("data:image/jpeg;base64,__BG__") center/cover no-repeat}
+  background:
+    radial-gradient(46% 34% at 10% 4%, rgba(255,138,61,.32), transparent 60%),
+    radial-gradient(44% 32% at 95% 3%, rgba(241,92,198,.26), transparent 62%),
+    radial-gradient(54% 44% at 90% 98%, rgba(176,112,255,.30), transparent 60%),
+    radial-gradient(48% 36% at 2% 97%, rgba(255,94,143,.22), transparent 62%),
+    #0f0e15}
 html[data-theme="light"] body::before{
   background:
     radial-gradient(38% 30% at 12% 7%, #ffd58a, transparent 60%),
@@ -241,7 +246,7 @@ footer{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);font-si
 .view{animation:rise .34s cubic-bezier(.2,.7,.2,1) both}
 .hhead{margin-bottom:14px;padding-right:46px}
 .today-line{margin:0 0 20px;font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--muted)}
-.ttcard{display:flex;align-items:center;gap:14px;text-decoration:none;color:var(--ink);
+.ttcard{display:flex;align-items:center;gap:14px;text-decoration:none;color:var(--ink);margin-bottom:14px;
   border:2px solid transparent;border-radius:20px;padding:18px;
   background:linear-gradient(var(--card2),var(--card2)) padding-box, linear-gradient(120deg,#ffb43d,#ff7f5e,#ff5e9a,#b070ff) border-box;
   box-shadow:0 14px 44px var(--shadow);transition:transform .1s ease,filter .15s}
@@ -268,9 +273,14 @@ footer{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);font-si
 .ac-name{font-size:13.5px;color:var(--ink)}
 .weeklabel{text-align:center;font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--muted);margin:0 0 14px;font-weight:700}
 .ic2{background:linear-gradient(135deg,#b070ff,#ff5e9a,#ff8a3d)}
-.bk-intro{margin:0 0 18px;font-size:13.5px;color:var(--muted);line-height:1.5} .bk-intro b{color:var(--ink)}
-.bk-h{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:15px;color:var(--ink);margin:6px 0 10px}
-.reslist{display:flex;flex-direction:column;gap:9px;margin-bottom:20px}
+.ic3{background:linear-gradient(135deg,#34d8c9,#3d9bff,#9b6cff);color:#06121a}
+.ttcard.soon{opacity:.72;cursor:default;box-shadow:0 8px 28px var(--shadow)}
+.ttcard.soon:hover{filter:none} .ttcard.soon:active{transform:none}
+.soon-pill{margin-left:auto;flex:none;font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--muted);background:var(--accent-soft);border:1px solid var(--line);border-radius:999px;padding:6px 11px;white-space:nowrap}
+.bk-intro{margin:0 0 6px;font-size:13.5px;color:var(--muted);line-height:1.5} .bk-intro b{color:var(--ink)}
+.bk-h{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:15px;color:var(--ink);margin:30px 0 12px}
+.reslist{display:flex;flex-direction:column;gap:9px;margin-bottom:0}
 .rescard{display:block;text-decoration:none;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px 15px;
   backdrop-filter:blur(8px);transition:border-color .15s,transform .08s}
 .rescard:hover{border-color:var(--accent)} .rescard:active{transform:scale(.995)}
@@ -319,6 +329,11 @@ footer{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);font-si
       <span class="tt-tx"><span class="tt-t">Request E-books</span><span class="tt-s">Don't Buy Books !! Find it free, or request a copy</span></span>
       <span class="tt-arrow">&rsaquo;</span>
     </a>
+    <div class="ttcard soon" id="pyqcard">
+      <span class="tt-ic ic3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2.5h7l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1z"/><path d="M13 2.5V8h5"/><path d="M8.5 13h7M8.5 16.5h5"/></svg></span>
+      <span class="tt-tx"><span class="tt-t">PYQs</span><span class="tt-s">Previous year question papers — exam prep in one place</span></span>
+      <span class="soon-pill">Coming soon</span>
+    </div>
     <footer>Tentative weekly schedule — confirm any room/time changes with the department.</footer>
   </section>
 
