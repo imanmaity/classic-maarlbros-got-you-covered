@@ -38,8 +38,7 @@ def to_min(t):
 
 # sessions actually used this week
 sess = {r["session"]: (r["start_time"], r["end_time"])
-        for r in cur.execute("SELECT DISTINCT session,start_time,end_time FROM meetings WHERE date BETWEEN ? AND ?",
-                             (WK_START.isoformat(), WK_END.isoformat()))}
+        for r in cur.execute("SELECT DISTINCT session,start_time,end_time FROM meetings")}
 sessions = sorted([{"name": k, "start": v[0], "end": v[1]} for k, v in sess.items()],
                   key=lambda s: to_min(s["start"]))
 
@@ -48,15 +47,18 @@ for c in cur.execute("""SELECT sec.section_id sid, s.abbr, s.name sname, s.area,
                                f.name fname, f.email, sec.classroom_code room
                         FROM sections sec JOIN subjects s ON s.code=sec.subject_code
                         LEFT JOIN faculty f ON f.faculty_key=sec.faculty_key""").fetchall():
-    mtg = [{"day": m["day"], "session": m["session"], "start": m["start_time"], "end": m["end_time"]}
-           for m in cur.execute("SELECT day,session,start_time,end_time,date FROM meetings WHERE section_id=?",
-                                (c["sid"],)).fetchall() if in_week(m["date"])]
+    seen=set(); mtg=[]
+    for m in cur.execute("SELECT DISTINCT day,session,start_time,end_time FROM meetings WHERE section_id=?", (c["sid"],)).fetchall():
+        k=(m["day"], m["session"])
+        if k in seen: continue
+        seen.add(k)
+        mtg.append({"day": m["day"], "session": m["session"], "start": m["start_time"], "end": m["end_time"]})
     sections[str(c["sid"])] = {"abbr": c["abbr"], "name": c["sname"], "area": c["area"],
                                "division": c["division"], "faculty": c["fname"],
                                "email": c["email"], "room": c["room"], "meetings": mtg}
 
 events = [{"date":e["date"],"day":e["day"],"type":e["type"],"name":e["name"]}
-          for e in cur.execute("SELECT date,day,type,name FROM events").fetchall() if in_week(e["date"])]
+          for e in cur.execute("SELECT date,day,type,name FROM events ORDER BY date").fetchall()]
 
 students = {}
 for s in cur.execute("SELECT roll_no,name,batch FROM students").fetchall():
@@ -69,13 +71,12 @@ chg_path = os.path.join(os.path.dirname(os.path.abspath(DB)), "changes.json")
 if os.path.exists(chg_path):
     try:
         for c in json.load(open(chg_path, encoding="utf-8")):
-            if in_week(c.get("new_date")) or in_week(c.get("old_date")):
-                changes.append(c)
+            changes.append(c)
     except Exception as e:
         print("changes.json skipped:", e)
 
 data = {"meta": {"institute": "Institute of Management, Nirma University",
-                 "term": "MBA Term-IV", "week_of": WK_START.isoformat()},
+                 "term": "MBA Term-IV", "week_of": WK_START.isoformat(), "recurring": True},
         "days": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
         "sessions": sessions, "events": events, "changes": changes,
         "sections": sections, "students": students}

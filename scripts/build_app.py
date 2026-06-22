@@ -215,6 +215,39 @@ footer{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);font-si
   background:linear-gradient(95deg,#ffb43d,#ff5e9a,#b070ff);-webkit-background-clip:text;background-clip:text;color:transparent;animation:pulse 1.4s ease-in-out infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes pulse{0%,100%{opacity:.55}50%{opacity:1}}
+[hidden]{display:none!important}
+.wrap{position:relative}
+.toggle{position:absolute;top:24px;right:16px;z-index:8;width:38px;height:38px;flex:none;display:grid;place-items:center;cursor:pointer;
+  border:1.5px solid var(--line);border-radius:11px;background:var(--card);color:var(--ink);
+  backdrop-filter:blur(8px);transition:border-color .15s,transform .08s}
+.toggle:hover{border-color:var(--accent)} .toggle:active{transform:translateY(1px)} .toggle svg{width:18px;height:18px}
+.view{animation:rise .34s cubic-bezier(.2,.7,.2,1) both}
+.hhead{margin-bottom:14px;padding-right:46px}
+.today-line{margin:0 0 20px;font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--muted)}
+.ttcard{display:flex;align-items:center;gap:14px;text-decoration:none;color:var(--ink);
+  border:2px solid transparent;border-radius:20px;padding:18px;
+  background:linear-gradient(var(--card2),var(--card2)) padding-box, linear-gradient(120deg,#ffb43d,#ff7f5e,#ff5e9a,#b070ff) border-box;
+  box-shadow:0 14px 44px var(--shadow);transition:transform .1s ease,filter .15s}
+.ttcard:hover{filter:brightness(1.04)} .ttcard:active{transform:scale(.99)}
+.tt-ic{flex:none;width:46px;height:46px;border-radius:13px;display:grid;place-items:center;color:#1a1208;background:linear-gradient(135deg,#ffb43d,#ff7f5e,#ff5e9a)}
+.tt-ic svg{width:24px;height:24px}
+.tt-tx{display:flex;flex-direction:column;min-width:0}
+.tt-t{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:18px;color:var(--ink)}
+.tt-s{font-size:12.5px;color:var(--muted);margin-top:2px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tt-arrow{margin-left:auto;flex:none;color:var(--accent);font-size:26px;font-weight:700;line-height:1}
+.topbar{display:flex;align-items:center;gap:12px;margin-bottom:18px;padding-right:46px}
+.back{display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:var(--muted);font-weight:600;font-size:14px}
+.back svg{width:16px;height:16px} .back:hover{color:var(--accent)}
+.tt-title{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:20px;color:var(--ink)}
+#weeknav{display:flex;align-items:center;gap:10px;margin:0 0 16px}
+.wkbtn{width:42px;height:42px;flex:none;display:grid;place-items:center;cursor:pointer;border:1.5px solid var(--line);
+  border-radius:13px;background:var(--card);color:var(--ink);backdrop-filter:blur(8px);transition:border-color .15s,transform .08s}
+.wkbtn:hover{border-color:var(--accent)} .wkbtn:active{transform:translateY(1px)} .wkbtn:disabled{opacity:.3;cursor:not-allowed}
+.wkmid{flex:1;text-align:center;min-width:0}
+.wkmonth{display:block;font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:17px;color:var(--ink);letter-spacing:-.01em}
+.wkrange{display:block;font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted);margin-top:1px}
+.proj{display:flex;gap:9px;align-items:flex-start;background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);
+  border-radius:12px;padding:9px 12px;margin-bottom:14px;font-size:12px;line-height:1.4;color:var(--muted);backdrop-filter:blur(8px)}
 @media (max-width:520px){ .month{font-size:46px} .who .name{font-size:20px} .field{flex-wrap:wrap} button.go{flex:1;padding:12px 0} }
 @media (prefers-reduced-motion:reduce){ #result.show{animation:none} #loader .orb,#loader .lbl{animation:none} *{transition:none!important} }
 </style>
@@ -223,25 +256,45 @@ footer{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);font-si
 <body>
 <div id="loader"><div class="inner"><div class="orb"></div><div class="lbl">My Week</div></div></div>
 <div class="wrap">
-  <header>
-    <div class="htop"><p class="eyebrow" id="inst"></p><button class="toggle" id="themeBtn" aria-label="Switch theme"></button></div>
-    <div class="monthrow"><span class="month" id="month"></span><span class="year" id="year"></span></div>
-    <div class="subweek" id="subweek"></div>
-  </header>
+  <button class="toggle" id="themeBtn" aria-label="Switch theme"></button>
 
-  <div class="lookup">
-    <h2>Find your schedule</h2>
-    <p>Enter your roll number to see your classes this week.</p>
-    <div class="field">
-      <input type="text" id="roll" placeholder="e.g. 25MBA420" autocomplete="off" spellcheck="false" aria-label="Roll number">
-      <button class="go" id="btn">Show</button>
+  <section id="view-home" class="view">
+    <header class="hhead">
+      <p class="eyebrow" id="inst"></p>
+      <div class="monthrow"><span class="month" id="month"></span><span class="year" id="year"></span></div>
+      <div class="subweek" id="subweek"></div>
+    </header>
+    <p class="today-line" id="todayLine"></p>
+    <a class="ttcard" href="#timetable" id="ttcard">
+      <span class="tt-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9.5h18M8 3v3M16 3v3"/></svg></span>
+      <span class="tt-tx"><span class="tt-t">My Timetable</span><span class="tt-s" id="ttsub">Look up your weekly classes by roll number</span></span>
+      <span class="tt-arrow">&rsaquo;</span>
+    </a>
+    <footer>Tentative weekly schedule — confirm any room/time changes with the department.</footer>
+  </section>
+
+  <section id="view-tt" class="view" hidden>
+    <div class="topbar">
+      <a class="back" href="#" id="backBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>Home</a>
+      <span class="tt-title">My Timetable</span>
     </div>
-    <div class="err" id="err"></div>
-  </div>
-
-  <div id="result"></div>
-
-  <footer>Tentative weekly schedule — confirm any room/time changes with the department.</footer>
+    <div class="lookup">
+      <h2>Find your schedule</h2>
+      <p>Enter your roll number to see your weekly classes.</p>
+      <div class="field">
+        <input type="text" id="roll" placeholder="e.g. 25MBA420" autocomplete="off" spellcheck="false" aria-label="Roll number">
+        <button class="go" id="btn">Show</button>
+      </div>
+      <div class="err" id="err"></div>
+    </div>
+    <div id="weeknav" hidden>
+      <button class="wkbtn" id="prevW" aria-label="Previous week"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
+      <div class="wkmid"><span class="wkmonth" id="wkmonth"></span><span class="wkrange" id="wkrange"></span></div>
+      <button class="wkbtn" id="nextW" aria-label="Next week"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
+    </div>
+    <div id="result"></div>
+    <footer>Tentative weekly schedule — confirm any room/time changes with the department.</footer>
+  </section>
 </div>
 
 <script>
@@ -269,19 +322,47 @@ window.addEventListener("load",()=>{ const l=$("loader"); if(!l) return;
   setTimeout(()=>{ l.classList.add("hide"); setTimeout(()=>l.remove(),650); }, 480); });
 
 $("inst").textContent=DATA.meta.institute+" · "+DATA.meta.term;
-const wk=new Date(DATA.meta.week_of+"T00:00:00");
-const wkEnd=new Date(wk); wkEnd.setDate(wk.getDate()+6);
-$("month").textContent=wk.toLocaleDateString("en-GB",{month:"long"});
-const yr=String(wk.getFullYear()); $("year").innerHTML=`<span>${yr.slice(0,2)}</span><span>${yr.slice(2)}</span>`;
 const fmt=d=>d.toLocaleDateString("en-GB",{day:"numeric",month:"short"});
 const fmtDM=ds=>new Date(ds+"T00:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short"});
-$("subweek").textContent="Week of "+fmt(wk)+" – "+fmt(wkEnd);
+const dateStr=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+function mondayOf(d){const x=new Date(d);x.setHours(0,0,0,0);const w=(x.getDay()+6)%7;x.setDate(x.getDate()-w);return x;}
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 
-const dayDate={};
-DATA.days.forEach((d,i)=>{const dt=new Date(wk);dt.setDate(wk.getDate()+i);
-  dayDate[d]=`${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}`;});
-const now=new Date(); const todayStr=`${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
-const todayDay=Object.keys(dayDate).find(d=>dayDate[d]===todayStr)||null;
+const TODAY=new Date(), BASE_MON=mondayOf(TODAY);
+const MIN_OFF=-10, MAX_OFF=20;
+let weekOffset=0, currentRoll=null;
+const dispMon=()=>{const m=new Date(BASE_MON);m.setDate(m.getDate()+weekOffset*7);return m;};
+
+// home header reflects the current week
+(function(){const m=new Date(BASE_MON), e=new Date(BASE_MON); e.setDate(e.getDate()+6);
+  $("month").textContent=m.toLocaleDateString("en-GB",{month:"long"});
+  const yr=String(m.getFullYear()); $("year").innerHTML=`<span>${yr.slice(0,2)}</span><span>${yr.slice(2)}</span>`;
+  $("subweek").textContent="Week of "+fmt(m)+" – "+fmt(e);
+  $("todayLine").textContent="Today · "+TODAY.toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long"});})();
+
+// remembered roll
+const getRoll=()=>{try{return localStorage.getItem("imnu-roll")||"";}catch(e){return "";}};
+const putRoll=r=>{try{localStorage.setItem("imnu-roll",r);}catch(e){}};
+function refreshHomeCard(){const r=getRoll(), st=r&&DATA.students[r];
+  $("ttsub").textContent= st ? ("Continue as "+st.n+" · "+r) : "Look up your weekly classes by roll number";}
+
+// routing: Home <-> Timetable
+function showView(){const tt=location.hash==="#timetable";
+  $("view-home").hidden=tt; $("view-tt").hidden=!tt;
+  if(tt) enterTT(); else refreshHomeCard();
+  window.scrollTo(0,0);}
+function enterTT(){weekOffset=0; const r=getRoll();
+  if(r && DATA.students[r]){ $("roll").value=r; doLookup(); }
+  else { $("weeknav").hidden=true; $("result").classList.remove("show"); $("result").innerHTML=""; setTimeout(()=>$("roll").focus(),60); }}
+window.addEventListener("hashchange",showView);
+
+// week navigation
+function setWeek(delta){ weekOffset=clamp(weekOffset+delta,MIN_OFF,MAX_OFF); if(currentRoll) render(); updateNav(); }
+function updateNav(){const m=dispMon(), e=new Date(m); e.setDate(e.getDate()+6);
+  $("wkmonth").textContent=m.toLocaleDateString("en-GB",{month:"long"})+" "+m.getFullYear();
+  let lbl=weekOffset===0?"This week":weekOffset===1?"Next week":weekOffset===-1?"Last week":(weekOffset>0?("In "+weekOffset+" weeks"):(Math.abs(weekOffset)+" weeks ago"));
+  $("wkrange").textContent=lbl+" · "+fmt(m)+" – "+fmt(e);
+  $("prevW").disabled=weekOffset<=MIN_OFF; $("nextW").disabled=weekOffset>=MAX_OFF;}
 
 const AREA_SLUG={"Finance":"finance","Marketing":"marketing","DnA":"dna","OB":"ob","OM":"om","E & S":"es"};
 const slug=a=>"a-"+(AREA_SLUG[a]||"gen");
@@ -290,17 +371,24 @@ function cleanNotice(t){ if(!t) return "";
   const m=t.search(/\b(regards|thanks|thank you|warm regards|best regards|sincerely|yours)\b/i);
   return (m>=0?t.slice(0,m):t).replace(/\s+/g,' ').trim(); }
 
-function lookup(){
+function doLookup(){
   const roll=$("roll").value.trim().toUpperCase(); $("roll").value=roll;
   const err=$("err"),res=$("result"); res.classList.remove("show"); err.classList.remove("show");
-  if(!roll){ err.textContent="Type your roll number to continue."; err.classList.add("show"); return; }
-  const st=DATA.students[roll];
-  if(!st){ err.textContent="No student found for "+roll+". Check the roll number and try again."; err.classList.add("show"); return; }
-  render(roll,st);
+  if(!roll){ err.textContent="Type your roll number to continue."; err.classList.add("show"); $("weeknav").hidden=true; return; }
+  if(!DATA.students[roll]){ err.textContent="No student found for "+roll+". Check the roll number and try again."; err.classList.add("show"); $("weeknav").hidden=true; return; }
+  currentRoll=roll; putRoll(roll); weekOffset=0;
+  $("weeknav").hidden=false; render(); updateNav();
 }
 
 const TCOL=40;
-function render(roll,st){
+function render(){
+  const roll=currentRoll, st=DATA.students[roll]; if(!st) return;
+  const mon=dispMon(), wkEnd=new Date(mon); wkEnd.setDate(mon.getDate()+6);
+  const dayDate={}; DATA.days.forEach((d,i)=>{const dt=new Date(mon);dt.setDate(mon.getDate()+i);dayDate[d]=dateStr(dt);});
+  const todayDay=Object.keys(dayDate).find(d=>dayDate[d]===dateStr(TODAY))||null;
+  const inWk=ds=>{ if(!ds) return false; try{const d=new Date(ds+"T00:00:00"); return d>=mon&&d<=wkEnd;}catch(e){return false;} };
+  const weekEvents=(DATA.events||[]).filter(e=>inWk(e.date));
+  const projected=weekOffset!==0;
   const electives=st.s.map(id=>Object.assign({id},DATA.sections[id]));
   const meetings=[];
   electives.forEach(e=>(e.meetings||[]).forEach(m=>meetings.push(Object.assign({sec:e},m))));
@@ -308,7 +396,7 @@ function render(roll,st){
   const canon=a=>{const u=String(a||'').toUpperCase(); return u==='I&PM'?'I&PM':u.replace(/&/g,'');};
   const ckey=(a,d)=>canon(a)+'|'+(d||'');
   const myKey=new Set(electives.map(e=>ckey(e.abbr,e.division)));
-  const myChanges=(DATA.changes||[]).filter(c=>myKey.has(ckey(c.abbr,c.division)));
+  const myChanges=(DATA.changes||[]).filter(c=>myKey.has(ckey(c.abbr,c.division)) && (inWk(c.old_date)||inWk(c.new_date)));
   const elBy={}; electives.forEach(e=>{elBy[ckey(e.abbr,e.division)]=e;});
   const normHM=s=>{const m=String(s||'').match(/(\d{1,2})[:.](\d{2})/); return m?parseInt(m[1])+':'+m[2]:'';};
   const sessByHM=hm=>DATA.sessions.find(s=>normHM(s.start)===normHM(hm));
@@ -323,11 +411,12 @@ function render(roll,st){
 
   const byDay={}; meetings.forEach(m=>{(byDay[m.day]=byDay[m.day]||[]).push(m);});
   const cellMap={}; meetings.forEach(m=>{const k=m.day+'|'+m.session;(cellMap[k]=cellMap[k]||[]).push(m);});
-  const evByDay={}; (DATA.events||[]).forEach(e=>{(evByDay[e.day]=evByDay[e.day]||[]).push(e);});
+  const evByDay={}; weekEvents.forEach(e=>{(evByDay[e.day]=evByDay[e.day]||[]).push(e);});
   const shortT=t=>String(t||'').replace(/AM$/,'a').replace(/PM$/,'p').replace(/^0/,'');
   const dnum=d=>fmtDM(dayDate[d]).split(' ')[0];
 
   let html=`<div class="who"><span class="name">${esc(st.n)}</span><span class="chip">${esc(roll)}</span><span class="meta">${electives.length} electives · ${esc(st.b)}</span></div>`;
+  if(projected) html+=`<div class="proj">Showing the regular weekly pattern. The office's plan for ${fmt(mon)} – ${fmt(wkEnd)} may differ once it's announced.</div>`;
 
   if(myChanges.length){ const seen=new Set();
     myChanges.forEach(c=>{const t=cleanNotice(c.raw); if(!t||seen.has(t))return; seen.add(t);
@@ -372,7 +461,7 @@ function render(roll,st){
     });
     html+=`</div></div></div>`;
 
-    const evs=(DATA.events||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
+    const evs=weekEvents.slice().sort((a,b)=>a.date<b.date?-1:1);
     const nClasses=meetings.filter(m=>m.changed!=='out').length;
     let below=`<div class="note"><span><b>${nClasses} ${nClasses===1?'class':'classes'}</b> across <b>${usedDays.length} ${usedDays.length===1?'day':'days'}</b> this week</span></div>`;
     evs.forEach(e=>{ const n=fmtDM(e.date).split(' ')[0];
@@ -396,9 +485,12 @@ function render(roll,st){
   $("result").classList.add("show");
 }
 
-$("btn").addEventListener("click",lookup);
-$("roll").addEventListener("keydown",e=>{ if(e.key==="Enter") lookup(); });
-$("roll").focus();
+$("btn").addEventListener("click",doLookup);
+$("roll").addEventListener("keydown",e=>{ if(e.key==="Enter") doLookup(); });
+$("prevW").addEventListener("click",()=>setWeek(-1));
+$("nextW").addEventListener("click",()=>setWeek(1));
+refreshHomeCard();
+showView();
 </script>
 </body>
 </html>
