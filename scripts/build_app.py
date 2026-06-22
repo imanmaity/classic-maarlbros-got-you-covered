@@ -65,7 +65,7 @@ html[data-theme="light"]{
   --om:#a8650a;  --om-bg:rgba(251,236,210,.92);
   --es:#b02458;  --es-bg:rgba(251,224,234,.92);
   --gen:#566270; --gen-bg:rgba(233,236,240,.92);
-  --hol:#9a6b1f; --hol-bg:rgba(246,232,207,.85);
+  --hol:#ef9f00; --hol-bg:rgba(255,240,206,.92);
   --exam:#b02458; --exam-bg:rgba(251,224,234,.85);
   --chg:#7c3aed; --chg-bg:rgba(239,231,253,.9);
   --pp:#dc2626; --pp-bg:rgba(251,227,227,.9);
@@ -624,20 +624,39 @@ function refreshHomeCard(){const r=getRoll(), st=r&&DATA.students[r];
 function cleanSub(n){ return String(n||"").split("*")[0].split("(")[0].replace(/\s+/g," ").trim(); }
 function prettyTime(t){ const m=String(t).match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i); return m?((+m[1])+":"+m[2]+" "+m[3].toUpperCase()):t; }
 function homeStats(st){ const g=$("glance"); if(!st){ g.hidden=true; return; }
-  const secs=st.s.map(id=>DATA.sections[id]).filter(Boolean);
-  const M=[]; secs.forEach(s=>(s.meetings||[]).forEach(m=>M.push({day:m.day,start:m.start,name:cleanSub(s.name)||s.abbr})));
   const dayName=TODAY.toLocaleDateString("en-US",{weekday:"long"});
+  const secs=st.s.map(id=>DATA.sections[id]).filter(Boolean);
   const toMin=hhmm=>{const m=String(hhmm).match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i); if(!m)return 0; let h=(+m[1])%12; if(/pm/i.test(m[3]||""))h+=12; return h*60+(+m[2]);};
-  const todays=M.filter(m=>m.day===dayName).sort((a,b)=>toMin(a.start)-toMin(b.start));
-  $("stClasses").textContent=todays.length;
-  $("stClassesSub").textContent= todays.length? "Stay on track" : "No classes today";
+  // mirror the timetable's change handling so the count matches what actually happens
+  const canon=a=>{const u=String(a||"").toUpperCase(); return u==="I&PM"?"I&PM":u.replace(/&/g,"");};
+  const ckey=(a,d)=>canon(a)+"|"+(d||"");
+  const normHM=s=>{const m=String(s||"").match(/(\d{1,2})[:.](\d{2})/); return m?parseInt(m[1])+":"+m[2]:"";};
+  const sessByHM=hm=>(DATA.sessions||[]).find(s=>normHM(s.start)===normHM(hm));
+  const isTBA=c=>!!(c.tba || !sessByHM(c.new_hhmm));
+  const inWk=ds=>{ if(!ds) return false; try{const d=new Date(ds+"T00:00:00"); return d>=WK_MON&&d<=WK_END;}catch(e){return false;} };
+  const elBy={}; secs.forEach(e=>{ elBy[ckey(e.abbr,e.division)]=e; });
+  const myKey=new Set(secs.map(e=>ckey(e.abbr,e.division)));
+  const myChanges=(DATA.changes||[]).filter(c=>myKey.has(ckey(c.abbr,c.division)) && (inWk(c.old_date)||inWk(c.new_date)));
+  const meetings=[];
+  secs.forEach(e=>(e.meetings||[]).forEach(m=>meetings.push({sec:e,day:m.day,start:m.start})));
+  const changeMap=new Map();
+  myChanges.forEach(c=>{ const el=elBy[ckey(c.abbr,c.division)], ses=sessByHM(c.new_hhmm);
+    if(el&&ses&&c.new_day&&!isTBA(c)&&c.type!=="Cancelled") meetings.push({sec:el,day:c.new_day,start:ses.start,changed:"in"});
+    if(c.old_day) changeMap.set(c.old_day+"|"+ckey(c.abbr,c.division), c); });
+  meetings.forEach(m=>{ if(m.changed) return; if(changeMap.get(m.day+"|"+ckey(m.sec.abbr,m.sec.division))) m.changed="out"; });
+  const nm=m=>cleanSub(m.sec.name)||m.sec.abbr;
+  const todayAll=meetings.filter(m=>m.day===dayName);
+  const active=todayAll.filter(m=>m.changed!=="out").sort((a,b)=>toMin(a.start)-toMin(b.start));
+  const out=todayAll.filter(m=>m.changed==="out").length;
+  $("stClasses").textContent=active.length;
+  $("stClassesSub").textContent = out>0 ? (out+" of "+(active.length+out)+" postponed/moved") : (active.length? "Stay on track" : "No classes today");
   const now=TODAY.getHours()*60+TODAY.getMinutes();
-  let next=todays.find(m=>toMin(m.start)>now)||null, when="today";
+  let next=active.find(m=>toMin(m.start)>now)||null, when="today";
   if(!next){ const order=DATA.days||[], ti=order.indexOf(dayName);
     for(let off=1; off<=order.length && !next; off++){ const d=order[(ti+off)%order.length];
-      const dm=M.filter(m=>m.day===d).sort((a,b)=>toMin(a.start)-toMin(b.start));
+      const dm=meetings.filter(m=>m.day===d&&m.changed!=="out").sort((a,b)=>toMin(a.start)-toMin(b.start));
       if(dm.length){ next=dm[0]; when=d.slice(0,3); } } }
-  if(next){ $("stNext").textContent=prettyTime(next.start); $("stNextSub").textContent= next.name + (when!=="today"? " · "+when : ""); }
+  if(next){ $("stNext").textContent=prettyTime(next.start); $("stNextSub").textContent= nm(next) + (when!=="today"? " · "+when : ""); }
   else { $("stNext").textContent="—"; $("stNextSub").textContent="No upcoming classes"; }
   g.hidden=false;}
 // app-bar menu
@@ -745,7 +764,7 @@ function render(){
       usedDays.forEach(d=>{
         const cell=cellMap[d+'|'+s.name]||[];
         const ev=evByDay[d]||[]; const hol=ev.some(e=>e.type==='holiday'), exam=ev.some(e=>e.type==='exam');
-        const flag=d===todayDay?' today':hol?' hol':exam?' exam':'';
+        const flag=(d===todayDay&&cell.length)?' today':hol?' hol':exam?' exam':'';
         let inner='';
         cell.forEach(m=>{ const ppl=m.changed==='out'&&m.tba;
           const cc=m.changed==='in'?' chg':ppl?' pp':m.changed==='out'?' chg out':'';
