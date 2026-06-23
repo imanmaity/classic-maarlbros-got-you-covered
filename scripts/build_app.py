@@ -23,6 +23,7 @@ MANIFEST_JSON = '{\n  "name": "My Week \\u00b7 IMNU Term IV",\n  "short_name": "
 # link into REQUEST_FORM_URL and the button will open that instead.
 REQUEST_EMAIL = "25MBA420@nirmauni.ac.in"
 REQUEST_FORM_URL = ""
+INSTA_URL = "https://www.instagram.com/classicmaarlbro"   # footer brand links here
 
 # ---- "Books In Stock" shelf ----
 # The shelf fills AUTOMATICALLY from files you upload to the repo's library/
@@ -234,6 +235,8 @@ a.upd:active{transform:scale(.995)}
 .sf-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
 .sf-brand{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:23px;line-height:1.06;letter-spacing:-.02em;color:var(--ink)}
 .sf-brand .mb{color:#ff2e54}
+a.sf-brand{text-decoration:none;display:inline-block;transition:opacity .15s}
+a.sf-brand:hover{opacity:.82}
 .sf-right{display:flex;flex-direction:column;align-items:flex-end;gap:10px}
 .sf-by{font-size:13px;color:var(--muted)}
 .sf-by b{font-weight:800;background:linear-gradient(95deg,#9b6cff,#ff6fae);-webkit-background-clip:text;background-clip:text;color:transparent}
@@ -548,7 +551,7 @@ footer{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);font-si
 
     <footer class="sitefoot">
       <div class="sf-top">
-        <div class="sf-brand">Classic<span class="mb">Maarlbros</span><br>Got You Covered</div>
+        <a class="sf-brand" href="__INSTA__" target="_blank" rel="noopener noreferrer" aria-label="ClassicMaarlbros on Instagram">Classic<span class="mb">Maarlbros</span><br>Got You Covered</a>
         <div class="sf-right">
           <button class="sf-fb" id="fbBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4L4 21l1.1-3.6A8.4 8.4 0 1 1 21 11.5z"/></svg>Feedback</button>
           <span class="sf-by">Built by <b>Iman Maity</b></span>
@@ -862,7 +865,7 @@ function render(){
       ${hasPostponed?'<span class="li"><span class="sw pp"></span>Postponed</span>':''}
     </div>`;
 
-  const usedDays=DATA.days.filter(d=>(byDay[d]&&byDay[d].length)||(evByDay[d]&&evByDay[d].length));
+  const usedDays=DATA.days.slice();   // keep every weekday column, even if empty, so days never shift
   const usedSess=DATA.sessions.filter(s=>meetings.some(m=>m.session===s.name));
 
   if(!usedDays.length||!usedSess.length){
@@ -893,7 +896,8 @@ function render(){
 
     const evs=weekEvents.slice().sort((a,b)=>a.date<b.date?-1:1);
     const nClasses=meetings.filter(m=>m.changed!=='out').length;
-    let below=`<div class="note"><span><b>${nClasses} ${nClasses===1?'class':'classes'}</b> across <b>${usedDays.length} ${usedDays.length===1?'day':'days'}</b> this week</span></div>`;
+    const nDays=new Set(meetings.filter(m=>m.changed!=='out').map(m=>m.day)).size;
+    let below=`<div class="note"><span><b>${nClasses} ${nClasses===1?'class':'classes'}</b> across <b>${nDays} ${nDays===1?'day':'days'}</b> this week</span></div>`;
     evs.forEach(e=>{ const n=fmtDM(e.date).split(' ')[0];
       below+=`<div class="chip2 ${e.type==='holiday'?'hol':'exam'}"><span class="num">${n}</span><span><span class="typ">${e.type==='holiday'?'Holiday':'Exam'}</span><span class="lab">${esc(e.name)}</span></span></div>`; });
     html+=`<div class="belowcal">${below}</div>`;
@@ -1103,7 +1107,7 @@ if shelf:
 else:
     SHARED_HTML = ""
 
-open(OUT_PATH, "w", encoding="utf-8").write(TEMPLATE.replace("__REQEMAIL__", REQUEST_EMAIL).replace("__REQFORM__", REQUEST_FORM_URL).replace("__SHAREDSECTION__", SHARED_HTML).replace("__DATA__", data))
+open(OUT_PATH, "w", encoding="utf-8").write(TEMPLATE.replace("__REQEMAIL__", REQUEST_EMAIL).replace("__REQFORM__", REQUEST_FORM_URL).replace("__SHAREDSECTION__", SHARED_HTML).replace("__INSTA__", INSTA_URL).replace("__DATA__", data))
 print(f"Wrote {OUT_PATH}")
 
 
