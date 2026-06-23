@@ -33,6 +33,9 @@ VAPID_PUBLIC_KEY = "BFmuFcrH9Ev9FUJaVUyP_Xwks439rTLXNYZtKD7Lj-4nZLlbzcwqWuOGMh6N
 # until Step 2 (the Apps Script collector) is set up; the toggle + on-device test
 # notification already work without it.
 NOTIFY_ENDPOINT = "https://script.google.com/macros/s/AKfycbyxU2THM7e1YHSM88fHN9GcNCf8slMHHaadKdHLE_mLpJFUyTdtauzRitRyv4kB4kA2sg/exec"
+# Reminders are still being made reliable. While False, the card shows a greyed-out
+# "Coming soon" state and the controls do nothing. Flip to True to turn it back on.
+NOTIFY_ENABLED = False
 
 # ---- "Books In Stock" shelf ----
 # The shelf fills AUTOMATICALLY from files you upload to the repo's library/
@@ -266,6 +269,10 @@ a.upd:active{transform:scale(.995)}
 .nf-slider::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:linear-gradient(95deg,#ffb43d,#ff5e9a);border:3px solid var(--card2);cursor:pointer}
 .nf-ends{display:flex;justify-content:space-between;font-size:10.5px;color:var(--faint);margin-top:5px}
 .nf-hint{font-size:11.5px;color:var(--muted);margin-top:10px;line-height:1.42}
+.nf-soon{display:inline-block;vertical-align:middle;margin-left:6px;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);border:1px solid color-mix(in srgb,var(--accent) 45%,transparent);border-radius:999px;padding:3px 8px}
+.notifycard.soon .nf-slider,.notifycard.soon .nf-btn{filter:grayscale(.65);opacity:.55}
+.notifycard.soon .nf-time{color:var(--muted)}
+.nf-btn:disabled,.nf-slider:disabled{cursor:not-allowed}
 
 /* site footer */
 .sitefoot{margin-top:30px;padding-top:20px;border-top:1px solid var(--line)}
@@ -592,7 +599,7 @@ footer{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);font-si
     <div class="notifycard" id="notifycard" hidden>
       <div class="nf-top">
         <span class="nf-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span>
-        <div class="nf-h"><b>Daily reminders</b><em>Get a heads-up about tomorrow's classes and any room/time changes — for <span id="nfRoll">your roll</span>.</em></div>
+        <div class="nf-h"><b>Daily reminders <span class="nf-soon" id="nfSoon" hidden>Coming soon</span></b><em>Get a heads-up about tomorrow's classes and any room/time changes — for <span id="nfRoll">your roll</span>.</em></div>
       </div>
       <div class="nf-when">
         <div class="nf-lbl">Remind me at <span class="nf-time" id="nfTime">8:00 PM</span></div>
@@ -726,6 +733,7 @@ __SHAREDSECTION__
 const DATA = __DATA__;
 const VAPID_PUBLIC = "__VAPID__";
 const NOTIFY_ENDPOINT = "__NOTIFYEP__";
+const NOTIFY_ENABLED = __NOTIFYON__;
 const PERSON='<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c0-3.5 3.1-5.5 7-5.5s7 2 7 5.5"/></svg>';
 const ROOM='<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4.5A1.5 1.5 0 0 1 5.5 3h9A1.5 1.5 0 0 1 16 4.5V21"/><path d="M3 21h18M16 8h3.5A1.5 1.5 0 0 1 21 9.5V21"/><circle cx="12" cy="12.5" r="1"/></svg>';
 const OUT=['#ffb43d','#ff8a3d','#ff6f5e','#ff5e8f','#f15cc6','#b070ff'];
@@ -1051,6 +1059,16 @@ function setupNotifyCard(roll, st){
   if(!st){ card.hidden=true; return; }                 // need a roll to know whose digest to send
   card.hidden=false;
   const rEl=$("nfRoll"); if(rEl) rEl.textContent=roll;
+  if(typeof NOTIFY_ENABLED!=="undefined" && !NOTIFY_ENABLED){
+    card.classList.add("soon");
+    const badge=$("nfSoon"); if(badge) badge.hidden=false;
+    const sl=$("nfSlider"); if(sl){ sl.value=1200; sl.disabled=true; }
+    $("nfTime").textContent=nfFmt(1200);
+    $("nfHint").textContent="Daily reminders are on the way \u2014 you'll be able to pick a time here soon.";
+    const tog=$("nfToggle"); tog.textContent="Coming soon"; tog.disabled=true; tog.classList.add("off");
+    $("nfTest").hidden=true; nfMsg("");
+    return;   // controls are inert; no permission, no service worker, no posting
+  }
   const s=NF.read(); const mins=nfParse(s.when);
   $("nfSlider").value=mins; $("nfTime").textContent=nfFmt(mins); $("nfHint").textContent=nfHint(mins);
   const granted = (typeof Notification!=="undefined") && Notification.permission==="granted";
@@ -1261,7 +1279,7 @@ if shelf:
 else:
     SHARED_HTML = ""
 
-open(OUT_PATH, "w", encoding="utf-8").write(TEMPLATE.replace("__REQEMAIL__", REQUEST_EMAIL).replace("__REQFORM__", REQUEST_FORM_URL).replace("__SHAREDSECTION__", SHARED_HTML).replace("__INSTA__", INSTA_URL).replace("__VAPID__", VAPID_PUBLIC_KEY).replace("__NOTIFYEP__", NOTIFY_ENDPOINT).replace("__DATA__", data))
+open(OUT_PATH, "w", encoding="utf-8").write(TEMPLATE.replace("__REQEMAIL__", REQUEST_EMAIL).replace("__REQFORM__", REQUEST_FORM_URL).replace("__SHAREDSECTION__", SHARED_HTML).replace("__INSTA__", INSTA_URL).replace("__VAPID__", VAPID_PUBLIC_KEY).replace("__NOTIFYEP__", NOTIFY_ENDPOINT).replace("__NOTIFYON__", "true" if NOTIFY_ENABLED else "false").replace("__DATA__", data))
 print(f"Wrote {OUT_PATH}")
 
 
