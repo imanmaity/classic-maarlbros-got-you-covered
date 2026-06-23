@@ -25,6 +25,15 @@ REQUEST_EMAIL = "25MBA420@nirmauni.ac.in"
 REQUEST_FORM_URL = ""
 INSTA_URL = "https://www.instagram.com/classicmaarlbro"   # footer brand links here
 
+# ---- Web-push notifications (daily "tomorrow's classes" digest) ----
+# VAPID public key (safe to publish). The matching private key lives only as the
+# GitHub secret VAPID_PRIVATE, used by the sender job — never commit the private key.
+VAPID_PUBLIC_KEY = "BFmuFcrH9Ev9FUJaVUyP_Xwks439rTLXNYZtKD7Lj-4nZLlbzcwqWuOGMh6NTwIQXqVS1PE2dBXqagaLsfCoSAY"
+# Where the app sends a subscription so the sender can reach it later. Leave blank
+# until Step 2 (the Apps Script collector) is set up; the toggle + on-device test
+# notification already work without it.
+NOTIFY_ENDPOINT = ""
+
 # ---- "Books In Stock" shelf ----
 # The shelf fills AUTOMATICALLY from files you upload to the repo's library/
 # folder (see library/README.md for how). Name files "Title - Author.pdf" and
@@ -231,6 +240,26 @@ a.upd:active{transform:scale(.995)}
 .nc-ic{flex:none;color:var(--accent)} .nc-ic svg{width:21px;height:21px}
 .nc-tx{flex:1;font-size:12.5px;color:var(--muted);line-height:1.4}
 .nc-go{flex:none;color:var(--faint)} .nc-go svg{width:18px;height:18px}
+.notifycard{margin-top:14px;padding:16px;border-radius:var(--radius);border:1px solid var(--line);
+  background:var(--card2);box-shadow:0 8px 24px var(--shadow);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.notifycard.on{border-color:color-mix(in srgb,var(--accent) 42%,transparent)}
+.nf-top{display:flex;align-items:flex-start;gap:11px}
+.nf-ic{flex:none;color:var(--accent);margin-top:1px} .nf-ic svg{width:21px;height:21px}
+.nf-h{flex:1;min-width:0}
+.nf-h b{display:block;font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:15px;color:var(--ink)}
+.nf-h em{display:block;font-style:normal;font-size:12px;color:var(--muted);margin-top:2px;line-height:1.42}
+.nf-when{margin-top:14px}
+.nf-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--faint);margin-bottom:7px}
+.nf-actions{display:flex;gap:9px;align-items:center;margin-top:14px;flex-wrap:wrap}
+.nf-btn{flex:1;min-width:130px;font-weight:700;font-size:14px;color:#1a1208;border:none;border-radius:12px;padding:12px 16px;cursor:pointer;
+  background:linear-gradient(95deg,#ffb43d,#ff7f5e,#ff5e9a)}
+.nf-btn.off{color:var(--ink);background:transparent;border:1px solid var(--line)}
+.nf-test{font-size:12.5px;font-weight:700;color:var(--accent);background:none;border:none;cursor:pointer;padding:8px 4px}
+.nf-test[hidden]{display:none}
+.nf-msg{font-size:12px;line-height:1.45;margin-top:11px;color:var(--muted)}
+.nf-msg[hidden]{display:none}
+.nf-msg.warn{color:var(--pp)} .nf-msg.ok{color:var(--dna)}
 
 /* site footer */
 .sitefoot{margin-top:30px;padding-top:20px;border-top:1px solid var(--line)}
@@ -554,6 +583,26 @@ footer{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);font-si
       </div>
     </div>
 
+    <div class="notifycard" id="notifycard" hidden>
+      <div class="nf-top">
+        <span class="nf-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span>
+        <div class="nf-h"><b>Daily reminders</b><em>Get a heads-up about tomorrow's classes and any room/time changes — for <span id="nfRoll">your roll</span>.</em></div>
+      </div>
+      <div class="nf-when">
+        <div class="nf-lbl">When</div>
+        <div class="fb-seg" id="nfSeg">
+          <button class="fb-opt" data-when="night" type="button">Night before</button>
+          <button class="fb-opt" data-when="morning" type="button">Morning</button>
+          <button class="fb-opt" data-when="both" type="button">Both</button>
+        </div>
+      </div>
+      <div class="nf-actions">
+        <button class="nf-btn" id="nfToggle" type="button">Turn on reminders</button>
+        <button class="nf-test" id="nfTest" type="button" hidden>Send a test</button>
+      </div>
+      <p class="nf-msg" id="nfMsg" hidden></p>
+    </div>
+
     <div class="notecard">
       <span class="nc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span>
       <span class="nc-tx">Tentative weekly schedule — confirm any room/time changes with the department.</span>
@@ -671,6 +720,8 @@ __SHAREDSECTION__
 
 <script>
 const DATA = __DATA__;
+const VAPID_PUBLIC = "__VAPID__";
+const NOTIFY_ENDPOINT = "__NOTIFYEP__";
 const PERSON='<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c0-3.5 3.1-5.5 7-5.5s7 2 7 5.5"/></svg>';
 const ROOM='<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4.5A1.5 1.5 0 0 1 5.5 3h9A1.5 1.5 0 0 1 16 4.5V21"/><path d="M3 21h18M16 8h3.5A1.5 1.5 0 0 1 21 9.5V21"/><circle cx="12" cy="12.5" r="1"/></svg>';
 const OUT=['#ffb43d','#ff8a3d','#ff6f5e','#ff5e8f','#f15cc6','#b070ff'];
@@ -719,7 +770,7 @@ const putRoll=r=>{try{localStorage.setItem("imnu-roll",r);}catch(e){}};
 function refreshHomeCard(){const r=getRoll(), st=r&&DATA.students[r];
   $("ttsub").textContent= st ? ("Continue as "+st.n) : "Look up your weekly classes by roll number";
   const chip=$("ttchip"); if(st){ chip.textContent=r; chip.hidden=false; } else chip.hidden=true;
-  homeStats(st); renderUpdates();}
+  homeStats(st); renderUpdates(); setupNotifyCard(r, st);}
 function cleanSub(n){ return String(n||"").split("*")[0].split("(")[0].replace(/\s+/g," ").trim(); }
 const COMMS={
   PLACECOMM:{short:"Placecomm",tag:"PC", name:"Placement Committee",        email:"placecomm.im@nirmauni.ac.in",      cls:"c-place"},
@@ -982,6 +1033,72 @@ $("roll").addEventListener("keydown",e=>{
   if(open && e.key==="Escape"){ closeAC(); return; }
   if(e.key==="Enter"){ if(open && acActive>=0){ e.preventDefault(); pickAC(acItems[acActive]); } else doLookup(); }
 });
+// ---- daily reminders (web push) ----
+const NF = { key:"imnu-notify",
+  read(){ try{ return JSON.parse(localStorage.getItem(this.key)||"{}"); }catch(e){ return {}; } },
+  write(v){ try{ localStorage.setItem(this.key, JSON.stringify(v)); }catch(e){} } };
+function urlB64ToU8(s){ const pad="=".repeat((4-s.length%4)%4); const b=(s+pad).replace(/-/g,"+").replace(/_/g,"/");
+  const raw=atob(b); const out=new Uint8Array(raw.length); for(let i=0;i<raw.length;i++) out[i]=raw.charCodeAt(i); return out; }
+function nfSupported(){ return ("serviceWorker" in navigator) && ("Notification" in window) && ("PushManager" in window); }
+function nfMsg(t, cls){ const m=$("nfMsg"); if(!m) return;
+  if(!t){ m.hidden=true; m.textContent=""; return; } m.hidden=false; m.className="nf-msg"+(cls?(" "+cls):""); m.textContent=t; }
+function setupNotifyCard(roll, st){
+  const card=$("notifycard"); if(!card) return;
+  if(!st){ card.hidden=true; return; }                 // need a roll to know whose digest to send
+  card.hidden=false;
+  const rEl=$("nfRoll"); if(rEl) rEl.textContent=roll;
+  const s=NF.read(); const when=s.when||"night";
+  $("nfSeg").querySelectorAll(".fb-opt").forEach(b=>b.classList.toggle("active", b.dataset.when===when));
+  const granted = (typeof Notification!=="undefined") && Notification.permission==="granted";
+  const on = !!s.on && s.roll===roll && granted;
+  card.classList.toggle("on", on);
+  const tog=$("nfToggle"); tog.textContent = on ? "Reminders are on — turn off" : "Turn on reminders"; tog.classList.toggle("off", on);
+  $("nfTest").hidden = !granted;
+  if(!nfSupported()) nfMsg("This browser can't push notifications. Use Chrome on Android, or on iPhone add this app to your Home Screen first (iOS 16.4+).","warn");
+  else if(typeof Notification!=="undefined" && Notification.permission==="denied") nfMsg("Notifications are blocked for this site in your browser settings. Allow them, then try again.","warn");
+  else if(on) nfMsg("You'll get tomorrow's classes"+(when==="both"?" the night before and in the morning.":when==="morning"?" each morning.":" the night before."),"ok");
+  else nfMsg("");
+  if(!card.dataset.wired){ card.dataset.wired="1";
+    $("nfSeg").addEventListener("click", e=>{ const b=e.target.closest(".fb-opt"); if(!b) return;
+      $("nfSeg").querySelectorAll(".fb-opt").forEach(x=>x.classList.toggle("active",x===b));
+      const v=NF.read(); v.when=b.dataset.when; NF.write(v); if(v.on) nfResend(getRoll()); });
+    tog.addEventListener("click", ()=>{ const v=NF.read();
+      if(v.on && typeof Notification!=="undefined" && Notification.permission==="granted") nfDisable(); else nfEnable(getRoll()); });
+    $("nfTest").addEventListener("click", nfTest); }
+}
+async function nfEnable(roll){
+  if(!roll || !DATA.students[roll]){ nfMsg("Look up your roll number first, then turn on reminders.","warn"); return; }
+  if(!nfSupported()){ nfMsg("Not supported here. On iPhone, add this app to your Home Screen first (iOS 16.4+).","warn"); return; }
+  nfMsg("Asking for permission\u2026");
+  let perm; try{ perm=await Notification.requestPermission(); }catch(e){ perm=Notification.permission; }
+  if(perm!=="granted"){ nfMsg("Permission not granted. Enable notifications for this site in your browser settings.","warn"); return; }
+  const when=(NF.read().when)||"night";
+  try{
+    const reg=await navigator.serviceWorker.register("sw.js"); await navigator.serviceWorker.ready;
+    let sub=await reg.pushManager.getSubscription();
+    if(!sub) sub=await reg.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey:urlB64ToU8(VAPID_PUBLIC) });
+    NF.write({ on:true, roll, when, sub:sub.toJSON() });
+    await nfPost("subscribe", roll, when, sub.toJSON());
+    setupNotifyCard(roll, DATA.students[roll]); nfMsg("Reminders are on. Tap \u201cSend a test\u201d to preview one.","ok");
+  }catch(e){
+    NF.write({ on:true, roll, when }); setupNotifyCard(roll, DATA.students[roll]);
+    nfMsg("Enabled on this device. (Scheduled push needs the live HTTPS site; \u201cSend a test\u201d works here.)","ok");
+  }
+}
+async function nfResend(roll){ try{ const reg=await navigator.serviceWorker.ready; const sub=await reg.pushManager.getSubscription();
+  if(sub) await nfPost("subscribe", roll, (NF.read().when)||"night", sub.toJSON()); }catch(e){} }
+async function nfDisable(){ const s=NF.read();
+  try{ const reg=await navigator.serviceWorker.ready; const sub=await reg.pushManager.getSubscription();
+    if(sub){ await nfPost("unsubscribe", s.roll, s.when, sub.toJSON()); await sub.unsubscribe(); } }catch(e){}
+  NF.write({ on:false, when:s.when||"night" }); setupNotifyCard(getRoll(), DATA.students[getRoll()]); nfMsg("Reminders turned off."); }
+async function nfTest(){ try{ const reg=await navigator.serviceWorker.ready;
+  await reg.showNotification("Tomorrow at IMNU", { body:"This is a test \u2014 your daily class digest will look like this.", icon:"icon-192.png", badge:"icon-192.png", tag:"imnu-test", data:{url:"./#timetable"} });
+  nfMsg("Sent a test notification. If you didn't see it, check your device's notification settings.","ok");
+  }catch(e){ nfMsg("Couldn't show a test here \u2014 it works on the live site after you turn reminders on.","warn"); } }
+async function nfPost(action, roll, when, sub){ if(!NOTIFY_ENDPOINT) return;   // collector wired in Step 2
+  try{ await fetch(NOTIFY_ENDPOINT, { method:"POST", mode:"no-cors", headers:{"Content-Type":"text/plain;charset=utf-8"},
+    body:JSON.stringify({ action, roll, when, sub, ua:navigator.userAgent }) }); }catch(e){} }
+
 refreshHomeCard();
 // ---- book requests ----
 function setupBooks(){ if(REQ_FORM){ $("reqInline").hidden=true; const b=$("reqFormBtn"); b.hidden=false; b.href=REQ_FORM; } }
@@ -1135,7 +1252,7 @@ if shelf:
 else:
     SHARED_HTML = ""
 
-open(OUT_PATH, "w", encoding="utf-8").write(TEMPLATE.replace("__REQEMAIL__", REQUEST_EMAIL).replace("__REQFORM__", REQUEST_FORM_URL).replace("__SHAREDSECTION__", SHARED_HTML).replace("__INSTA__", INSTA_URL).replace("__DATA__", data))
+open(OUT_PATH, "w", encoding="utf-8").write(TEMPLATE.replace("__REQEMAIL__", REQUEST_EMAIL).replace("__REQFORM__", REQUEST_FORM_URL).replace("__SHAREDSECTION__", SHARED_HTML).replace("__INSTA__", INSTA_URL).replace("__VAPID__", VAPID_PUBLIC_KEY).replace("__NOTIFYEP__", NOTIFY_ENDPOINT).replace("__DATA__", data))
 print(f"Wrote {OUT_PATH}")
 
 
@@ -1149,4 +1266,29 @@ with open(os.path.join(_OUTDIR, "favicon.svg"), "w", encoding="utf-8") as _f:
     _f.write(FAVICON_SVG)
 with open(os.path.join(_OUTDIR, "manifest.webmanifest"), "w", encoding="utf-8") as _f:
     _f.write(MANIFEST_JSON)
-print("Wrote icons + manifest to", _OUTDIR)
+# ---- service worker: shows pushed digests + handles taps (scope = site root) ----
+SW_JS = """\
+self.addEventListener('install', e => self.skipWaiting());
+self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
+self.addEventListener('push', e => {
+  let d = { title: 'My Week \\u00b7 IMNU', body: 'You have classes tomorrow.' };
+  try { if (e.data) d = Object.assign(d, e.data.json()); }
+  catch (_) { if (e.data) d.body = e.data.text(); }
+  e.waitUntil(self.registration.showNotification(d.title, {
+    body: d.body, icon: 'icon-192.png', badge: 'icon-192.png',
+    tag: d.tag || 'imnu-digest', renotify: true,
+    data: { url: d.url || './#timetable' }
+  }));
+});
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const url = (e.notification.data && e.notification.data.url) || './';
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(cs => {
+    for (const c of cs) { if ('focus' in c) { c.navigate && c.navigate(url); return c.focus(); } }
+    if (self.clients.openWindow) return self.clients.openWindow(url);
+  }));
+});
+"""
+with open(os.path.join(_OUTDIR, "sw.js"), "w", encoding="utf-8") as _f:
+    _f.write(SW_JS)
+print("Wrote icons + manifest + sw.js to", _OUTDIR)
