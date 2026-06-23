@@ -32,7 +32,7 @@ VAPID_PUBLIC_KEY = "BFmuFcrH9Ev9FUJaVUyP_Xwks439rTLXNYZtKD7Lj-4nZLlbzcwqWuOGMh6N
 # Where the app sends a subscription so the sender can reach it later. Leave blank
 # until Step 2 (the Apps Script collector) is set up; the toggle + on-device test
 # notification already work without it.
-NOTIFY_ENDPOINT = ""
+NOTIFY_ENDPOINT = "https://script.google.com/macros/s/AKfycbyxU2THM7e1YHSM88fHN9GcNCf8slMHHaadKdHLE_mLpJFUyTdtauzRitRyv4kB4kA2sg/exec"
 
 # ---- "Books In Stock" shelf ----
 # The shelf fills AUTOMATICALLY from files you upload to the repo's library/
