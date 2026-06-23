@@ -783,8 +783,12 @@ function homeStats(st){ const g=$("glance"); if(!st){ g.hidden=true; return; }
   const todayAll=meetings.filter(m=>m.day===dayName);
   const active=todayAll.filter(m=>m.changed!=="out").sort((a,b)=>toMin(a.start)-toMin(b.start));
   const out=todayAll.filter(m=>m.changed==="out").length;
+  const roomToday=myChanges.filter(c=>isRoomChange(c)&&c.new_day===dayName).length;
   $("stClasses").textContent=active.length;
-  $("stClassesSub").textContent = out>0 ? (out+" of "+(active.length+out)+" postponed/moved") : (active.length? "Stay on track" : "No classes today");
+  const subBits=[];
+  if(out>0) subBits.push(out+" of "+(active.length+out)+" postponed/moved");
+  if(roomToday>0) subBits.push(roomToday+" room "+(roomToday===1?"change":"changes"));
+  $("stClassesSub").textContent = subBits.length ? subBits.join(" · ") : (active.length? "Stay on track" : "No classes today");
   const now=TODAY.getHours()*60+TODAY.getMinutes();
   let next=active.find(m=>toMin(m.start)>now)||null, when="today";
   if(!next){ const order=DATA.days||[], ti=order.indexOf(dayName);
