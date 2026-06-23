@@ -577,7 +577,7 @@ footer{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);font-si
       <span class="tt-title">Important Updates</span>
       <button class="iconbtn js-theme" aria-label="Switch theme"></button>
     </div>
-    <p class="bk-intro">Notices from the student committee cells. Tap any update to reach that committee directly.</p>
+    <p class="bk-intro">A quick notice board — recent reminders from the student committee cells (Placecomm, SAC &amp; SWC).</p>
     <div id="updList"></div>
   </section>
 
@@ -704,22 +704,18 @@ function updDate(ds){ if(!ds) return ""; try{return new Date(ds+"T00:00:00").toL
 function renderUpdates(){ const w=$("updList"); if(!w) return;
   const ups=(DATA.updates||[]).filter(u=>u&&COMMS[u.code]);
   if(ups.length){
-    w.innerHTML=ups.slice(0,6).map(u=>{ const c=COMMS[u.code];
+    w.innerHTML=ups.slice(0,30).map(u=>{ const c=COMMS[u.code];
       const meta=[updDate(u.date), c.name].filter(Boolean).join(" · ");
-      return '<a class="upd '+c.cls+'" href="mailto:'+c.email+'">'
+      return '<div class="upd '+c.cls+'">'
         +'<span class="upd-dot"></span>'
         +'<span class="upd-body"><span class="upd-tag">'+esc(c.short)+'</span>'
         +'<span class="upd-sub">'+esc(u.subject||"Update")+'</span>'
         +'<span class="upd-meta">'+esc(meta)+'</span></span>'
-        +'<span class="upd-go">'+UCHEV+'</span></a>';
+        +'</div>';
     }).join("");
   } else {
-    w.innerHTML='<p class="upd-empty">No new notices right now — reach the committee cells directly:</p>'
-      +Object.values(COMMS).map(c=>'<a class="upd-contact '+c.cls+'" href="mailto:'+c.email+'">'
-        +'<span class="uc-badge">'+esc(c.tag)+'</span>'
-        +'<span class="uc-tx"><span class="uc-name">'+esc(c.name)+'</span>'
-        +'<span class="uc-mail">'+esc(c.email)+'</span></span>'
-        +'<span class="upd-go">'+UMAIL+'</span></a>').join("");
+    w.innerHTML='<p class="upd-empty">No notices posted right now.</p>'
+      +'<p class="upd-empty">Updates from Placecomm, SAC and SWC will appear here.</p>';
   }
 }
 function prettyTime(t){ const m=String(t).match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i); return m?((+m[1])+":"+m[2]+" "+m[3].toUpperCase()):t; }
