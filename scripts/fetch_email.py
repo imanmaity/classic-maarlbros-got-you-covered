@@ -42,11 +42,22 @@ def body_text(msg):
     except Exception: return ""
 
 def parse_change(text):
-    secs = re.findall(r'([A-Za-z&]{2,6})\(\s*([A-Za-z])\s*\)', text)
+    # sections like "SBM(A)", "SBM(A & B)", "SDM(A), SDM(B)" -> one (abbr, division) per division
+    secs = []
+    for ab, dvgroup in re.findall(r'([A-Za-z&]{2,6})\(\s*([A-Za-z][A-Za-z&,\s]*?)\s*\)', text):
+        for dv in re.findall(r'[A-Za-z]', dvgroup):
+            secs.append((ab, dv))
     if not secs: return []
     raw_dates = re.findall(r'(\d{1,2})[./-](\d{1,2})[./-](\d{2,4})', text)
     dates = [f"{int(('20'+y) if len(y)==2 else y):04d}-{int(m):02d}-{int(d):02d}" for d, m, y in raw_dates]
-    times = [t.replace('.', ':') for t in re.findall(r'(\d{1,2}[:.]\d{2})\s*[-to]+\s*\d{1,2}[:.]\d{2}', text)]
+    # time ranges, capturing a trailing AM/PM if present (e.g. "02:40-03:40 & 03:50-04:50PM")
+    tmatches = re.findall(r'(\d{1,2}[:.]\d{2})\s*(?:[-\u2013\u2014]|to)\s*\d{1,2}[:.]\d{2}\s*([AaPp][Mm])?', text)
+    starts = [s.replace('.', ':') for s, _ in tmatches]
+    meris = [m.upper() for _, m in tmatches]
+    # if a single meridiem is stated for the whole sentence, apply it to the bare times too
+    known = [m for m in meris if m]
+    fill = known[-1] if known and len(set(known)) == 1 else None
+    times = [s + (m if m else (fill or "")) for s, m in zip(starts, meris)]
     low = text.lower()
     ctype = ('Preponed' if 'prepon' in low else 'Postponed' if 'postpon' in low
              else 'Cancelled' if 'cancel' in low
@@ -67,8 +78,10 @@ def parse_change(text):
     raw = re.sub(r'\s+', ' ', text[:cut]).strip()[:400]
     out = []
     for i, (ab, dv) in enumerate(secs):
-        hhmm = (times[i] if len(times) == len(secs) else times[0] if len(times) == 1
-                else (times[i] if i < len(times) else None)) if times else None
+        if not times:                 hhmm = None
+        elif len(times) == len(secs): hhmm = times[i]            # "respectively" -> per division
+        elif len(times) == 1:         hhmm = times[0]            # one time for all
+        else:                         hhmm = times[i] if i < len(times) else times[-1]
         out.append({"abbr": ab.upper(), "division": dv.upper(), "type": ctype,
                     "old_date": old_date, "old_day": day(old_date),
                     "new_date": new_date, "new_day": day(new_date),
@@ -78,7 +91,7 @@ def parse_change(text):
 M = imaplib.IMAP4_SSL(HOST); M.login(USER, PWD); M.select("INBOX")
 
 # ---- 1) change notices (best effort) ----
-changes, seen_raw = [], set()
+changes, seen = [], set()
 since = (datetime.date.today() - datetime.timedelta(days=14)).strftime("%d-%b-%Y")
 crit = ["FROM", SENDER, "SINCE", since] if SENDER else ["SINCE", since]
 try:
@@ -89,8 +102,11 @@ try:
         if CHANGE_SUBJECT.lower() not in decode(msg.get("Subject", "")).lower():
             continue
         for c in parse_change(body_text(msg)):
-            if c["raw"] not in seen_raw:
-                changes.append(c); seen_raw.add(c["raw"])
+            # dedup by the actual change (subject + division + dates + time), NOT by the shared
+            # message text -- otherwise a single mail naming two divisions keeps only one of them
+            key = (c["abbr"], c["division"], c["old_date"], c["new_date"], c["new_hhmm"], c["type"])
+            if key not in seen:
+                changes.append(c); seen.add(key)
     os.makedirs(os.path.dirname(CHANGES_OUT) or ".", exist_ok=True)
     json.dump(changes, open(CHANGES_OUT, "w", encoding="utf-8"), ensure_ascii=False)
     print(f"Parsed {len(changes)} change notice(s) -> {CHANGES_OUT}")
