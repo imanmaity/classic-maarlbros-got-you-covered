@@ -187,6 +187,15 @@ a.upd:active{transform:scale(.995)}
 .c-place{--c:var(--fin);--cb:var(--fin-bg)}
 .c-sac{--c:var(--ob);--cb:var(--ob-bg)}
 .c-swc{--c:var(--dna);--cb:var(--dna-bg)}
+.c-niche{--c:var(--om);--cb:var(--om-bg)}
+.c-finesse{--c:var(--dna);--cb:var(--dna-bg)}
+.c-news{--c:var(--es);--cb:var(--es-bg)}
+.c-cult{--c:var(--chg);--cb:var(--chg-bg)}
+.c-photo{--c:var(--mkt);--cb:var(--mkt-bg)}
+.c-clique{--c:var(--fin);--cb:var(--fin-bg)}
+.c-quiz{--c:var(--hol);--cb:var(--hol-bg)}
+.c-sport{--c:var(--pp);--cb:var(--pp-bg)}
+.c-optimus{--c:var(--gen);--cb:var(--gen-bg)}
 .upd-empty{font-size:13px;color:var(--muted);margin:0 2px 12px;line-height:1.5}
 .upd-contact{display:flex;align-items:center;gap:12px;text-decoration:none;color:var(--ink);
   background:var(--card);border:1px solid var(--line);border-radius:14px;padding:11px 13px;margin-bottom:10px;
@@ -224,6 +233,7 @@ a.upd:active{transform:scale(.995)}
 .sitefoot{margin-top:30px;padding-top:20px;border-top:1px solid var(--line)}
 .sf-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
 .sf-brand{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:23px;line-height:1.06;letter-spacing:-.02em;color:var(--ink)}
+.sf-brand .mb{color:#ff2e54}
 .sf-right{display:flex;flex-direction:column;align-items:flex-end;gap:10px}
 .sf-by{font-size:13px;color:var(--muted)}
 .sf-by b{font-weight:800;background:linear-gradient(95deg,#9b6cff,#ff6fae);-webkit-background-clip:text;background-clip:text;color:transparent}
@@ -506,7 +516,7 @@ footer{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);font-si
 
     <a class="gcard" href="#updates" id="updcard">
       <span class="gc-ic ic-upd"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span>
-      <span class="gc-body"><span class="gc-title">Important Updates</span><span class="gc-sub">Notices from Placecomm, SAC &amp; SWC</span></span>
+      <span class="gc-body"><span class="gc-title">Important Updates</span><span class="gc-sub">Know What's Happening Around</span></span>
       <span class="gc-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
     </a>
 
@@ -538,7 +548,7 @@ footer{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);font-si
 
     <footer class="sitefoot">
       <div class="sf-top">
-        <div class="sf-brand">ClassicMaarlbros<br>Got You Covered</div>
+        <div class="sf-brand">Classic<span class="mb">Maarlbros</span><br>Got You Covered</div>
         <div class="sf-right">
           <button class="sf-fb" id="fbBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4L4 21l1.1-3.6A8.4 8.4 0 1 1 21 11.5z"/></svg>Feedback</button>
           <span class="sf-by">Built by <b>Iman Maity</b></span>
@@ -577,7 +587,7 @@ footer{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);font-si
       <span class="tt-title">Important Updates</span>
       <button class="iconbtn js-theme" aria-label="Switch theme"></button>
     </div>
-    <p class="bk-intro">A quick notice board — recent reminders from the student committee cells (Placecomm, SAC &amp; SWC).</p>
+    <p class="bk-intro">A quick notice board — this month's reminders from the campus committees and clubs.</p>
     <div id="updList"></div>
   </section>
 
@@ -696,13 +706,23 @@ function cleanSub(n){ return String(n||"").split("*")[0].split("(")[0].replace(/
 const COMMS={
   PLACECOMM:{short:"Placecomm",tag:"PC", name:"Placement Committee",        email:"placecomm.im@nirmauni.ac.in",      cls:"c-place"},
   SAC:      {short:"SAC",      tag:"SAC",name:"Student Advisory Committee", email:"sac.im@nirmauni.ac.in",            cls:"c-sac"},
-  SWC:      {short:"SWC",      tag:"SWC",name:"Student Welfare Committee",  email:"studentwelfare.im@nirmauni.ac.in", cls:"c-swc"}
+  SWC:      {short:"SWC",      tag:"SWC",name:"Student Welfare Committee",  email:"studentwelfare.im@nirmauni.ac.in", cls:"c-swc"},
+  NICHE:     {short:"NiCHE",      name:"The Marketing Club",      email:"niche.im@nirmauni.ac.in",        cls:"c-niche"},
+  FINESSE:   {short:"Finesse",    name:"Finance Club",            email:"finesse.im@nirmauni.ac.in",      cls:"c-finesse"},
+  NEWSJN:    {short:"News Junction",name:"The News Club",         email:"newsjunction.im@nirmauni.ac.in", cls:"c-news"},
+  CULT:      {short:"Cult",       name:"The Cultural Committee",  email:"cultcomm.im@nirmauni.ac.in",     cls:"c-cult"},
+  PRATIKRITI:{short:"Pratikriti", name:"Photography Club",        email:"pratikriti.im@nirmauni.ac.in",   cls:"c-photo"},
+  CLIQUE:    {short:"Clique",     name:"The IT Club",             email:"clique.im@nirmauni.ac.in",       cls:"c-clique"},
+  XQUIZIT:   {short:"XquizIT",    name:"Quiz Club",               email:"xquizit.im@nirmauni.ac.in",      cls:"c-quiz"},
+  SPORTZZZ:  {short:"Sportzzz",   name:"Sports Committee",        email:"sportzzzcomm.im@nirmauni.ac.in", cls:"c-sport"},
+  OPTIMUS:   {short:"Optimus",    name:"Operations Club",         email:"optimus.im@nirmauni.ac.in",      cls:"c-optimus"}
 };
 const UCHEV='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>';
 const UMAIL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M4 7l8 6 8-6"/></svg>';
 function updDate(ds){ if(!ds) return ""; try{return new Date(ds+"T00:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short"});}catch(e){return "";} }
 function renderUpdates(){ const w=$("updList"); if(!w) return;
-  const ups=(DATA.updates||[]).filter(u=>u&&COMMS[u.code]);
+  const tym=TODAY.getFullYear()+"-"+String(TODAY.getMonth()+1).padStart(2,"0");  // current year-month
+  const ups=(DATA.updates||[]).filter(u=>u&&COMMS[u.code]&&String(u.date||"").slice(0,7)===tym);
   if(ups.length){
     w.innerHTML=ups.slice(0,30).map(u=>{ const c=COMMS[u.code];
       const meta=[updDate(u.date), c.name].filter(Boolean).join(" · ");

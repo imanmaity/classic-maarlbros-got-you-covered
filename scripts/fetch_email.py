@@ -120,28 +120,42 @@ COMMITTEES = [
     ("PLACECOMM", "Placement Committee",        os.environ.get("PLACECOMM_FROM", "placecomm.im@nirmauni.ac.in")),
     ("SAC",       "Student Advisory Committee", os.environ.get("SAC_FROM",       "sac.im@nirmauni.ac.in")),
     ("SWC",       "Student Welfare Committee",  os.environ.get("SWC_FROM",       "studentwelfare.im@nirmauni.ac.in")),
+    ("NICHE",     "The Marketing Club",         os.environ.get("NICHE_FROM",     "niche.im@nirmauni.ac.in")),
+    ("FINESSE",   "Finance Club",               os.environ.get("FINESSE_FROM",   "finesse.im@nirmauni.ac.in")),
+    ("NEWSJN",    "The News Club",              os.environ.get("NEWSJN_FROM",    "newsjunction.im@nirmauni.ac.in")),
+    ("CULT",      "The Cultural Committee",     os.environ.get("CULT_FROM",      "cultcomm.im@nirmauni.ac.in")),
+    ("PRATIKRITI","Photography Club",           os.environ.get("PRATIKRITI_FROM","pratikriti.im@nirmauni.ac.in")),
+    ("CLIQUE",    "The IT Club",                os.environ.get("CLIQUE_FROM",    "clique.im@nirmauni.ac.in")),
+    ("XQUIZIT",   "Quiz Club",                  os.environ.get("XQUIZIT_FROM",   "xquizit.im@nirmauni.ac.in")),
+    ("SPORTZZZ",  "Sports Committee",           os.environ.get("SPORTZZZ_FROM",  "sportzzzcomm.im@nirmauni.ac.in")),
+    ("OPTIMUS",   "Operations Club",            os.environ.get("OPTIMUS_FROM",   "optimus.im@nirmauni.ac.in")),
 ]
 def msg_date(msg):
     try: return parsedate_to_datetime(msg.get("Date")).date().isoformat()
     except Exception: return None
 updates = []
-since_u = (datetime.date.today() - datetime.timedelta(days=21)).strftime("%d-%b-%Y")
+_today = datetime.date.today()
+_month = _today.strftime("%Y-%m")                       # current year-month
+since_u = _today.replace(day=1).strftime("%d-%b-%Y")    # 1st of this month
 for code, cname, addr in COMMITTEES:
     try:
         typ, data = M.search(None, "FROM", addr, "SINCE", since_u)
-        for num in data[0].split()[-6:][::-1]:          # newest few per committee
+        for num in data[0].split()[-15:][::-1]:         # this month's mails per committee
             typ, md = M.fetch(num, "(RFC822)")
             msg = email.message_from_bytes(md[0][1])
             subj = re.sub(r"\s+", " ", decode(msg.get("Subject", ""))).strip()
             if not subj:
                 continue
+            d = msg_date(msg)
+            if not d or d[:7] != _month:                # current month only
+                continue
             body = re.sub(r"\s+", " ", body_text(msg)).strip()
             updates.append({"code": code, "committee": cname, "subject": subj[:140],
-                            "date": msg_date(msg), "snippet": body[:200], "from": addr})
+                            "date": d, "snippet": body[:200], "from": addr})
     except Exception as e:
         print(f"Committee fetch skipped ({code}):", e)
 updates.sort(key=lambda u: (u["date"] or ""), reverse=True)
-updates = updates[:12]
+updates = updates[:120]
 try:
     os.makedirs(os.path.dirname(UPDATES_OUT) or ".", exist_ok=True)
     json.dump(updates, open(UPDATES_OUT, "w", encoding="utf-8"), ensure_ascii=False)
