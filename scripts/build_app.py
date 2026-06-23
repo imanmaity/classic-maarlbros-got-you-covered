@@ -32,7 +32,7 @@ VAPID_PUBLIC_KEY = "BFmuFcrH9Ev9FUJaVUyP_Xwks439rTLXNYZtKD7Lj-4nZLlbzcwqWuOGMh6N
 # Where the app sends a subscription so the sender can reach it later. Leave blank
 # until Step 2 (the Apps Script collector) is set up; the toggle + on-device test
 # notification already work without it.
-NOTIFY_ENDPOINT = "https://script.google.com/macros/s/AKfycbyxU2THM7e1YHSM88fHN9GcNCf8slMHHaadKdHLE_mLpJFUyTdtauzRitRyv4kB4kA2sg/exec"
+NOTIFY_ENDPOINT = ""
 
 # ---- "Books In Stock" shelf ----
 # The shelf fills AUTOMATICALLY from files you upload to the repo's library/
@@ -260,6 +260,12 @@ a.upd:active{transform:scale(.995)}
 .nf-msg{font-size:12px;line-height:1.45;margin-top:11px;color:var(--muted)}
 .nf-msg[hidden]{display:none}
 .nf-msg.warn{color:var(--pp)} .nf-msg.ok{color:var(--dna)}
+.nf-time{color:var(--accent);font-weight:800}
+.nf-slider{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:999px;background:var(--line);outline:none;margin:9px 0 0;cursor:pointer}
+.nf-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:22px;height:22px;border-radius:50%;background:linear-gradient(95deg,#ffb43d,#ff5e9a);border:3px solid var(--card2);box-shadow:0 2px 6px var(--shadow);cursor:pointer}
+.nf-slider::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:linear-gradient(95deg,#ffb43d,#ff5e9a);border:3px solid var(--card2);cursor:pointer}
+.nf-ends{display:flex;justify-content:space-between;font-size:10.5px;color:var(--faint);margin-top:5px}
+.nf-hint{font-size:11.5px;color:var(--muted);margin-top:10px;line-height:1.42}
 
 /* site footer */
 .sitefoot{margin-top:30px;padding-top:20px;border-top:1px solid var(--line)}
@@ -589,12 +595,10 @@ footer{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);font-si
         <div class="nf-h"><b>Daily reminders</b><em>Get a heads-up about tomorrow's classes and any room/time changes — for <span id="nfRoll">your roll</span>.</em></div>
       </div>
       <div class="nf-when">
-        <div class="nf-lbl">When</div>
-        <div class="fb-seg" id="nfSeg">
-          <button class="fb-opt" data-when="night" type="button">Night before</button>
-          <button class="fb-opt" data-when="morning" type="button">Morning</button>
-          <button class="fb-opt" data-when="both" type="button">Both</button>
-        </div>
+        <div class="nf-lbl">Remind me at <span class="nf-time" id="nfTime">8:00 PM</span></div>
+        <input type="range" class="nf-slider" id="nfSlider" min="0" max="1425" step="15" value="1200" aria-label="Reminder time">
+        <div class="nf-ends"><span>12:00 AM</span><span>11:45 PM</span></div>
+        <div class="nf-hint" id="nfHint"></div>
       </div>
       <div class="nf-actions">
         <button class="nf-btn" id="nfToggle" type="button">Turn on reminders</button>
@@ -1047,8 +1051,8 @@ function setupNotifyCard(roll, st){
   if(!st){ card.hidden=true; return; }                 // need a roll to know whose digest to send
   card.hidden=false;
   const rEl=$("nfRoll"); if(rEl) rEl.textContent=roll;
-  const s=NF.read(); const when=s.when||"night";
-  $("nfSeg").querySelectorAll(".fb-opt").forEach(b=>b.classList.toggle("active", b.dataset.when===when));
+  const s=NF.read(); const mins=nfParse(s.when);
+  $("nfSlider").value=mins; $("nfTime").textContent=nfFmt(mins); $("nfHint").textContent=nfHint(mins);
   const granted = (typeof Notification!=="undefined") && Notification.permission==="granted";
   const on = !!s.on && s.roll===roll && granted;
   card.classList.toggle("on", on);
@@ -1056,23 +1060,28 @@ function setupNotifyCard(roll, st){
   $("nfTest").hidden = !granted;
   if(!nfSupported()) nfMsg("This browser can't push notifications. Use Chrome on Android, or on iPhone add this app to your Home Screen first (iOS 16.4+).","warn");
   else if(typeof Notification!=="undefined" && Notification.permission==="denied") nfMsg("Notifications are blocked for this site in your browser settings. Allow them, then try again.","warn");
-  else if(on) nfMsg("You'll get tomorrow's classes"+(when==="both"?" the night before and in the morning.":when==="morning"?" each morning.":" the night before."),"ok");
+  else if(on) nfMsg("Reminders on \u2014 you'll get a ping around "+nfFmt(mins)+".","ok");
   else nfMsg("");
-  if(!card.dataset.wired){ card.dataset.wired="1";
-    $("nfSeg").addEventListener("click", e=>{ const b=e.target.closest(".fb-opt"); if(!b) return;
-      $("nfSeg").querySelectorAll(".fb-opt").forEach(x=>x.classList.toggle("active",x===b));
-      const v=NF.read(); v.when=b.dataset.when; NF.write(v); if(v.on) nfResend(getRoll()); });
+  if(!card.dataset.wired){ card.dataset.wired="1"; const sl=$("nfSlider");
+    sl.addEventListener("input", e=>{ const m=+e.target.value; $("nfTime").textContent=nfFmt(m); $("nfHint").textContent=nfHint(m); });
+    sl.addEventListener("change", e=>{ const m=+e.target.value; const v=NF.read(); v.when=nfToHHMM(m); NF.write(v);
+      if(v.on){ nfResend(getRoll()); nfMsg("Updated \u2014 reminder set for "+nfFmt(m)+".","ok"); } });
     tog.addEventListener("click", ()=>{ const v=NF.read();
       if(v.on && typeof Notification!=="undefined" && Notification.permission==="granted") nfDisable(); else nfEnable(getRoll()); });
     $("nfTest").addEventListener("click", nfTest); }
 }
+// time helpers: store "HH:MM"; slider works in minutes-since-midnight
+function nfParse(w){ const m=/^(\d{1,2}):(\d{2})$/.exec(String(w||"")); return m ? ((+m[1])*60+(+m[2])) : 1200; }
+function nfToHHMM(mins){ return String(Math.floor(mins/60)).padStart(2,"0")+":"+String(mins%60).padStart(2,"0"); }
+function nfFmt(mins){ let h=Math.floor(mins/60), m=mins%60, ap=h<12?"AM":"PM", h12=h%12; if(h12===0)h12=12; return h12+":"+String(m).padStart(2,"0")+" "+ap; }
+function nfHint(mins){ return mins<900 ? "Sent that morning \u2014 your classes for the day ahead." : "Sent the evening before \u2014 tomorrow's classes."; }
 async function nfEnable(roll){
   if(!roll || !DATA.students[roll]){ nfMsg("Look up your roll number first, then turn on reminders.","warn"); return; }
   if(!nfSupported()){ nfMsg("Not supported here. On iPhone, add this app to your Home Screen first (iOS 16.4+).","warn"); return; }
   nfMsg("Asking for permission\u2026");
   let perm; try{ perm=await Notification.requestPermission(); }catch(e){ perm=Notification.permission; }
   if(perm!=="granted"){ nfMsg("Permission not granted. Enable notifications for this site in your browser settings.","warn"); return; }
-  const when=(NF.read().when)||"night";
+  const when=nfToHHMM(+(($("nfSlider")&&$("nfSlider").value)||1200));
   try{
     const reg=await navigator.serviceWorker.register("sw.js"); await navigator.serviceWorker.ready;
     let sub=await reg.pushManager.getSubscription();
@@ -1086,11 +1095,11 @@ async function nfEnable(roll){
   }
 }
 async function nfResend(roll){ try{ const reg=await navigator.serviceWorker.ready; const sub=await reg.pushManager.getSubscription();
-  if(sub) await nfPost("subscribe", roll, (NF.read().when)||"night", sub.toJSON()); }catch(e){} }
+  if(sub) await nfPost("subscribe", roll, (NF.read().when)||"20:00", sub.toJSON()); }catch(e){} }
 async function nfDisable(){ const s=NF.read();
   try{ const reg=await navigator.serviceWorker.ready; const sub=await reg.pushManager.getSubscription();
     if(sub){ await nfPost("unsubscribe", s.roll, s.when, sub.toJSON()); await sub.unsubscribe(); } }catch(e){}
-  NF.write({ on:false, when:s.when||"night" }); setupNotifyCard(getRoll(), DATA.students[getRoll()]); nfMsg("Reminders turned off."); }
+  NF.write({ on:false, when:s.when||"20:00" }); setupNotifyCard(getRoll(), DATA.students[getRoll()]); nfMsg("Reminders turned off."); }
 async function nfTest(){ try{ const reg=await navigator.serviceWorker.ready;
   await reg.showNotification("Tomorrow at IMNU", { body:"This is a test \u2014 your daily class digest will look like this.", icon:"icon-192.png", badge:"icon-192.png", tag:"imnu-test", data:{url:"./#timetable"} });
   nfMsg("Sent a test notification. If you didn't see it, check your device's notification settings.","ok");
