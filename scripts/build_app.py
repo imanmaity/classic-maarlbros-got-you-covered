@@ -156,6 +156,7 @@ html[data-theme="light"] body::before{
 .ic-cal{background:linear-gradient(140deg,#ffa23d,#ff6f9a,#c069ff)}
 .ic-book{background:linear-gradient(140deg,#b56bff,#ff6fae,#ff9a5c)}
 .ic-pyq{background:linear-gradient(140deg,#34d8c9,#3d9bff,#9b6cff);color:#06121a}
+.ic-upd{background:linear-gradient(140deg,#5b8cff,#9b6cff,#ff6fae)}
 .gc-body{flex:1;min-width:0;display:flex;flex-direction:column}
 .gc-title{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:23px;color:var(--ink);line-height:1.1}
 .gc-sub{font-size:14px;color:var(--muted);line-height:1.35;margin-top:3px}
@@ -503,10 +504,11 @@ footer{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);font-si
       <span class="gc-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
     </a>
 
-    <div id="updates">
-      <h3 class="sec-h">Important Updates</h3>
-      <div id="updList"></div>
-    </div>
+    <a class="gcard" href="#updates" id="updcard">
+      <span class="gc-ic ic-upd"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span>
+      <span class="gc-body"><span class="gc-title">Important Updates</span><span class="gc-sub">Notices from Placecomm, SAC &amp; SWC</span></span>
+      <span class="gc-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
+    </a>
 
     <div class="gcard soon" id="pyqcard">
       <span class="gc-ic ic-pyq"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2.5h7l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1z"/><path d="M13 2.5V8h5"/><path d="M8.5 13h7M8.5 16.5h5"/></svg></span>
@@ -567,6 +569,16 @@ footer{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);font-si
     <div class="weeklabel" id="weeklabel" hidden></div>
     <div id="result"></div>
     <footer>Tentative weekly schedule — confirm any room/time changes with the department.</footer>
+  </section>
+
+  <section id="view-updates" class="view" hidden>
+    <div class="topbar">
+      <a class="iconbtn" href="#" aria-label="Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></a>
+      <span class="tt-title">Important Updates</span>
+      <button class="iconbtn js-theme" aria-label="Switch theme"></button>
+    </div>
+    <p class="bk-intro">Notices from the student committee cells. Tap any update to reach that committee directly.</p>
+    <div id="updList"></div>
   </section>
 
   <section id="view-books" class="view" hidden>
@@ -756,9 +768,9 @@ function homeStats(st){ const g=$("glance"); if(!st){ g.hidden=true; return; }
 })();
 
 // routing: Home <-> Timetable
-function showView(){const h=location.hash, tt=h==="#timetable", bk=h==="#books";
-  $("view-home").hidden=tt||bk; $("view-tt").hidden=!tt; $("view-books").hidden=!bk;
-  if(tt) enterTT(); else if(bk) enterBooks(); else refreshHomeCard();
+function showView(){const h=location.hash, tt=h==="#timetable", bk=h==="#books", up=h==="#updates";
+  $("view-home").hidden=tt||bk||up; $("view-tt").hidden=!tt; $("view-books").hidden=!bk; $("view-updates").hidden=!up;
+  if(tt) enterTT(); else if(bk) enterBooks(); else if(up) renderUpdates(); else refreshHomeCard();
   window.scrollTo(0,0);}
 function enterBooks(){ const r=getRoll(), st=r&&DATA.students[r];
   if(st && $("q_who") && !$("q_who").value) $("q_who").value=st.n+" · "+r; }
