@@ -53,7 +53,7 @@ TEMPLATE = r"""<!DOCTYPE html>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Caveat:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#15110d; --ink:#f5efe6; --muted:#b6a895; --faint:#897b6c; --line:rgba(255,255,255,.14);
@@ -237,6 +237,9 @@ a.upd:active{transform:scale(.995)}
 .sf-brand .mb{color:#ff2e54}
 a.sf-brand{text-decoration:none;display:inline-block;transition:opacity .15s}
 a.sf-brand:hover{opacity:.82}
+.tap-tease{display:flex;align-items:flex-end;gap:1px;color:#ff2e54;margin:0 0 -4px 12px;transform:rotate(-3deg);transform-origin:left bottom;pointer-events:none;user-select:none}
+.tt-say{font-family:"Caveat",cursive;font-weight:700;font-size:23px;line-height:.85;white-space:nowrap;transform:rotate(-3deg)}
+.tt-arr{width:44px;height:40px;flex:none;margin:0 0 -8px 1px}
 .sf-right{display:flex;flex-direction:column;align-items:flex-end;gap:10px}
 .sf-by{font-size:13px;color:var(--muted)}
 .sf-by b{font-weight:800;background:linear-gradient(95deg,#9b6cff,#ff6fae);-webkit-background-clip:text;background-clip:text;color:transparent}
@@ -550,6 +553,10 @@ footer{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);font-si
     </div>
 
     <footer class="sitefoot">
+      <div class="tap-tease" aria-hidden="true">
+        <span class="tt-say">don't tap 👀</span>
+        <svg class="tt-arr" viewBox="0 0 64 58" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M52 5C61 21 46 31 18 48"/><path d="M18 48l16-3M18 48l5-15"/></svg>
+      </div>
       <div class="sf-top">
         <a class="sf-brand" href="__INSTA__" target="_blank" rel="noopener noreferrer" aria-label="ClassicMaarlbros on Instagram">Classic<span class="mb">Maarlbros</span><br>Got You Covered</a>
         <div class="sf-right">
