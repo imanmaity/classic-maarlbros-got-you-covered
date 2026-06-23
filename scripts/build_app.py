@@ -71,6 +71,7 @@ TEMPLATE = r"""<!DOCTYPE html>
   --exam:#ff7da6; --exam-bg:rgba(55,27,39,.6);
   --chg:#c49cff; --chg-bg:rgba(42,33,64,.7);
   --pp:#ff6b6b; --pp-bg:rgba(58,29,29,.7);
+  --rm:#3dd6e0; --rm-bg:rgba(16,46,52,.7); --rm-ink:#04181c;
   --radius:18px;
 }
 html[data-theme="light"]{
@@ -89,6 +90,7 @@ html[data-theme="light"]{
   --exam:#b02458; --exam-bg:rgba(251,224,234,.85);
   --chg:#7c3aed; --chg-bg:rgba(239,231,253,.9);
   --pp:#dc2626; --pp-bg:rgba(251,227,227,.9);
+  --rm:#0e7490; --rm-bg:rgba(214,243,247,.92); --rm-ink:#ffffff;
 }
 *{box-sizing:border-box}
 html,body{margin:0}
@@ -310,6 +312,8 @@ button.go:hover{filter:brightness(1.06)} button.go:active{transform:translateY(1
 .notice .ntxt{color:var(--ink)}
 .notice.red{background:var(--pp-bg);border-color:color-mix(in srgb,var(--pp) 42%,transparent);border-left-color:var(--pp)}
 .notice.red .ntag{background:var(--pp)}
+.notice.room{background:var(--rm-bg);border-color:color-mix(in srgb,var(--rm) 42%,transparent);border-left-color:var(--rm)}
+.notice.room .ntag{background:var(--rm);color:var(--rm-ink)}
 
 .legend{display:flex;gap:14px;flex-wrap:wrap;margin:0 0 13px;font-size:12px;color:var(--muted)}
 .legend .li{display:flex;align-items:center;gap:6px}
@@ -320,6 +324,7 @@ button.go:hover{filter:brightness(1.06)} button.go:active{transform:translateY(1
 .sw.exam{background:var(--exam-bg);border:1.5px solid var(--exam)}
 .sw.chg{background:var(--chg-bg);border:1.5px solid var(--chg)}
 .sw.pp{background:var(--pp-bg);border:1.5px solid var(--pp)}
+.sw.rm{background:var(--rm-bg);border:1.5px solid var(--rm)}
 
 .ic{width:.82em;height:.82em;display:inline-block;vertical-align:-1px;margin-right:3px;flex:none}
 
@@ -352,10 +357,13 @@ button.go:hover{filter:brightness(1.06)} button.go:active{transform:translateY(1
 .gblk.out{opacity:.5} .gblk.out .ga{text-decoration:line-through}
 .gblk.pp{background:var(--pp-bg);color:var(--pp);border:1px solid color-mix(in srgb,var(--pp) 45%,transparent);outline:2px solid var(--pp);outline-offset:1px}
 .gblk.pp .ga{text-decoration:line-through}
-.gmv,.ppbadge{display:block;max-width:100%;box-sizing:border-box;white-space:normal;overflow-wrap:break-word;
+.gblk.rm{outline:2px solid var(--rm);outline-offset:1px}
+.gblk.rm .gr{color:var(--rm);opacity:1}
+.gmv,.ppbadge,.rmbadge{display:block;max-width:100%;box-sizing:border-box;white-space:normal;overflow-wrap:break-word;
   font-weight:700;text-transform:uppercase;letter-spacing:0;border-radius:4px;padding:1px 3px;margin-top:3px;text-align:center;line-height:1.12}
 .gmv{font-size:7px;color:#1a1208;background:var(--chg)}
 .ppbadge{font-size:7px;color:#fff;background:var(--pp)}
+.rmbadge{font-size:7px;color:var(--rm-ink);background:var(--rm)}
 
 /* below-calendar: gradient pill note + event chips */
 .belowcal{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px;align-items:stretch}
@@ -766,7 +774,8 @@ function homeStats(st){ const g=$("glance"); if(!st){ g.hidden=true; return; }
   const meetings=[];
   secs.forEach(e=>(e.meetings||[]).forEach(m=>meetings.push({sec:e,day:m.day,start:m.start})));
   const changeMap=new Map();
-  myChanges.forEach(c=>{ const el=elBy[ckey(c.abbr,c.division)], ses=sessByHM(c.new_hhmm);
+  const isRoomChange=c=>(c.type==="Room Change")&&!!c.new_room;
+  myChanges.forEach(c=>{ if(isRoomChange(c)) return; const el=elBy[ckey(c.abbr,c.division)], ses=sessByHM(c.new_hhmm);
     if(el&&ses&&c.new_day&&!isTBA(c)&&c.type!=="Cancelled") meetings.push({sec:el,day:c.new_day,start:ses.start,changed:"in"});
     if(c.old_day) changeMap.set(c.old_day+"|"+ckey(c.abbr,c.division), c); });
   meetings.forEach(m=>{ if(m.changed) return; if(changeMap.get(m.day+"|"+ckey(m.sec.abbr,m.sec.division))) m.changed="out"; });
@@ -842,13 +851,18 @@ function render(){
   const normHM=s=>{const m=String(s||'').match(/(\d{1,2})[:.](\d{2})/); return m?parseInt(m[1])+':'+m[2]:'';};
   const sessByHM=hm=>DATA.sessions.find(s=>normHM(s.start)===normHM(hm));
   const isTBA=c=>!!(c.tba || !sessByHM(c.new_hhmm));
-  const changeMap=new Map();
-  myChanges.forEach(c=>{ const el=elBy[ckey(c.abbr,c.division)], ses=sessByHM(c.new_hhmm);
+  const isRoomChange=c=>(c.type==='Room Change')&&!!c.new_room;
+  const changeMap=new Map(), roomMap=new Map();
+  myChanges.forEach(c=>{
+    if(isRoomChange(c)){ if(c.new_day) roomMap.set(c.new_day+'|'+ckey(c.abbr,c.division), c); return; }
+    const el=elBy[ckey(c.abbr,c.division)], ses=sessByHM(c.new_hhmm);
     if(el&&ses&&c.new_day&&!isTBA(c)&&c.type!=='Cancelled') meetings.push({sec:el,day:c.new_day,session:ses.name,start:ses.start,end:ses.end,changed:'in'});
     if(c.old_day) changeMap.set(c.old_day+'|'+ckey(c.abbr,c.division), c); });
   meetings.forEach(m=>{ if(m.changed) return;
     const c=changeMap.get(m.day+'|'+ckey(m.sec.abbr,m.sec.division));
-    if(c){ m.changed='out'; m.tba=isTBA(c); } });
+    if(c){ m.changed='out'; m.tba=isTBA(c); return; }
+    const rc=roomMap.get(m.day+'|'+ckey(m.sec.abbr,m.sec.division));
+    if(rc) m.roomChg=rc; });
 
   const byDay={}; meetings.forEach(m=>{(byDay[m.day]=byDay[m.day]||[]).push(m);});
   const cellMap={}; meetings.forEach(m=>{const k=m.day+'|'+m.session;(cellMap[k]=cellMap[k]||[]).push(m);});
@@ -860,9 +874,9 @@ function render(){
 
   if(myChanges.length){ const seen=new Set();
     myChanges.forEach(c=>{const t=cleanNotice(c.raw); if(!t||seen.has(t))return; seen.add(t);
-      html+=`<div class="notice${isTBA(c)?' red':''}"><span class="ntag">${esc(c.type||'Changed')}</span><span class="ntxt">${esc(t)}</span></div>`;}); }
+      html+=`<div class="notice${isTBA(c)?' red':isRoomChange(c)?' room':''}"><span class="ntag">${esc(c.type||'Changed')}</span><span class="ntxt">${esc(t)}</span></div>`;}); }
 
-  const hasMoved=myChanges.some(c=>!isTBA(c)), hasPostponed=myChanges.some(c=>isTBA(c));
+  const hasMoved=myChanges.some(c=>!isTBA(c)&&!isRoomChange(c)), hasPostponed=myChanges.some(c=>isTBA(c)&&!isRoomChange(c)), hasRoom=myChanges.some(isRoomChange);
   html+=`<div class="legend">
       <span class="li"><span class="sw cls"></span>My Class</span>
       <span class="li"><span class="sw today"></span>Today</span>
@@ -870,6 +884,7 @@ function render(){
       <span class="li"><span class="sw exam"></span>Exam</span>
       ${hasMoved?'<span class="li"><span class="sw chg"></span>Changed</span>':''}
       ${hasPostponed?'<span class="li"><span class="sw pp"></span>Postponed</span>':''}
+      ${hasRoom?'<span class="li"><span class="sw rm"></span>Room change</span>':''}
     </div>`;
 
   const usedDays=DATA.days.slice();   // keep every weekday column, even if empty, so days never shift
@@ -893,9 +908,11 @@ function render(){
         const flag=(d===todayDay&&cell.length)?' today':hol?' hol':exam?' exam':'';
         let inner='';
         cell.forEach(m=>{ const ppl=m.changed==='out'&&m.tba;
-          const cc=m.changed==='in'?' chg':ppl?' pp':m.changed==='out'?' chg out':'';
-          const mv=m.changed==='in'?'<span class="gmv">moved here</span>':ppl?'<span class="ppbadge">TBA</span>':m.changed==='out'?'<span class="gmv">moved</span>':'';
-          inner+=`<span class="gblk ${slug(m.sec.area)}${cc}" title="${esc(m.sec.name)} · ${esc(m.sec.room||'')} · ${esc(m.sec.faculty||'')}"><span class="ga">${PERSON}${esc(m.sec.abbr)}<small>${m.sec.division?(' '+esc(m.sec.division)):''}</small></span><span class="gr">${ROOM}${esc(m.sec.room||'TBA')}</span>${mv}</span>`; });
+          const cc=m.changed==='in'?' chg':ppl?' pp':m.changed==='out'?' chg out':m.roomChg?' rm':'';
+          const roomTxt=m.roomChg?(m.roomChg.new_room||m.sec.room||'TBA'):(m.sec.room||'TBA');
+          const mv=m.changed==='in'?'<span class="gmv">moved here</span>':ppl?'<span class="ppbadge">TBA</span>':m.changed==='out'?'<span class="gmv">moved</span>':m.roomChg?`<span class="rmbadge">${m.roomChg.old_room?('was '+esc(m.roomChg.old_room)):'new room'}</span>`:'';
+          const ttl=m.roomChg?`${esc(m.sec.name)} · room → ${esc(roomTxt)}${m.roomChg.old_room?(' (was '+esc(m.roomChg.old_room)+')'):''} · ${esc(m.sec.faculty||'')}`:`${esc(m.sec.name)} · ${esc(m.sec.room||'')} · ${esc(m.sec.faculty||'')}`;
+          inner+=`<span class="gblk ${slug(m.sec.area)}${cc}" title="${ttl}"><span class="ga">${PERSON}${esc(m.sec.abbr)}<small>${m.sec.division?(' '+esc(m.sec.division)):''}</small></span><span class="gr">${ROOM}${esc(roomTxt)}</span>${mv}</span>`; });
         html+=`<div class="gc${flag}${cell.length>1?' clash':''}">${inner}</div>`;
       });
     });
