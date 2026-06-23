@@ -75,10 +75,19 @@ if os.path.exists(chg_path):
     except Exception as e:
         print("changes.json skipped:", e)
 
+updates = []
+upd_path = os.path.join(os.path.dirname(os.path.abspath(DB)), "updates.json")
+if os.path.exists(upd_path):
+    try:
+        for u in json.load(open(upd_path, encoding="utf-8")):
+            updates.append(u)
+    except Exception as e:
+        print("updates.json skipped:", e)
+
 data = {"meta": {"institute": "Institute of Management, Nirma University",
                  "term": "MBA Term-IV", "week_of": WK_START.isoformat(), "recurring": True},
         "days": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
-        "sessions": sessions, "events": events, "changes": changes,
+        "sessions": sessions, "events": events, "changes": changes, "updates": updates,
         "sections": sections, "students": students}
 open(OUT, "w", encoding="utf-8").write(json.dumps(data, separators=(",", ":"), ensure_ascii=False))
 print(f"Week {WK_START}..{WK_END}: {len(sessions)} sessions, {len(events)} events, {len(changes)} changes")

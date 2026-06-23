@@ -12,6 +12,7 @@ Change parsing is best-effort and never fails the build.
 """
 import imaplib, email, os, sys, re, json, datetime
 from email.header import decode_header
+from email.utils import parsedate_to_datetime
 
 OUT  = sys.argv[1] if len(sys.argv) > 1 else "rosters/schedule_latest.xlsx"
 CHANGES_OUT = os.environ.get("CHANGES_OUT", "data/changes.json")
@@ -112,6 +113,41 @@ try:
     print(f"Parsed {len(changes)} change notice(s) -> {CHANGES_OUT}")
 except Exception as e:
     print("Change-notice fetch skipped:", e)
+
+# ---- 1b) committee notices -> data/updates.json (best effort, never fails the build) ----
+UPDATES_OUT = os.environ.get("UPDATES_OUT", "data/updates.json")
+COMMITTEES = [
+    ("PLACECOMM", "Placement Committee",        os.environ.get("PLACECOMM_FROM", "placecomm.im@nirmauni.ac.in")),
+    ("SAC",       "Student Advisory Committee", os.environ.get("SAC_FROM",       "sac.im@nirmauni.ac.in")),
+    ("SWC",       "Student Welfare Committee",  os.environ.get("SWC_FROM",       "studentwelfare.im@nirmauni.ac.in")),
+]
+def msg_date(msg):
+    try: return parsedate_to_datetime(msg.get("Date")).date().isoformat()
+    except Exception: return None
+updates = []
+since_u = (datetime.date.today() - datetime.timedelta(days=21)).strftime("%d-%b-%Y")
+for code, cname, addr in COMMITTEES:
+    try:
+        typ, data = M.search(None, "FROM", addr, "SINCE", since_u)
+        for num in data[0].split()[-6:][::-1]:          # newest few per committee
+            typ, md = M.fetch(num, "(RFC822)")
+            msg = email.message_from_bytes(md[0][1])
+            subj = re.sub(r"\s+", " ", decode(msg.get("Subject", ""))).strip()
+            if not subj:
+                continue
+            body = re.sub(r"\s+", " ", body_text(msg)).strip()
+            updates.append({"code": code, "committee": cname, "subject": subj[:140],
+                            "date": msg_date(msg), "snippet": body[:200], "from": addr})
+    except Exception as e:
+        print(f"Committee fetch skipped ({code}):", e)
+updates.sort(key=lambda u: (u["date"] or ""), reverse=True)
+updates = updates[:12]
+try:
+    os.makedirs(os.path.dirname(UPDATES_OUT) or ".", exist_ok=True)
+    json.dump(updates, open(UPDATES_OUT, "w", encoding="utf-8"), ensure_ascii=False)
+    print(f"Parsed {len(updates)} committee update(s) -> {UPDATES_OUT}")
+except Exception as e:
+    print("Committee updates write skipped:", e)
 
 # ---- 2) schedule attachment (required) ----
 crit = ["FROM", SENDER] if SENDER else ["ALL"]

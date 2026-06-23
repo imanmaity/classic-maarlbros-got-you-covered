@@ -166,6 +166,36 @@ html[data-theme="light"] body::before{
 .gc-go svg{width:20px;height:20px}
 .gcard.soon{opacity:.72} .gcard.soon:hover{transform:none;border-color:var(--line)}
 
+/* important updates */
+.upd{display:flex;gap:12px;align-items:flex-start;text-decoration:none;color:var(--ink);
+  background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:12px;
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 8px 24px var(--shadow);
+  transition:border-color .15s,transform .08s}
+a.upd:hover{border-color:color-mix(in srgb,var(--c) 55%,transparent);transform:translateY(-1px)}
+a.upd:active{transform:scale(.995)}
+.upd-dot{flex:none;width:9px;height:9px;border-radius:50%;background:var(--c);margin-top:6px;
+  box-shadow:0 0 0 4px color-mix(in srgb,var(--c) 16%,transparent)}
+.upd-body{min-width:0;flex:1}
+.upd-tag{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--c);background:var(--cb);border:1px solid color-mix(in srgb,var(--c) 32%,transparent);
+  padding:2px 8px;border-radius:999px;margin-bottom:6px}
+.upd-sub{display:block;font-weight:700;font-size:14.5px;line-height:1.3}
+.upd-meta{display:block;margin-top:3px;font-size:12px;color:var(--faint)}
+.upd-go{flex:none;align-self:center;color:var(--faint)}
+.upd-go svg{width:18px;height:18px}
+.c-place{--c:var(--fin);--cb:var(--fin-bg)}
+.c-sac{--c:var(--ob);--cb:var(--ob-bg)}
+.c-swc{--c:var(--dna);--cb:var(--dna-bg)}
+.upd-empty{font-size:13px;color:var(--muted);margin:0 2px 12px;line-height:1.5}
+.upd-contact{display:flex;align-items:center;gap:12px;text-decoration:none;color:var(--ink);
+  background:var(--card);border:1px solid var(--line);border-radius:14px;padding:11px 13px;margin-bottom:10px;
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.upd-contact:hover{border-color:color-mix(in srgb,var(--c) 50%,transparent)}
+.uc-badge{flex:none;width:36px;height:36px;border-radius:11px;display:grid;place-items:center;
+  font-size:11px;font-weight:800;color:#fff;background:var(--c);letter-spacing:.02em}
+.uc-tx{min-width:0;flex:1}
+.uc-name{display:block;font-weight:700;font-size:14px}
+.uc-mail{display:block;font-size:12px;color:var(--faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* at a glance */
 .sec-h{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:19px;color:var(--ink);margin:28px 0 14px}
 .statrow{display:flex;gap:13px;margin-bottom:16px}
@@ -473,6 +503,11 @@ footer{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);font-si
       <span class="gc-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
     </a>
 
+    <div id="updates">
+      <h3 class="sec-h">Important Updates</h3>
+      <div id="updList"></div>
+    </div>
+
     <div class="gcard soon" id="pyqcard">
       <span class="gc-ic ic-pyq"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2.5h7l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1z"/><path d="M13 2.5V8h5"/><path d="M8.5 13h7M8.5 16.5h5"/></svg></span>
       <span class="gc-body"><span class="gc-title">PYQs</span><span class="gc-sub">Previous year question papers — exam prep in one place</span></span>
@@ -644,8 +679,37 @@ const putRoll=r=>{try{localStorage.setItem("imnu-roll",r);}catch(e){}};
 function refreshHomeCard(){const r=getRoll(), st=r&&DATA.students[r];
   $("ttsub").textContent= st ? ("Continue as "+st.n) : "Look up your weekly classes by roll number";
   const chip=$("ttchip"); if(st){ chip.textContent=r; chip.hidden=false; } else chip.hidden=true;
-  homeStats(st);}
+  homeStats(st); renderUpdates();}
 function cleanSub(n){ return String(n||"").split("*")[0].split("(")[0].replace(/\s+/g," ").trim(); }
+const COMMS={
+  PLACECOMM:{short:"Placecomm",tag:"PC", name:"Placement Committee",        email:"placecomm.im@nirmauni.ac.in",      cls:"c-place"},
+  SAC:      {short:"SAC",      tag:"SAC",name:"Student Advisory Committee", email:"sac.im@nirmauni.ac.in",            cls:"c-sac"},
+  SWC:      {short:"SWC",      tag:"SWC",name:"Student Welfare Committee",  email:"studentwelfare.im@nirmauni.ac.in", cls:"c-swc"}
+};
+const UCHEV='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>';
+const UMAIL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M4 7l8 6 8-6"/></svg>';
+function updDate(ds){ if(!ds) return ""; try{return new Date(ds+"T00:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short"});}catch(e){return "";} }
+function renderUpdates(){ const w=$("updList"); if(!w) return;
+  const ups=(DATA.updates||[]).filter(u=>u&&COMMS[u.code]);
+  if(ups.length){
+    w.innerHTML=ups.slice(0,6).map(u=>{ const c=COMMS[u.code];
+      const meta=[updDate(u.date), c.name].filter(Boolean).join(" · ");
+      return '<a class="upd '+c.cls+'" href="mailto:'+c.email+'">'
+        +'<span class="upd-dot"></span>'
+        +'<span class="upd-body"><span class="upd-tag">'+esc(c.short)+'</span>'
+        +'<span class="upd-sub">'+esc(u.subject||"Update")+'</span>'
+        +'<span class="upd-meta">'+esc(meta)+'</span></span>'
+        +'<span class="upd-go">'+UCHEV+'</span></a>';
+    }).join("");
+  } else {
+    w.innerHTML='<p class="upd-empty">No new notices right now — reach the committee cells directly:</p>'
+      +Object.values(COMMS).map(c=>'<a class="upd-contact '+c.cls+'" href="mailto:'+c.email+'">'
+        +'<span class="uc-badge">'+esc(c.tag)+'</span>'
+        +'<span class="uc-tx"><span class="uc-name">'+esc(c.name)+'</span>'
+        +'<span class="uc-mail">'+esc(c.email)+'</span></span>'
+        +'<span class="upd-go">'+UMAIL+'</span></a>').join("");
+  }
+}
 function prettyTime(t){ const m=String(t).match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i); return m?((+m[1])+":"+m[2]+" "+m[3].toUpperCase()):t; }
 function homeStats(st){ const g=$("glance"); if(!st){ g.hidden=true; return; }
   const dayName=TODAY.toLocaleDateString("en-US",{weekday:"long"});
