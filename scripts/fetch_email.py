@@ -42,7 +42,14 @@ def body_text(msg):
     try: return msg.get_payload(decode=True).decode(msg.get_content_charset() or "utf-8", "ignore")
     except Exception: return ""
 
-def parse_change(text):
+# room/venue token, e.g. "T3", "E6", "T-3", "309-F", "LH1" (letters+digits, or digits-letters)
+ROOM_RE = r'(?:[A-Za-z]{1,4}-?\d{1,3}[A-Za-z]?|\d{2,4}-[A-Za-z]{1,3})'
+_WEEKDAYS = {"monday":0,"tuesday":1,"wednesday":2,"thursday":3,"friday":4,"saturday":5,"sunday":6}
+def _room_norm(s): return re.sub(r'\s+', '', str(s)).upper()
+
+def parse_change(text, edate=None):
+    # edate = the email's own date, so "today"/"tomorrow"/weekday resolve correctly
+    edate = edate or datetime.date.today()
     # sections like "SBM(A)", "SBM(A & B)", "SDM(A), SDM(B)" -> one (abbr, division) per division
     secs = []
     for ab, dvgroup in re.findall(r'([A-Za-z&]{2,6})\(\s*([A-Za-z][A-Za-z&,\s]*?)\s*\)', text):
@@ -69,6 +76,35 @@ def parse_change(text):
     def day(ds):
         try: return datetime.date.fromisoformat(ds).strftime("%A")
         except Exception: return None
+    # resolve a relative / weekday-only date ("today", "tomorrow", "on Wednesday") to a real date
+    def _add(n): return (edate + datetime.timedelta(days=n)).isoformat()
+    rel_date = None
+    if   re.search(r'\bday\s+after\s+tomorrow\b', low): rel_date = _add(2)
+    elif re.search(r'\btomorrow\b', low):              rel_date = _add(1)
+    elif re.search(r'\btoday\b', low):                 rel_date = _add(0)
+    else:
+        wd = re.search(r'\b(?:on|this|coming)\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b', low)
+        if wd:
+            rel_date = _add((_WEEKDAYS[wd.group(1)] - edate.weekday()) % 7)
+    # ---- room / venue detection (only the classroom changes; day & time stay put) ----
+    new_room = old_room = None
+    m = re.search(r'\b(' + ROOM_RE + r')\s+to\s+(' + ROOM_RE + r')\b', text, re.I)   # "from E6 to T3"
+    if m: old_room, new_room = _room_norm(m.group(1)), _room_norm(m.group(2))
+    if new_room is None:                                                              # "T3 classroom"
+        m = re.search(r'\b(' + ROOM_RE + r')\s+class\s*-?\s*room\b', text, re.I)
+        if m: new_room = _room_norm(m.group(1))
+    if new_room is None:                                                              # "held in / shifted to / venue: T3"
+        m = re.search(r'(?:held|conducted|shifted|moved|take\s*place|venue|class\s*-?\s*room|classroom|room|hall)\b'
+                      r'[^.\n]{0,25}?\b(?:in|to|at|:)\s*(?:room\s*(?:no\.?)?\s*|class\s*-?\s*room\s*|venue\s*|hall\s*)?'
+                      r'(' + ROOM_RE + r')\b', text, re.I)
+        if m: new_room = _room_norm(m.group(1))
+    if old_room is None:                                                              # "instead of E6"
+        m = re.search(r'(?:instead of|in place of|rather than|in lieu of|not in)\s+(?:room\s*)?(' + ROOM_RE + r')\b', text, re.I)
+        if m: old_room = _room_norm(m.group(1))
+    has_time_shift = bool(times)
+    has_date_shift = bool(new_date) and (new_date != old_date)
+    is_room_change = (new_room is not None) and not has_time_shift and not has_date_shift \
+                     and not any(k in low for k in ('postpon', 'prepon', 'cancel'))
     # keep the message, drop the office sign-off / signature
     cut = len(text)
     for pat in (r'\bregards\b', r'\bthanks\b', r'\bthank you\b', r'\bwarm regards\b',
@@ -78,6 +114,20 @@ def parse_change(text):
         if mm: cut = min(cut, mm.start())
     raw = re.sub(r'\s+', ' ', text[:cut]).strip()[:400]
     out = []
+    if is_room_change:
+        d0 = old_date or new_date or rel_date or edate.isoformat()   # the day the relocated class meets
+        d_day = day(d0)
+        hhmm = times[0] if len(times) == 1 else None                 # optional; room change attaches by day
+        for ab, dv in secs:
+            out.append({"abbr": ab.upper(), "division": dv.upper(), "type": "Room Change",
+                        "old_date": d0, "old_day": d_day, "new_date": d0, "new_day": d_day,
+                        "old_hhmm": hhmm, "new_hhmm": hhmm,
+                        "old_room": old_room, "new_room": new_room, "tba": False, "raw": raw})
+        return out
+    # a dateless time/cancel change ("cancelled today") still gets a concrete day to render on
+    if old_date is None and rel_date:
+        old_date = rel_date
+        if new_date is None and not times: new_date = rel_date
     for i, (ab, dv) in enumerate(secs):
         if not times:                 hhmm = None
         elif len(times) == len(secs): hhmm = times[i]            # "respectively" -> per division
@@ -102,10 +152,12 @@ try:
         msg = email.message_from_bytes(md[0][1])
         if CHANGE_SUBJECT.lower() not in decode(msg.get("Subject", "")).lower():
             continue
-        for c in parse_change(body_text(msg)):
-            # dedup by the actual change (subject + division + dates + time), NOT by the shared
+        try: _edate = parsedate_to_datetime(msg.get("Date")).date()
+        except Exception: _edate = datetime.date.today()
+        for c in parse_change(body_text(msg), _edate):
+            # dedup by the actual change (subject + division + dates + time + room), NOT by the shared
             # message text -- otherwise a single mail naming two divisions keeps only one of them
-            key = (c["abbr"], c["division"], c["old_date"], c["new_date"], c["new_hhmm"], c["type"])
+            key = (c["abbr"], c["division"], c["old_date"], c["new_date"], c["new_hhmm"], c["type"], c.get("new_room"))
             if key not in seen:
                 changes.append(c); seen.add(key)
     os.makedirs(os.path.dirname(CHANGES_OUT) or ".", exist_ok=True)

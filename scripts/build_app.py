@@ -878,7 +878,7 @@ function render(){
 
   if(myChanges.length){ const seen=new Set();
     myChanges.forEach(c=>{const t=cleanNotice(c.raw); if(!t||seen.has(t))return; seen.add(t);
-      html+=`<div class="notice${isTBA(c)?' red':isRoomChange(c)?' room':''}"><span class="ntag">${esc(c.type||'Changed')}</span><span class="ntxt">${esc(t)}</span></div>`;}); }
+      html+=`<div class="notice${isRoomChange(c)?' room':isTBA(c)?' red':''}"><span class="ntag">${esc(c.type||'Changed')}</span><span class="ntxt">${esc(t)}</span></div>`;}); }
 
   const hasMoved=myChanges.some(c=>!isTBA(c)&&!isRoomChange(c)), hasPostponed=myChanges.some(c=>isTBA(c)&&!isRoomChange(c)), hasRoom=myChanges.some(isRoomChange);
   html+=`<div class="legend">

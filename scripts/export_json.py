@@ -68,9 +68,15 @@ for s in cur.execute("SELECT roll_no,name,batch FROM students").fetchall():
 
 changes = []
 chg_path = os.path.join(os.path.dirname(os.path.abspath(DB)), "changes.json")
+# current room per (abbr, division) — lets a "held in T3" mail show "was <current room>"
+room_by = {(str(s["abbr"]).upper(), str(s["division"] or "").upper()): s["room"]
+           for s in sections.values()}
 if os.path.exists(chg_path):
     try:
         for c in json.load(open(chg_path, encoding="utf-8")):
+            if c.get("type") == "Room Change" and not c.get("old_room"):
+                c["old_room"] = room_by.get((str(c.get("abbr", "")).upper(),
+                                             str(c.get("division", "")).upper()))
             changes.append(c)
     except Exception as e:
         print("changes.json skipped:", e)
