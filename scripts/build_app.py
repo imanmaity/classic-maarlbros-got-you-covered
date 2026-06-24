@@ -137,13 +137,7 @@ html[data-theme="light"] body::before{
 .ab-title{flex:1;min-width:0;text-align:center;display:flex;flex-direction:column;gap:2px}
 .ab-1{font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ink);line-height:1.3}
 .ab-2{font-size:10px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
-.menuwrap{position:relative}
-.menu{position:absolute;top:calc(100% + 10px);left:0;z-index:50;min-width:212px;padding:8px;
-  background:var(--pop);border:1px solid var(--line);border-radius:16px;box-shadow:0 18px 44px var(--shadow)}
-.menu[hidden]{display:none}
-.menu a,.menu .m-soon{display:block;padding:11px 14px;border-radius:11px;text-decoration:none;color:var(--ink);font-size:14.5px;font-weight:600}
-.menu a:hover{background:var(--accent-soft)}
-.menu .m-soon{color:var(--faint);font-weight:500;cursor:default}
+.ab-spacer{width:44px;flex:none}
 
 /* hero */
 .hero{margin-bottom:24px}
@@ -539,14 +533,7 @@ footer{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);font-si
 <div class="wrap">
   <section id="view-home" class="view">
     <div class="appbar">
-      <div class="menuwrap">
-        <button class="iconbtn" id="menuBtn" aria-label="Menu" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
-        <nav class="menu" id="menu" hidden>
-          <a href="#timetable">My Timetable</a>
-          <a href="#books">Request E-books</a>
-          <span class="m-soon">PYQs · Coming soon</span>
-        </nav>
-      </div>
+      <span class="ab-spacer" aria-hidden="true"></span>
       <div class="ab-title"><span class="ab-1" id="abInst"></span><span class="ab-2" id="abTerm"></span></div>
       <button class="iconbtn js-theme" aria-label="Switch theme"></button>
     </div>
@@ -861,14 +848,6 @@ function homeStats(st){ const g=$("glance"); if(!st){ g.hidden=true; return; }
   if(next){ $("stNext").textContent=prettyTime(next.start); $("stNextSub").textContent= nm(next) + (when!=="today"? " · "+when : ""); }
   else { $("stNext").textContent="—"; $("stNextSub").textContent="No upcoming classes"; }
   g.hidden=false;}
-// app-bar menu
-(function(){ const mb=$("menuBtn"), mn=$("menu"); if(!mb||!mn) return;
-  const close=()=>{ mn.hidden=true; mb.setAttribute("aria-expanded","false"); };
-  mb.addEventListener("click",e=>{ e.stopPropagation(); const willOpen=mn.hidden; mn.hidden=!willOpen; mb.setAttribute("aria-expanded",String(willOpen)); });
-  document.addEventListener("click",e=>{ if(!mn.hidden && !e.target.closest("#menu") && !e.target.closest("#menuBtn")) close(); });
-  mn.addEventListener("click",e=>{ if(e.target.closest("a")) close(); });
-})();
-
 // routing: Home <-> Timetable
 function showView(){const h=location.hash, tt=h==="#timetable", bk=h==="#books", up=h==="#updates";
   $("view-home").hidden=tt||bk||up; $("view-tt").hidden=!tt; $("view-books").hidden=!bk; $("view-updates").hidden=!up;
