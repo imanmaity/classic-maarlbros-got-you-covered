@@ -24,6 +24,7 @@ MANIFEST_JSON = '{\n  "name": "My Week \\u00b7 IMNU Term IV",\n  "short_name": "
 REQUEST_EMAIL = "25MBA420@nirmauni.ac.in"
 REQUEST_FORM_URL = ""
 INSTA_URL = "https://www.instagram.com/classicmaarlbro"   # footer brand links here
+APP_VERSION = "1.0"   # shown in the hero badge — bump when you ship notable changes
 
 # ---- Web-push notifications (daily "tomorrow's classes" digest) ----
 # VAPID public key (safe to publish). The matching private key lives only as the
@@ -159,7 +160,13 @@ html[data-theme="light"] body::before{
 .ab-spacer{width:44px;flex:none}
 
 /* hero */
-.hero{margin-bottom:24px}
+.hero{margin-bottom:24px;position:relative}
+.ver-badge{position:absolute;top:2px;right:0;z-index:2;display:flex;flex-direction:column;align-items:flex-end;gap:1px;
+  padding:8px 13px;border-radius:14px;background:var(--card);border:1px solid var(--line);
+  box-shadow:0 8px 22px var(--shadow);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.ver-badge b{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:13.5px;letter-spacing:-.01em;
+  background:linear-gradient(95deg,#9b6cff,#ff6fae);-webkit-background-clip:text;background-clip:text;color:transparent}
+.ver-badge span{font-size:9.5px;color:var(--faint);white-space:nowrap;letter-spacing:.01em}
 .month{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:62px;line-height:.86;
   color:var(--ink);letter-spacing:-.03em;text-shadow:0 2px 28px var(--shadow);display:block}
 .year{display:inline-block;font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:30px;line-height:1;
@@ -544,7 +551,8 @@ footer{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);font-si
 .reqform .go{margin-top:2px;padding:12px 0}
 .formbtn{display:block;text-align:center;text-decoration:none;padding:14px 0;border-radius:12px;margin-bottom:6px}
 .ok{font-size:13.5px;color:var(--dna);display:none;line-height:1.45} .ok.show{display:block}
-@media (max-width:520px){ .month{font-size:46px} .who .name{font-size:20px} .field{flex-wrap:wrap} button.go{flex:1;padding:12px 0} }
+@media (max-width:520px){ .month{font-size:46px} .who .name{font-size:20px} .field{flex-wrap:wrap} button.go{flex:1;padding:12px 0}
+  .ver-badge{position:static;margin:0 0 14px auto;width:fit-content} }
 @media (prefers-reduced-motion:reduce){ #result.show{animation:none} #loader .orb,#loader .lbl{animation:none} *{transition:none!important} }
 </style>
 <script>try{var t=localStorage.getItem("imnu-theme")||((window.matchMedia&&matchMedia("(prefers-color-scheme: light)").matches)?"light":"dark");document.documentElement.setAttribute("data-theme",t);}catch(e){document.documentElement.setAttribute("data-theme","dark");}</script>
@@ -560,6 +568,7 @@ footer{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);font-si
     </div>
 
     <header class="hero">
+      <span class="ver-badge"><b>v__VER__</b><span>Updated __BUILTD__</span></span>
       <span class="month" id="month"></span>
       <span class="year" id="year"></span>
       <div class="subweek" id="subweek"></div>
@@ -646,7 +655,7 @@ footer{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);font-si
           <span class="sf-by">Built by <b>Iman Maity</b></span>
         </div>
       </div>
-      <p class="sf-ref"><span class="built">Updated __BUILT__ IST</span> · for quick reference — always confirm against official notices.</p>
+      <p class="sf-ref">for quick reference — always confirm against official notices.</p>
     </footer>
   </section>
 
@@ -1350,8 +1359,10 @@ else:
     SHARED_HTML = ""
 
 import datetime as _bdt
-_BUILT = _bdt.datetime.now(_bdt.timezone(_bdt.timedelta(hours=5, minutes=30))).strftime("%-d %b, %-I:%M %p")
-open(OUT_PATH, "w", encoding="utf-8").write(TEMPLATE.replace("__REQEMAIL__", REQUEST_EMAIL).replace("__REQFORM__", REQUEST_FORM_URL).replace("__SHAREDSECTION__", SHARED_HTML).replace("__INSTA__", INSTA_URL).replace("__VAPID__", VAPID_PUBLIC_KEY).replace("__NOTIFYEP__", NOTIFY_ENDPOINT).replace("__NOTESEP__", NOTES_ENDPOINT).replace("__NOTIFYON__", "true" if NOTIFY_ENABLED else "false").replace("__BUILT__", _BUILT).replace("__DATA__", data))
+_bnow = _bdt.datetime.now(_bdt.timezone(_bdt.timedelta(hours=5, minutes=30)))
+_BUILT = _bnow.strftime("%-d %b, %-I:%M %p")   # footer: date + time
+_BUILT_D = _bnow.strftime("%-d %b")            # hero badge: date only
+open(OUT_PATH, "w", encoding="utf-8").write(TEMPLATE.replace("__REQEMAIL__", REQUEST_EMAIL).replace("__REQFORM__", REQUEST_FORM_URL).replace("__SHAREDSECTION__", SHARED_HTML).replace("__INSTA__", INSTA_URL).replace("__VAPID__", VAPID_PUBLIC_KEY).replace("__NOTIFYEP__", NOTIFY_ENDPOINT).replace("__NOTESEP__", NOTES_ENDPOINT).replace("__NOTIFYON__", "true" if NOTIFY_ENABLED else "false").replace("__VER__", APP_VERSION).replace("__BUILTD__", _BUILT_D).replace("__BUILT__", _BUILT).replace("__DATA__", data))
 print(f"Wrote {OUT_PATH}")
 
 
