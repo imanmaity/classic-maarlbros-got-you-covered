@@ -157,7 +157,8 @@ html[data-theme="light"] body::before{
 .ab-title{flex:1;min-width:0;text-align:center;display:flex;flex-direction:column;gap:2px}
 .ab-1{font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ink);line-height:1.3}
 .ab-2{font-size:10px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
-.ab-spacer{width:44px;flex:none}
+.bell{position:relative}
+.bell-dot{position:absolute;top:6px;right:6px;width:9px;height:9px;border-radius:50%;background:#ff3b5c;border:2px solid var(--card)}
 
 /* hero */
 .hero{margin-bottom:24px;position:relative}
@@ -562,7 +563,7 @@ footer{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);font-si
 <div class="wrap">
   <section id="view-home" class="view">
     <div class="appbar">
-      <span class="ab-spacer" aria-hidden="true"></span>
+      <a class="iconbtn bell" href="#updates" aria-label="Important updates"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><span class="bell-dot" id="bellDot" hidden></span></a>
       <div class="ab-title"><span class="ab-1" id="abInst"></span><span class="ab-2" id="abTerm"></span></div>
       <button class="iconbtn js-theme" aria-label="Switch theme"></button>
     </div>
@@ -590,12 +591,6 @@ footer{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);font-si
     <a class="gcard" href="#notes" id="notescard">
       <span class="gc-ic ic-notes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3.5h9l5 5v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1z"/><path d="M14 3.5V9h5"/><path d="M8 13h8M8 16.5h5"/></svg></span>
       <span class="gc-body"><span class="gc-title">Community Notes</span><span class="gc-sub">Notes &amp; resources shared by your batch</span></span>
-      <span class="gc-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
-    </a>
-
-    <a class="gcard" href="#updates" id="updcard">
-      <span class="gc-ic ic-upd"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span>
-      <span class="gc-body"><span class="gc-title">Important Updates</span><span class="gc-sub">Know What's Happening Around</span></span>
       <span class="gc-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
     </a>
 
@@ -852,6 +847,7 @@ function updDate(ds){ if(!ds) return ""; try{return new Date(ds+"T00:00:00").toL
 function renderUpdates(){ const w=$("updList"); if(!w) return;
   const tym=TODAY.getFullYear()+"-"+String(TODAY.getMonth()+1).padStart(2,"0");  // current year-month
   const ups=(DATA.updates||[]).filter(u=>u&&COMMS[u.code]&&String(u.date||"").slice(0,7)===tym);
+  const _bd=$("bellDot"); if(_bd) _bd.hidden = !ups.length;
   if(ups.length){
     w.innerHTML=ups.slice(0,30).map(u=>{ const c=COMMS[u.code];
       const meta=[updDate(u.date), c.name].filter(Boolean).join(" · ");
