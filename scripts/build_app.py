@@ -24,7 +24,7 @@ MANIFEST_JSON = '{\n  "name": "My Week \\u00b7 IMNU Term IV",\n  "short_name": "
 REQUEST_EMAIL = "25MBA420@nirmauni.ac.in"
 REQUEST_FORM_URL = ""
 INSTA_URL = "https://www.instagram.com/classicmaarlbro"   # footer brand links here
-APP_VERSION = "1.0"   # shown in the hero badge — bump when you ship notable changes
+APP_VERSION = "1.4"   # shown in the hero badge — bump when you ship notable changes
 
 # ---- Web-push notifications (daily "tomorrow's classes" digest) ----
 # VAPID public key (safe to publish). The matching private key lives only as the
