@@ -206,6 +206,22 @@ def build_digest(data, roll, target_date):
     return title, body, "./#timetable"
 
 # ---------------------------------------------------------------- due window
+def norm_when(w):
+    """Return 'HH:MM' (IST) from a subscriber's stored time. Handles either a
+    clean string ("20:00") or a value Google Sheets coerced into a date-time
+    ("1899-12-30T14:38:50.000Z"). In the mangled case the ISO is UTC and the
+    sheet is IST, so we add the IST offset to recover the time actually picked.
+    Returns "" if it can't be parsed (caller logs + skips, never guesses)."""
+    s = str(w or "").strip()
+    m = re.match(r"^(\d{1,2}):(\d{2})$", s)
+    if m:
+        return f"{int(m.group(1)):02d}:{m.group(2)}"
+    m = re.match(r"^\d{4}-\d{2}-\d{2}T(\d{2}):(\d{2})", s)   # Sheets date-time (UTC)
+    if m:
+        total = (int(m.group(1)) * 60 + int(m.group(2)) + 330) % (24 * 60)  # +5:30
+        return f"{total // 60:02d}:{total % 60:02d}"
+    return ""
+
 def is_due(when_hhmm, now_min, window):
     m = re.match(r"^(\d{1,2}):(\d{2})$", str(when_hhmm or ""))
     if not m: return False
@@ -249,7 +265,13 @@ def main():
     log(f"  loaded {len(subs)} active subscription(s); "
         f"schedule week_of={data.get('meta',{}).get('week_of')}")
 
-    due = [s for s in subs if is_due(s.get("when"), now_min, WINDOW_MIN)]
+    # normalize each subscriber's chosen time (handles Sheets-mangled values)
+    for s in subs:
+        s["_when"] = norm_when(s.get("when"))
+        if not s["_when"]:
+            log(f"  ! {(s.get('roll') or '??')}: unreadable time {s.get('when')!r} - skipping")
+
+    due = [s for s in subs if s["_when"] and is_due(s["_when"], now_min, WINDOW_MIN)]
     log(f"  {len(due)} subscriber(s) due this slot")
     if not due:
         return
@@ -257,20 +279,20 @@ def main():
     sent = skipped = gone = errs = 0
     for s in due:
         roll = (s.get("roll") or "").upper()
-        tgt  = target_for(s.get("when"), now.date())
+        tgt  = target_for(s["_when"], now.date())
         dig  = build_digest(data, roll, tgt)
         if not dig:
             skipped += 1
-            log(f"   - {roll or '??'} {s.get('when')} -> no classes {tgt}, skip")
+            log(f"   - {roll or '??'} {s['_when']} -> no classes {tgt}, skip")
             continue
         title, body, url = dig
         if DRY_RUN:
-            log(f"   ~ {roll} {s.get('when')} -> [{title}] {body!r}")
+            log(f"   ~ {roll} {s['_when']} -> [{title}] {body!r}")
             sent += 1
             continue
         res = send_push(s, title, body, url)
         if res == "ok":
-            sent += 1; log(f"   + {roll} {s.get('when')} sent")
+            sent += 1; log(f"   + {roll} {s['_when']} sent")
         elif res == "gone":
             gone += 1; deactivate(s["endpoint"]); log(f"   x {roll} subscription gone, deactivated")
         else:
