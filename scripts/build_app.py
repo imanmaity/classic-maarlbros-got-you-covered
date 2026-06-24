@@ -36,7 +36,7 @@ VAPID_PUBLIC_KEY = "BFmuFcrH9Ev9FUJaVUyP_Xwks439rTLXNYZtKD7Lj-4nZLlbzcwqWuOGMh6N
 NOTIFY_ENDPOINT = "https://script.google.com/macros/s/AKfycbyxU2THM7e1YHSM88fHN9GcNCf8slMHHaadKdHLE_mLpJFUyTdtauzRitRyv4kB4kA2sg/exec"
 # Reminders are still being made reliable. While False, the card shows a greyed-out
 # "Coming soon" state and the controls do nothing. Flip to True to turn it back on.
-NOTIFY_ENABLED = False
+NOTIFY_ENABLED = True
 
 # ---- Community Notes — students submit a LINK to their notes; you approve in the
 # Sheet; only approved ones show. Paste the notes collector's /exec URL here. ----
@@ -291,6 +291,7 @@ a.upd:active{transform:scale(.995)}
 .nf-slider::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:linear-gradient(95deg,#ffb43d,#ff5e9a);border:3px solid var(--card2);cursor:pointer}
 .nf-ends{display:flex;justify-content:space-between;font-size:10.5px;color:var(--faint);margin-top:5px}
 .nf-hint{font-size:11.5px;color:var(--muted);margin-top:10px;line-height:1.42}
+.nf-fine{font-size:11px;color:var(--faint);line-height:1.45;margin-top:13px;padding-top:11px;border-top:1px solid var(--line)}
 .nf-soon{display:inline-block;vertical-align:middle;margin-left:6px;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);border:1px solid color-mix(in srgb,var(--accent) 45%,transparent);border-radius:999px;padding:3px 8px}
 .notifycard.soon .nf-slider,.notifycard.soon .nf-btn{filter:grayscale(.65);opacity:.55}
 .notifycard.soon .nf-time{color:var(--muted)}
@@ -630,6 +631,7 @@ footer{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);font-si
         <button class="nf-test" id="nfTest" type="button" hidden>Send a test</button>
       </div>
       <p class="nf-msg" id="nfMsg" hidden></p>
+      <p class="nf-fine">Heads-up: reminders may arrive about 10 minutes early or late, and may not reach every phone &mdash; treat them as a nudge, not your only alarm.</p>
     </div>
 
     <div class="notecard">
