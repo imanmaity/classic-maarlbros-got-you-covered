@@ -302,6 +302,7 @@ a.sf-brand:hover{opacity:.82}
 .sf-by{font-size:13px;color:var(--muted)}
 .sf-by b{font-weight:800;background:linear-gradient(95deg,#9b6cff,#ff6fae);-webkit-background-clip:text;background-clip:text;color:transparent}
 .sf-ref{margin:16px 0 0;text-align:center;font-size:12px;color:var(--faint);line-height:1.5}
+.built{color:var(--accent);font-weight:700;white-space:nowrap}
 .sf-fb{display:inline-flex;align-items:center;gap:7px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;
   color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:9px 14px;
   backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 6px 18px var(--shadow);transition:border-color .15s,transform .08s}
@@ -577,15 +578,15 @@ footer{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);font-si
       <span class="gc-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
     </a>
 
-    <a class="gcard" href="#updates" id="updcard">
-      <span class="gc-ic ic-upd"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span>
-      <span class="gc-body"><span class="gc-title">Important Updates</span><span class="gc-sub">Know What's Happening Around</span></span>
-      <span class="gc-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
-    </a>
-
     <a class="gcard" href="#notes" id="notescard">
       <span class="gc-ic ic-notes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3.5h9l5 5v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1z"/><path d="M14 3.5V9h5"/><path d="M8 13h8M8 16.5h5"/></svg></span>
       <span class="gc-body"><span class="gc-title">Community Notes</span><span class="gc-sub">Notes &amp; resources shared by your batch</span></span>
+      <span class="gc-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
+    </a>
+
+    <a class="gcard" href="#updates" id="updcard">
+      <span class="gc-ic ic-upd"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span>
+      <span class="gc-body"><span class="gc-title">Important Updates</span><span class="gc-sub">Know What's Happening Around</span></span>
       <span class="gc-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
     </a>
 
@@ -645,7 +646,7 @@ footer{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);font-si
           <span class="sf-by">Built by <b>Iman Maity</b></span>
         </div>
       </div>
-      <p class="sf-ref">for quick reference — always confirm against official notices.</p>
+      <p class="sf-ref"><span class="built">Updated __BUILT__ IST</span> · for quick reference — always confirm against official notices.</p>
     </footer>
   </section>
 
@@ -669,7 +670,7 @@ footer{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);font-si
     </div>
     <div class="weeklabel" id="weeklabel" hidden></div>
     <div id="result"></div>
-    <footer>Tentative weekly schedule — confirm any room/time changes with the department.</footer>
+    <footer><span class="built">Updated __BUILT__ IST</span> · Tentative weekly schedule — confirm any room/time changes with the department.</footer>
   </section>
 
   <section id="view-updates" class="view" hidden>
@@ -1348,7 +1349,9 @@ if shelf:
 else:
     SHARED_HTML = ""
 
-open(OUT_PATH, "w", encoding="utf-8").write(TEMPLATE.replace("__REQEMAIL__", REQUEST_EMAIL).replace("__REQFORM__", REQUEST_FORM_URL).replace("__SHAREDSECTION__", SHARED_HTML).replace("__INSTA__", INSTA_URL).replace("__VAPID__", VAPID_PUBLIC_KEY).replace("__NOTIFYEP__", NOTIFY_ENDPOINT).replace("__NOTESEP__", NOTES_ENDPOINT).replace("__NOTIFYON__", "true" if NOTIFY_ENABLED else "false").replace("__DATA__", data))
+import datetime as _bdt
+_BUILT = _bdt.datetime.now(_bdt.timezone(_bdt.timedelta(hours=5, minutes=30))).strftime("%-d %b, %-I:%M %p")
+open(OUT_PATH, "w", encoding="utf-8").write(TEMPLATE.replace("__REQEMAIL__", REQUEST_EMAIL).replace("__REQFORM__", REQUEST_FORM_URL).replace("__SHAREDSECTION__", SHARED_HTML).replace("__INSTA__", INSTA_URL).replace("__VAPID__", VAPID_PUBLIC_KEY).replace("__NOTIFYEP__", NOTIFY_ENDPOINT).replace("__NOTESEP__", NOTES_ENDPOINT).replace("__NOTIFYON__", "true" if NOTIFY_ENABLED else "false").replace("__BUILT__", _BUILT).replace("__DATA__", data))
 print(f"Wrote {OUT_PATH}")
 
 
