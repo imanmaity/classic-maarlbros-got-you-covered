@@ -1376,6 +1376,9 @@ with open(os.path.join(_OUTDIR, "favicon.svg"), "w", encoding="utf-8") as _f:
     _f.write(FAVICON_SVG)
 with open(os.path.join(_OUTDIR, "manifest.webmanifest"), "w", encoding="utf-8") as _f:
     _f.write(MANIFEST_JSON)
+# also publish the raw dataset so the reminder sender can read the same data the app shows
+with open(os.path.join(_OUTDIR, "schedule_data.json"), "w", encoding="utf-8") as _f:
+    _f.write(data)
 # ---- service worker: shows pushed digests + handles taps (scope = site root) ----
 SW_JS = """\
 self.addEventListener('install', e => self.skipWaiting());
