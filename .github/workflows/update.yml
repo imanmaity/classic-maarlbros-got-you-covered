@@ -24,6 +24,9 @@ jobs:
           python-version: "3.12"
       - run: pip install -r requirements.txt
 
+      - name: Self-test (parser sanity check)
+        run: python scripts/selftest.py
+
       - name: Fetch latest schedule from email
         env:
           MAIL_USER: ${{ secrets.MAIL_USER }}
