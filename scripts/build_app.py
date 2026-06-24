@@ -37,6 +37,25 @@ NOTIFY_ENDPOINT = "https://script.google.com/macros/s/AKfycbyxU2THM7e1YHSM88fHN9
 # "Coming soon" state and the controls do nothing. Flip to True to turn it back on.
 NOTIFY_ENABLED = False
 
+# ---- Community Notes — students submit a LINK to their notes; you approve in the
+# Sheet; only approved ones show. Paste the notes collector's /exec URL here. ----
+NOTES_ENDPOINT = "https://script.google.com/macros/s/AKfycbwq5tZJWJ4mxREbTnW8y2DbKkQ6by_DFba4kXwEndy12ewtNu7wLh0FCu3A9dkG2n4p/exec"
+
+# Pull the approved community notes into the dataset at build time (best-effort:
+# a slow/unreachable endpoint or bad response just yields no notes, never a failure).
+if NOTES_ENDPOINT:
+    try:
+        import json as _njson, urllib.request as _nurl
+        with _nurl.urlopen(NOTES_ENDPOINT, timeout=20) as _nr:
+            _npayload = _njson.loads(_nr.read().decode("utf-8"))
+        _napproved = _npayload.get("notes", []) if isinstance(_npayload, dict) else []
+        _nobj = _njson.loads(data)
+        _nobj["notes"] = [n for n in _napproved if isinstance(n, dict) and n.get("link") and n.get("title")]
+        data = _njson.dumps(_nobj, ensure_ascii=False)
+        print(f"Fetched {len(_nobj['notes'])} approved community note(s)")
+    except Exception as _ne:
+        print("Community notes fetch skipped:", _ne)
+
 # ---- "Books In Stock" shelf ----
 # The shelf fills AUTOMATICALLY from files you upload to the repo's library/
 # folder (see library/README.md for how). Name files "Title - Author.pdf" and
@@ -166,6 +185,7 @@ html[data-theme="light"] body::before{
 .ic-book{background:linear-gradient(140deg,#b56bff,#ff6fae,#ff9a5c)}
 .ic-pyq{background:linear-gradient(140deg,#34d8c9,#3d9bff,#9b6cff);color:#06121a}
 .ic-upd{background:linear-gradient(140deg,#5b8cff,#9b6cff,#ff6fae)}
+.ic-notes{background:linear-gradient(140deg,#3dd6a8,#3d9bff,#9b6cff);color:#06121a}
 .gc-body{flex:1;min-width:0;display:flex;flex-direction:column}
 .gc-title{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:23px;color:var(--ink);line-height:1.1}
 .gc-sub{font-size:14px;color:var(--muted);line-height:1.35;margin-top:3px}
@@ -563,6 +583,12 @@ footer{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);font-si
       <span class="gc-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
     </a>
 
+    <a class="gcard" href="#notes" id="notescard">
+      <span class="gc-ic ic-notes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3.5h9l5 5v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1z"/><path d="M14 3.5V9h5"/><path d="M8 13h8M8 16.5h5"/></svg></span>
+      <span class="gc-body"><span class="gc-title">Community Notes</span><span class="gc-sub">Notes &amp; resources shared by your batch</span></span>
+      <span class="gc-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
+    </a>
+
     <div class="gcard soon" id="pyqcard">
       <span class="gc-ic ic-pyq"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2.5h7l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1z"/><path d="M13 2.5V8h5"/><path d="M8.5 13h7M8.5 16.5h5"/></svg></span>
       <span class="gc-body"><span class="gc-title">PYQs</span><span class="gc-sub">Previous year question papers — exam prep in one place</span></span>
@@ -656,6 +682,30 @@ footer{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);font-si
     <div id="updList"></div>
   </section>
 
+  <section id="view-notes" class="view" hidden>
+    <div class="topbar">
+      <a class="iconbtn" href="#" aria-label="Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></a>
+      <span class="tt-title">Community Notes</span>
+      <button class="iconbtn js-theme" aria-label="Switch theme"></button>
+    </div>
+    <p class="bk-intro">Notes, summaries and resources <b>shared by your batchmates</b>. Found something useful? Pay it forward — share yours below.</p>
+
+    <h3 class="bk-h">Shared by the batch</h3>
+    <div id="notesList"></div>
+
+    <h3 class="bk-h">Share your notes</h3>
+    <p class="bk-note">Paste a link to your notes (on your Drive). Set it to <b>"Anyone with the link can view"</b> first, or others won't be able to open it. Your file stays on your Drive — we only keep the link, and it appears here after a quick review.</p>
+    <div class="reqform" id="noteForm">
+      <label>Title<input id="n_title" type="text" placeholder="e.g. TQM Unit 3 — summary notes" autocomplete="off"></label>
+      <label>Subject<select id="n_subject"></select></label>
+      <label>Your name (optional)<input id="n_name" type="text" placeholder="so people know who to thank" autocomplete="off"></label>
+      <label>Link to your notes<input id="n_link" type="url" placeholder="https://drive.google.com/..." autocomplete="off"></label>
+      <button class="go" id="noteBtn">Share notes</button>
+      <div class="err" id="noteErr"></div>
+      <div class="ok" id="noteOk"></div>
+    </div>
+  </section>
+
   <section id="view-books" class="view" hidden>
     <div class="topbar">
       <a class="iconbtn" href="#" id="backBtn2" aria-label="Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></a>
@@ -721,6 +771,7 @@ const DATA = __DATA__;
 const VAPID_PUBLIC = "__VAPID__";
 const NOTIFY_ENDPOINT = "__NOTIFYEP__";
 const NOTIFY_ENABLED = __NOTIFYON__;
+const NOTES_ENDPOINT = "__NOTESEP__";
 const PERSON='<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c0-3.5 3.1-5.5 7-5.5s7 2 7 5.5"/></svg>';
 const ROOM='<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4.5A1.5 1.5 0 0 1 5.5 3h9A1.5 1.5 0 0 1 16 4.5V21"/><path d="M3 21h18M16 8h3.5A1.5 1.5 0 0 1 21 9.5V21"/><circle cx="12" cy="12.5" r="1"/></svg>';
 const OUT=['#ffb43d','#ff8a3d','#ff6f5e','#ff5e8f','#f15cc6','#b070ff'];
@@ -849,12 +900,51 @@ function homeStats(st){ const g=$("glance"); if(!st){ g.hidden=true; return; }
   else { $("stNext").textContent="—"; $("stNextSub").textContent="No upcoming classes"; }
   g.hidden=false;}
 // routing: Home <-> Timetable
-function showView(){const h=location.hash, tt=h==="#timetable", bk=h==="#books", up=h==="#updates";
-  $("view-home").hidden=tt||bk||up; $("view-tt").hidden=!tt; $("view-books").hidden=!bk; $("view-updates").hidden=!up;
-  if(tt) enterTT(); else if(bk) enterBooks(); else if(up) renderUpdates(); else refreshHomeCard();
+function showView(){const h=location.hash, tt=h==="#timetable", bk=h==="#books", up=h==="#updates", nt=h==="#notes";
+  $("view-home").hidden=tt||bk||up||nt; $("view-tt").hidden=!tt; $("view-books").hidden=!bk; $("view-updates").hidden=!up; $("view-notes").hidden=!nt;
+  if(tt) enterTT(); else if(bk) enterBooks(); else if(up) renderUpdates(); else if(nt) enterNotes(); else refreshHomeCard();
   window.scrollTo(0,0);}
 function enterBooks(){ const r=getRoll(), st=r&&DATA.students[r];
   if(st && $("q_who") && !$("q_who").value) $("q_who").value=st.n+" · "+r; }
+function enterNotes(){ renderNotes(); setupNoteForm(); }
+function renderNotes(){ const w=$("notesList"); if(!w) return;
+  const notes=(DATA.notes||[]).filter(n=>n&&n.link&&n.title);
+  if(!notes.length){ w.innerHTML='<p class="bk-note">No notes shared yet — be the first to add one below.</p>'; return; }
+  const groups={}; notes.forEach(n=>{ const k=(n.subject||"Other").toUpperCase(); (groups[k]=groups[k]||[]).push(n); });
+  let html="";
+  Object.keys(groups).sort().forEach(sub=>{
+    html+='<h4 class="notes-grp">'+esc(sub)+'</h4><div class="reslist">';
+    groups[sub].forEach(n=>{ html+='<a class="rescard" href="'+esc(n.link)+'" target="_blank" rel="noopener">'
+      +'<span class="res-t">'+esc(n.title)+'</span>'
+      +(n.name?('<span class="res-s">shared by '+esc(n.name)+'</span>'):'')+'</a>'; });
+    html+="</div>";
+  });
+  w.innerHTML=html;
+}
+function setupNoteForm(){
+  const sel=$("n_subject");
+  if(sel && !sel.dataset.filled){ sel.dataset.filled="1";
+    const subs=[...new Set(Object.values(DATA.sections||{}).map(s=>s&&s.abbr).filter(Boolean))].sort();
+    sel.innerHTML='<option value="">Select…</option>'+subs.map(a=>'<option>'+esc(a)+'</option>').join("")+'<option value="Other">Other</option>';
+  }
+  const btn=$("noteBtn");
+  if(btn && !btn.dataset.wired){ btn.dataset.wired="1"; btn.addEventListener("click", submitNote); }
+}
+async function submitNote(){
+  const title=$("n_title").value.trim(), subject=$("n_subject").value.trim(), name=$("n_name").value.trim(), link=$("n_link").value.trim();
+  const err=$("noteErr"), ok=$("noteOk"); err.textContent=""; ok.textContent="";
+  if(!title){ err.textContent="Add a short title for your notes."; return; }
+  if(!/^https?:\/\//i.test(link)){ err.textContent="Paste a valid link starting with http."; return; }
+  if(!NOTES_ENDPOINT){ ok.textContent="Thanks! Note sharing opens here soon."; return; }
+  const btn=$("noteBtn"); btn.disabled=true;
+  try{
+    await fetch(NOTES_ENDPOINT, { method:"POST", mode:"no-cors", headers:{"Content-Type":"text/plain;charset=utf-8"},
+      body:JSON.stringify({ kind:"note", title, subject, name, link }) });
+    ok.textContent="Thanks! Your note will appear here once it's approved.";
+    $("n_title").value=""; $("n_link").value=""; $("n_name").value=""; if($("n_subject")) $("n_subject").value="";
+  }catch(e){ ok.textContent="Thanks! Your note was submitted for review."; }
+  btn.disabled=false;
+}
 function enterTT(){ const r=getRoll();
   if(r && DATA.students[r]){ $("roll").value=r; doLookup(); }
   else { $("weeklabel").hidden=true; $("result").classList.remove("show"); $("result").innerHTML=""; setTimeout(()=>$("roll").focus(),60); }}
@@ -1258,7 +1348,7 @@ if shelf:
 else:
     SHARED_HTML = ""
 
-open(OUT_PATH, "w", encoding="utf-8").write(TEMPLATE.replace("__REQEMAIL__", REQUEST_EMAIL).replace("__REQFORM__", REQUEST_FORM_URL).replace("__SHAREDSECTION__", SHARED_HTML).replace("__INSTA__", INSTA_URL).replace("__VAPID__", VAPID_PUBLIC_KEY).replace("__NOTIFYEP__", NOTIFY_ENDPOINT).replace("__NOTIFYON__", "true" if NOTIFY_ENABLED else "false").replace("__DATA__", data))
+open(OUT_PATH, "w", encoding="utf-8").write(TEMPLATE.replace("__REQEMAIL__", REQUEST_EMAIL).replace("__REQFORM__", REQUEST_FORM_URL).replace("__SHAREDSECTION__", SHARED_HTML).replace("__INSTA__", INSTA_URL).replace("__VAPID__", VAPID_PUBLIC_KEY).replace("__NOTIFYEP__", NOTIFY_ENDPOINT).replace("__NOTESEP__", NOTES_ENDPOINT).replace("__NOTIFYON__", "true" if NOTIFY_ENABLED else "false").replace("__DATA__", data))
 print(f"Wrote {OUT_PATH}")
 
 
