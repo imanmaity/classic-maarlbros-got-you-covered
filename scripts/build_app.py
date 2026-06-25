@@ -211,6 +211,12 @@ html[data-theme="light"] .dcard.active{box-shadow:0 16px 34px rgba(150,110,50,.2
 .dhead{display:flex;align-items:center;gap:14px;height:46px}
 .dic{width:46px;height:46px;flex:none;border-radius:13px;background:rgba(0,0,0,.13);display:grid;place-items:center;color:#0b0c0a}
 .dic svg{width:24px;height:24px}
+.dcard:not(.active){padding-top:14px;padding-bottom:0}
+.dcard:not(.active) .dhead{height:36px}
+.dcard:not(.active) .dic{width:36px;height:36px;border-radius:11px}
+.dcard:not(.active) .dic svg{width:20px;height:20px}
+.dcard:not(.active) .dtitle{font-size:20px}
+.dcard:not(.active) .dchev{font-size:20px}
 .dtitle{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:22px;flex:1;line-height:1.05;color:#0b0c0a}
 .dchev{font-size:22px;line-height:1;opacity:.5;transition:transform .4s cubic-bezier(.22,1,.36,1)}
 .dcard.active .dchev{transform:rotate(90deg)}
@@ -1012,7 +1018,7 @@ function homeStats(st){ const g=$("glance"); var _ncx=$("nextcard"); if(!st){ g.
   const now=TODAY.getHours()*60+TODAY.getMinutes();
   let next=active.find(m=>toMin(m.start)>now)||null, when="today";
   if(!next){ const order=DATA.days||[], ti=order.indexOf(dayName);
-    for(let off=1; off<=order.length && !next; off++){ const d=order[(ti+off)%order.length];
+    for(let off=1; ti+off<order.length && !next; off++){ const d=order[ti+off];
       const dm=meetings.filter(m=>m.day===d&&m.changed!=="out").sort((a,b)=>toMin(a.start)-toMin(b.start));
       if(dm.length){ next=dm[0]; when=d.slice(0,3); } } }
   if(next){ $("stNext").textContent=prettyTime(next.start); $("stNextSub").textContent= nm(next) + (when!=="today"? " · "+when : ""); }
@@ -1020,7 +1026,11 @@ function homeStats(st){ const g=$("glance"); var _ncx=$("nextcard"); if(!st){ g.
   // ---- live next-class hero (per-student, from real schedule) ----
   var ncEl=$("nextcard");
   if(ncEl){ var ncN=$("ncName"), ncM=$("ncMeta"), ncC=$("ncCount"), ncG=$("ncNudge");
-    if(next){ ncEl.hidden=false; if(ncG)ncG.hidden=false;
+    ncEl.hidden=false;
+    var _tmr=new Date(TODAY.getTime()+86400000).toLocaleDateString("en-US",{weekday:"long"});
+    var _tn=meetings.filter(function(m){return m.day===_tmr&&m.changed!=="out";}).length;
+    if(ncG){ ncG.hidden=false; ncG.textContent = _tn===0 ? "\ud83c\udf89 No classes tomorrow \u2014 enjoy the break" : (_tn>=4 ? ("\ud83d\udcda Busy day tomorrow \u2014 "+_tn+" classes") : ("\ud83d\udcc5 "+_tn+" class"+(_tn>1?"es":"")+" tomorrow")); }
+    if(next){
       ncN.textContent=nm(next);
       var _mb=[prettyTime(next.start)];
       if(next.sec.room) _mb.push("Room "+next.sec.room);
@@ -1028,10 +1038,9 @@ function homeStats(st){ const g=$("glance"); var _ncx=$("nextcard"); if(!st){ g.
       ncM.textContent=_mb.join(" \u00b7 ");
       if(when==="today"){ var _t=toMin(next.start), _tg=new Date(); _tg.setHours(Math.floor(_t/60),_t%60,0,0); window.__ncTarget=_tg.getTime(); }
       else { window.__ncTarget=null; var _tm=new Date(TODAY.getTime()+86400000).toLocaleDateString("en-US",{weekday:"short"}); ncC.textContent=(when===_tm?"Tomorrow":when); }
-      var _tmr=new Date(TODAY.getTime()+86400000).toLocaleDateString("en-US",{weekday:"long"});
-      var _tn=meetings.filter(function(m){return m.day===_tmr&&m.changed!=="out";}).length;
-      ncG.textContent = _tn===0 ? "\ud83c\udf89 No classes tomorrow \u2014 enjoy the break" : (_tn>=4 ? ("\ud83d\udcda Busy day tomorrow \u2014 "+_tn+" classes") : ("\ud83d\udcc5 "+_tn+" class"+(_tn>1?"es":"")+" tomorrow"));
-    } else { ncEl.hidden=false; ncN.textContent="You're all caught up"; ncM.textContent="No upcoming classes this week"; ncC.textContent="\u2713"; window.__ncTarget=null; if(ncG)ncG.hidden=true; }
+    } else {
+      ncN.textContent="You're all set"; ncM.textContent="No more classes this week"; ncC.textContent="\u2713"; window.__ncTarget=null;
+    }
   }
   g.hidden=false;}
 // routing: Home <-> Timetable
@@ -1422,7 +1431,7 @@ showView();
 <script>
 (function(){
   var deck=document.getElementById('deck'); if(!deck) return;
-  var ACTIVE=216, STRIP=58, STEP=44, OVERLAP=16, INSET=13;
+  var ACTIVE=216, STRIP=62, STEP=54, OVERLAP=12, INSET=13;
   var cards=[].slice.call(deck.querySelectorAll('.dcard'));
   var byId={}, order=[];
   cards.forEach(function(c){ byId[c.getAttribute('data-id')]=c; order.push(c.getAttribute('data-id')); });
