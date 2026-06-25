@@ -180,27 +180,6 @@ html[data-theme="light"] body::before{
 .tp-today{color:var(--accent);font-weight:700} .tp-sep{color:var(--faint)} .tp-date{color:var(--ink);font-weight:600}
 
 /* glass cards */
-.gcard{display:flex;align-items:center;gap:16px;text-decoration:none;color:var(--ink);margin-bottom:16px;
-  background:var(--card);border:1px solid var(--line);border-radius:24px;padding:20px;
-  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:0 16px 42px var(--shadow);
-  transition:transform .12s,border-color .15s}
-.gcard:hover{border-color:color-mix(in srgb,var(--accent) 55%,transparent);transform:translateY(-1px)}
-.gcard:active{transform:scale(.995)}
-.gc-ic{flex:none;width:64px;height:64px;border-radius:19px;display:grid;place-items:center;color:#1a1208;box-shadow:0 8px 22px rgba(0,0,0,.25)}
-.gc-ic svg{width:32px;height:32px}
-.ic-cal{background:#ffb43d}
-.ic-book{background:#f0664f}
-.ic-pyq{background:#f5b13d;color:#06121a}
-.ic-upd{background:#f0664f}
-.ic-notes{background:#ff5e9a;color:#06121a}
-.gc-body{flex:1;min-width:0;display:flex;flex-direction:column}
-.gc-title{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:23px;color:var(--ink);line-height:1.1}
-.gc-sub{font-size:14px;color:var(--muted);line-height:1.35;margin-top:3px}
-.gc-chip{align-self:flex-start;margin-top:9px;font-family:"JetBrains Mono",monospace;font-size:12px;font-weight:700;
-  color:var(--ink);background:var(--input);border:1px solid var(--line);border-radius:9px;padding:5px 11px}
-.gc-go{flex:none;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;
-  background:var(--input);border:1px solid var(--line);color:var(--ink)}
-.gc-go svg{width:20px;height:20px}
 /* home deck (layered downward-shift) */
 .deck{position:relative;margin-top:22px}
 .dcard{position:absolute;left:0;right:0;top:0;display:block;text-align:left;border:none;cursor:pointer;color:#0b0c0a;border-radius:24px;padding:16px 20px;overflow:hidden;box-shadow:0 -8px 22px rgba(0,0,0,.4);transition:top .46s cubic-bezier(.22,1,.36,1),height .46s cubic-bezier(.22,1,.36,1),left .46s cubic-bezier(.22,1,.36,1),right .46s cubic-bezier(.22,1,.36,1),filter .4s,box-shadow .35s}
@@ -226,7 +205,6 @@ html[data-theme="light"] .dcard.active{box-shadow:0 16px 34px rgba(150,110,50,.2
 .dchip{display:inline-block;background:rgba(0,0,0,.16);font-weight:800;font-size:12.5px;padding:5px 12px;border-radius:9px}
 .dopen{display:inline-block;background:rgba(0,0,0,.18);color:#0b0c0a;font-weight:800;font-size:13.5px;padding:10px 18px;border-radius:12px}
 .dsoon{display:inline-block;background:rgba(0,0,0,.13);font-weight:800;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;padding:7px 13px;border-radius:9px;opacity:.7}
-.gcard.soon{opacity:.72} .gcard.soon:hover{transform:none;border-color:var(--line)}
 
 /* important updates */
 .upd{display:flex;gap:12px;align-items:flex-start;text-decoration:none;color:var(--ink);
