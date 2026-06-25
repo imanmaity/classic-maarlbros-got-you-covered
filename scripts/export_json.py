@@ -24,6 +24,20 @@ if mdates and not any(mon <= d <= mon + datetime.timedelta(days=6) for d in mdat
     upcoming = [d for d in mdates if d >= today] or mdates
     t = min(upcoming); mon = t - datetime.timedelta(days=t.weekday())
 WK_START, WK_END = mon, mon + datetime.timedelta(days=6)
+NEXT_START, NEXT_END = WK_END + datetime.timedelta(days=1), WK_END + datetime.timedelta(days=7)
+def week_pat(rows, start, end):
+    """day-of-week pattern for one week; date-less rows are treated as recurring (appear every week)."""
+    seen=set(); out=[]
+    for m in rows:
+        ds=m["date"]; dd=None
+        if ds:
+            try: dd=datetime.date.fromisoformat(ds)
+            except Exception: dd=None
+        if dd is not None and not (start <= dd <= end): continue
+        k=(m["day"], m["session"])
+        if k in seen: continue
+        seen.add(k); out.append({"day":m["day"],"session":m["session"],"start":m["start_time"],"end":m["end_time"]})
+    return out
 def in_week(ds):
     try: return WK_START <= datetime.date.fromisoformat(ds) <= WK_END
     except Exception: return False
@@ -47,15 +61,12 @@ for c in cur.execute("""SELECT sec.section_id sid, s.abbr, s.name sname, s.area,
                                f.name fname, f.email, sec.classroom_code room
                         FROM sections sec JOIN subjects s ON s.code=sec.subject_code
                         LEFT JOIN faculty f ON f.faculty_key=sec.faculty_key""").fetchall():
-    seen=set(); mtg=[]
-    for m in cur.execute("SELECT DISTINCT day,session,start_time,end_time FROM meetings WHERE section_id=?", (c["sid"],)).fetchall():
-        k=(m["day"], m["session"])
-        if k in seen: continue
-        seen.add(k)
-        mtg.append({"day": m["day"], "session": m["session"], "start": m["start_time"], "end": m["end_time"]})
+    rows=cur.execute("SELECT DISTINCT day,session,start_time,end_time,date FROM meetings WHERE section_id=?", (c["sid"],)).fetchall()
     sections[str(c["sid"])] = {"abbr": c["abbr"], "name": c["sname"], "area": c["area"],
                                "division": c["division"], "faculty": c["fname"],
-                               "email": c["email"], "room": c["room"], "meetings": mtg}
+                               "email": c["email"], "room": c["room"],
+                               "meetings": week_pat(rows, WK_START, WK_END),
+                               "meetingsNext": week_pat(rows, NEXT_START, NEXT_END)}
 
 events = [{"date":e["date"],"day":e["day"],"type":e["type"],"name":e["name"]}
           for e in cur.execute("SELECT date,day,type,name FROM events ORDER BY date").fetchall()]
@@ -91,7 +102,7 @@ if os.path.exists(upd_path):
         print("updates.json skipped:", e)
 
 data = {"meta": {"institute": "Institute of Management, Nirma University",
-                 "term": "MBA Term-IV", "week_of": WK_START.isoformat(), "recurring": True},
+                 "term": "MBA Term-IV", "week_of": WK_START.isoformat(), "week_of_next": NEXT_START.isoformat(), "recurring": True},
         "days": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
         "sessions": sessions, "events": events, "changes": changes, "updates": updates,
         "sections": sections, "students": students}

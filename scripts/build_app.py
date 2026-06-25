@@ -622,6 +622,10 @@ html[data-theme="light"] .sc-card{--sci:#221a12;--scm:#6c5b46;--scline:rgba(120,
 .sc-share{background:linear-gradient(95deg,#ffb43d,#ff7f5e,#ff5e9a);color:#1a1208}
 .sc-save{background:rgba(255,255,255,.1);color:var(--ink);border:1px solid var(--line)}
 .sc-x{position:absolute;top:12px;right:14px;width:30px;height:30px;border:none;border-radius:9px;background:rgba(0,0,0,.18);color:#fff;font-size:16px;cursor:pointer;display:grid;place-items:center;z-index:2}
+.wk-toggle{display:flex;gap:4px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:4px;margin:0 auto 16px;max-width:280px}
+.wk-seg{flex:1;border:none;background:transparent;color:var(--muted);font-weight:800;font-size:13px;padding:10px 8px;border-radius:10px;cursor:pointer;font-family:inherit;transition:background .18s,color .18s}
+.wk-seg.active{background:var(--accent);color:#1a1208}
+.wk-seg:active{transform:scale(.98)}
 </style>
 <script>try{var t=localStorage.getItem("imnu-theme")||((window.matchMedia&&matchMedia("(prefers-color-scheme: light)").matches)?"light":"dark");document.documentElement.setAttribute("data-theme",t);}catch(e){document.documentElement.setAttribute("data-theme","dark");}</script>
 </head>
@@ -748,6 +752,7 @@ html[data-theme="light"] .sc-card{--sci:#221a12;--scm:#6c5b46;--scline:rgba(120,
       <div class="err" id="err"></div>
     </div>
     <div class="weeklabel" id="weeklabel" hidden></div>
+    <div class="wk-toggle" id="wkToggle" hidden><button class="wk-seg active" id="wkThis" type="button">This Week</button><button class="wk-seg" id="wkNext" type="button">Next Week</button></div>
     <div id="result"></div>
     <button class="sharebtn" id="shareWeekBtn" hidden>↗ Share my week</button>
     <footer><span class="built">Updated __BUILT__ IST</span> · Tentative weekly schedule — confirm any room/time changes with the department.</footer>
@@ -907,7 +912,8 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const TODAY=new Date();
 const WK_MON=mondayOf(new Date((DATA.meta.week_of||dateStr(TODAY))+"T00:00:00"));
 const WK_END=new Date(WK_MON); WK_END.setDate(WK_MON.getDate()+6);
-let currentRoll=null;
+const HAS_NEXT=Object.values(DATA.sections||{}).some(s=>(s.meetingsNext||[]).length>0);
+let currentRoll=null; let ttWeek=0;
 
 // home hero reflects the schedule's week
 (function(){const m=WK_MON, e=WK_END;
@@ -1087,20 +1093,22 @@ function doLookup(){
   if(!DATA.students[roll]){ err.textContent="No student found for "+roll+". Check the roll number and try again."; err.classList.add("show"); $("weeklabel").hidden=true; return; }
   currentRoll=roll; putRoll(roll); closeAC(); var _sb=document.getElementById("shareWeekBtn"); if(_sb)_sb.hidden=false;
   $("weeklabel").textContent="Week of "+fmt(WK_MON)+" – "+fmt(WK_END); $("weeklabel").hidden=false;
+  ttWeek=0; var _wt=$("wkToggle"); if(_wt){ _wt.hidden=!HAS_NEXT; var _wa=$("wkThis"),_wb=$("wkNext"); if(_wa)_wa.classList.add("active"); if(_wb)_wb.classList.remove("active"); }
   render();
 }
 
 const TCOL=40;
 function render(){
   const roll=currentRoll, st=DATA.students[roll]; if(!st) return;
-  const mon=WK_MON, wkEnd=WK_END;
+  const useNext=(ttWeek===1);
+  const mon=useNext?new Date(WK_MON.getTime()+604800000):WK_MON, wkEnd=useNext?new Date(WK_END.getTime()+604800000):WK_END;
   const dayDate={}; DATA.days.forEach((d,i)=>{const dt=new Date(mon);dt.setDate(mon.getDate()+i);dayDate[d]=dateStr(dt);});
   const todayDay=Object.keys(dayDate).find(d=>dayDate[d]===dateStr(TODAY))||null;
   const inWk=ds=>{ if(!ds) return false; try{const d=new Date(ds+"T00:00:00"); return d>=mon&&d<=wkEnd;}catch(e){return false;} };
   const weekEvents=(DATA.events||[]).filter(e=>inWk(e.date));
   const electives=st.s.map(id=>Object.assign({id},DATA.sections[id]));
   const meetings=[];
-  electives.forEach(e=>(e.meetings||[]).forEach(m=>meetings.push(Object.assign({sec:e},m))));
+  electives.forEach(e=>((useNext?e.meetingsNext:e.meetings)||[]).forEach(m=>meetings.push(Object.assign({sec:e},m))));
 
   const myKey=new Set(electives.map(e=>ckey(e.abbr,e.division)));
   const myChanges=(DATA.changes||[]).filter(c=>myKey.has(ckey(c.abbr,c.division)) && (inWk(c.old_date)||inWk(c.new_date)));
@@ -1144,7 +1152,7 @@ function render(){
   const usedSess=DATA.sessions.filter(s=>meetings.some(m=>m.session===s.name));
 
   if(!usedDays.length||!usedSess.length){
-    html+=`<div class="empty-week">No classes scheduled for you this week.</div>`;
+    html+=`<div class="empty-week">No classes scheduled for you ${useNext?'next':'this'} week.</div>`;
   } else {
     const cols=`${TCOL}px repeat(${usedDays.length},minmax(46px,1fr))`;
     html+=`<div class="grid-wrap"><div class="calcard">`;
@@ -1174,7 +1182,7 @@ function render(){
     const evs=weekEvents.slice().sort((a,b)=>a.date<b.date?-1:1);
     const nClasses=meetings.filter(m=>m.changed!=='out').length;
     const nDays=new Set(meetings.filter(m=>m.changed!=='out').map(m=>m.day)).size;
-    let below=`<div class="note"><span><b>${nClasses} ${nClasses===1?'class':'classes'}</b> across <b>${nDays} ${nDays===1?'day':'days'}</b> this week</span></div>`;
+    let below=`<div class="note"><span><b>${nClasses} ${nClasses===1?'class':'classes'}</b> across <b>${nDays} ${nDays===1?'day':'days'}</b> ${useNext?'next':'this'} week</span></div>`;
     evs.forEach(e=>{ const n=fmtDM(e.date).split(' ')[0];
       below+=`<div class="chip2 ${e.type==='holiday'?'hol':'exam'}"><span class="num">${n}</span><span><span class="typ">${e.type==='holiday'?'Holiday':'Exam'}</span><span class="lab">${esc(e.name)}</span></span></div>`; });
     html+=`<div class="belowcal">${below}</div>`;
@@ -1182,12 +1190,12 @@ function render(){
 
   html+=`<details class="dir"><summary>Electives, faculty &amp; rooms</summary><div class="dir-list">`;
   electives.slice().sort((a,b)=>a.abbr.localeCompare(b.abbr)).forEach(e=>{
-    const when=(e.meetings||[]).map(m=>`${m.day.slice(0,3)} ${m.start}`).join(", ");
+    const when=((useNext?e.meetingsNext:e.meetings)||[]).map(m=>`${m.day.slice(0,3)} ${m.start}`).join(", ");
     html+=`<div class="di ${slug(e.area)}">
         <div class="di-h"><span class="tag">${PERSON}${esc(e.abbr)}(${esc(e.division||'-')})</span><span class="di-nm">${esc(e.name)}</span></div>
         <div class="di-r">${esc(e.faculty||'—')}${e.email?` · <a href="mailto:${esc(e.email)}">${esc(e.email)}</a>`:''}</div>
         <div class="di-r">${ROOM}Room ${esc(e.room||'TBA')}</div>
-        ${when?`<div class="di-r meets">${esc(when)}</div>`:`<div class="di-r meets">Not scheduled this week</div>`}
+        ${when?`<div class="di-r meets">${esc(when)}</div>`:`<div class="di-r meets">Not scheduled ${useNext?'next':'this'} week</div>`}
       </div>`;
   });
   html+=`</div></details>`;
@@ -1196,7 +1204,13 @@ function render(){
   $("result").classList.add("show");
 }
 
+function setWeek(w){ ttWeek=w?1:0;
+  var a=$("wkThis"),b=$("wkNext"); if(a)a.classList.toggle("active",ttWeek===0); if(b)b.classList.toggle("active",ttWeek===1);
+  var lm=ttWeek===1?new Date(WK_MON.getTime()+604800000):WK_MON, le=ttWeek===1?new Date(WK_END.getTime()+604800000):WK_END;
+  $("weeklabel").textContent="Week of "+fmt(lm)+" – "+fmt(le); render();
+}
 $("btn").addEventListener("click",doLookup);
+{ var _a=$("wkThis"),_b=$("wkNext"); if(_a)_a.addEventListener("click",function(){setWeek(0);}); if(_b)_b.addEventListener("click",function(){setWeek(1);}); }
 
 // ---- name autocomplete on roll lookup ----
 const acdrop=$("acdrop"), allRolls=Object.keys(DATA.students);
