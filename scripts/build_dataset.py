@@ -132,11 +132,15 @@ def _build_master(cd_rows, grid_rows, source):
     if grid_rows:
         header, times = grid_rows[0], grid_rows[1]
         session_cols = []
-        for c in range(min(13, len(header))):
-            v = header[c]
-            if isinstance(v, str) and v.strip().lower().startswith("session"):
-                t = times[c] if c < len(times) else None
-                session_cols.append((c, v.strip(), clean_time(t)))
+        for c in range(2, min(13, len(header))):
+            hv = header[c] if c < len(header) else None
+            t0, t1 = clean_time(times[c] if c < len(times) else None)
+            if isinstance(hv, str) and hv.strip().lower().startswith("session"):
+                session_cols.append((c, hv.strip(), (t0, t1)))
+            elif t0:
+                # unlabeled column that still carries a real class-time range —
+                # some weeks a class sits in the 12:30-1:30 slot (blank header).
+                session_cols.append((c, f"{t0}-{t1}" if t1 else t0, (t0, t1)))
         for r in grid_rows[2:]:
             if not r or not isinstance(r[0], datetime) or r[0].year != 2026:
                 continue
