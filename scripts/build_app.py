@@ -70,7 +70,8 @@ SHARED_BOOKS = [
 TEMPLATE = r"""<!DOCTYPE html>
 <html lang="en">
 <head>
-<script data-goatcounter="https://classicmaarlbros.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+<script data-goatcounter="https://imanmaity.goatcounter.com/count"
+        async src="//gc.zgo.at/count.js"></script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>My Week · IMNU Term IV</title>
