@@ -73,6 +73,7 @@ TEMPLATE = r"""<!DOCTYPE html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>My Week · IMNU Term IV</title>
+<script data-goatcounter="https://imanmaity.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 <meta name="theme-color" content="#15110d">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
@@ -157,7 +158,7 @@ html[data-theme="light"] body::before{
 .ab-1{font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ink);line-height:1.3}
 .ab-2{font-size:10px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
 .bell{position:relative}
-.bell-dot{position:absolute;top:6px;right:6px;width:9px;height:9px;border-radius:50%;background:#ff3b5c;border:2px solid var(--card)}
+.bell-dot{position:absolute;top:9px;right:9px;width:9px;height:9px;border-radius:50%;background:#ff3b5c;border:2px solid var(--card)}
 
 /* hero */
 .hero{margin-bottom:24px;position:relative}
