@@ -137,7 +137,7 @@ def _build_master(cd_rows, grid_rows, source):
             if isinstance(v, str) and v.strip().lower().startswith("session"):
                 t = times[c] if c < len(times) else None
                 session_cols.append((c, v.strip(), clean_time(t)))
-        for r in grid_rows[3:]:
+        for r in grid_rows[2:]:
             if not r or not isinstance(r[0], datetime) or r[0].year != 2026:
                 continue
             date, day = r[0], (str(r[1]).strip() if len(r) > 1 and r[1] else None)
@@ -176,15 +176,33 @@ def find_master(input_dir):
              if any(k in os.path.basename(f).lower() for k in ("schedule", "course detail", "term"))]
     return max(cands, key=os.path.getsize) if cands else None
 
+def _pick_grid_sheet(sheets, cd_name):
+    """Find the weekly-timetable sheet robustly, independent of how the admin
+    names the tab. Order: (1) a tab named with a DD.MM.YYYY date (legacy), then
+    (2) any non-course-detail tab whose header row has 'Session-*' columns, then
+    (3) a tab whose name contains 'schedule'."""
+    g = next((s for s in sheets if re.search(r"\d{2}\.\d{2}\.\d{4}", s)), None)
+    if g: return g
+    for s, rows in sheets.items():
+        if s == cd_name: continue
+        head = rows[0] if rows else []
+        if any(isinstance(v, str) and v.strip().lower().startswith("session") for v in head):
+            return s
+    return next((s for s in sheets if s != cd_name and "schedule" in s.lower()), None)
+
 def parse_master(input_dir):
     path = find_master(input_dir)
     if path:
         wb = load_workbook(path, read_only=True, data_only=True)
-        cd = next((s for s in wb.sheetnames if "course detail" in s.lower()), wb.sheetnames[0])
-        cd_rows = [list(r) for r in wb[cd].iter_rows(values_only=True)]
-        gn = next((s for s in wb.sheetnames if re.search(r"\d{2}\.\d{2}\.\d{4}", s)), None)
-        grid_rows = [list(r) for r in wb[gn].iter_rows(values_only=True)] if gn else []
+        sheets = {s: [list(r) for r in wb[s].iter_rows(values_only=True)] for s in wb.sheetnames}
         wb.close()
+        cd = next((s for s in sheets if "course detail" in s.lower()), next(iter(sheets)))
+        cd_rows = sheets[cd]
+        gn = _pick_grid_sheet(sheets, cd)
+        grid_rows = sheets.get(gn, []) if gn else []
+        if not grid_rows:
+            note("WARN", f"{os.path.basename(path)}: no weekly-grid sheet could be recognized "
+                         f"(looked for a 'Session-*' header). Timetable left empty.")
         return _build_master(cd_rows, grid_rows, os.path.basename(path))
     note("WARN", "Master schedule workbook not found in input folder; used the embedded "
                  "snapshot captured from your schedule file. Re-add that .xlsx to refresh "
@@ -336,6 +354,10 @@ def build(input_dir, output_dir):
     counts = {t: cur.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0]
               for t in ["subjects","faculty","classrooms","sections","students","enrollments","meetings"]}
     con.close()
+    if counts["meetings"] == 0:
+        note("ERROR", "Timetable parsed to 0 meetings — refusing to publish an empty week. "
+                      "The master workbook was found but no weekly grid was read; check the "
+                      "schedule sheet's name/layout (needs a 'Session-*' header row).")
     write_report(output_dir, counts, master_path, roster_files)
     return counts
 
