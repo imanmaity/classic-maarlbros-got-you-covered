@@ -70,8 +70,6 @@ SHARED_BOOKS = [
 TEMPLATE = r"""<!DOCTYPE html>
 <html lang="en">
 <head>
-<script data-goatcounter="https://imanmaity.goatcounter.com/count"
-        async src="//gc.zgo.at/count.js"></script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>My Week · IMNU Term IV</title>
@@ -998,29 +996,39 @@ function homeStats(st){ const g=$("glance"); var _ncx=$("nextcard"); if(!st){ g.
     if(c.old_day) changeMap.set(c.old_day+"|"+ckey(c.abbr,c.division), c); });
   meetings.forEach(m=>{ if(m.changed) return; if(changeMap.get(m.day+"|"+ckey(m.sec.abbr,m.sec.division))) m.changed="out"; });
   const nm=m=>cleanSub(m.sec.name)||m.sec.abbr;
-  const todayAll=meetings.filter(m=>m.day===dayName);
+  // anchor today/tomorrow/next to REAL dates: the schedule's meetings belong to
+  // the week starting WK_MON (which may be a future week when the current week
+  // has no classes), so map each meeting to its real date instead of the weekday of today.
+  const _DOW={Monday:0,Tuesday:1,Wednesday:2,Thursday:3,Friday:4,Saturday:5,Sunday:6};
+  const _addDays=(d,n)=>{const x=new Date(d.getTime()); x.setDate(x.getDate()+n); return x;};
+  const _sameDay=(a,b)=>a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate();
+  const _dtOf=(m,base)=>{const d=_addDays(base,(_DOW[m.day]||0)); const t=toMin(m.start); d.setHours(Math.floor(t/60),t%60,0,0); return d;};
+  const _dlabel=d=>d.toLocaleDateString("en-US",{weekday:"short",day:"numeric",month:"short"});
+  const _realToday=new Date(TODAY.getTime()); _realToday.setHours(0,0,0,0);
+  const _realTmr=_addDays(_realToday,1);
+  meetings.forEach(m=>{ m._dt=_dtOf(m,WK_MON); });
+  const _nextWk=[]; secs.forEach(e=>(e.meetingsNext||[]).forEach(m=>_nextWk.push({sec:e,day:m.day,start:m.start,_dt:_dtOf(m,_addDays(WK_MON,7))})));
+  const _allUp=meetings.filter(m=>m.changed!=="out").concat(_nextWk);
+  const todayAll=meetings.filter(m=>_sameDay(m._dt,_realToday));
   const active=todayAll.filter(m=>m.changed!=="out").sort((a,b)=>toMin(a.start)-toMin(b.start));
   const out=todayAll.filter(m=>m.changed==="out").length;
-  const roomToday=myChanges.filter(c=>isRoomChange(c)&&c.new_day===dayName).length;
+  const roomToday=myChanges.filter(c=>isRoomChange(c)&&c.new_day&&_sameDay(_addDays(WK_MON,(_DOW[c.new_day]||0)),_realToday)).length;
   $("stClasses").textContent=active.length;
   const subBits=[];
   if(out>0) subBits.push(out+" of "+(active.length+out)+" postponed/moved");
   if(roomToday>0) subBits.push(roomToday+" room "+(roomToday===1?"change":"changes"));
   $("stClassesSub").textContent = subBits.length ? subBits.join(" · ") : (active.length? "Stay on track" : "No classes today");
-  const now=TODAY.getHours()*60+TODAY.getMinutes();
-  let next=active.find(m=>toMin(m.start)>now)||null, when="today";
-  if(!next){ const order=DATA.days||[], ti=order.indexOf(dayName);
-    for(let off=1; ti+off<order.length && !next; off++){ const d=order[ti+off];
-      const dm=meetings.filter(m=>m.day===d&&m.changed!=="out").sort((a,b)=>toMin(a.start)-toMin(b.start));
-      if(dm.length){ next=dm[0]; when=d.slice(0,3); } } }
-  if(next){ $("stNext").textContent=prettyTime(next.start); $("stNextSub").textContent= nm(next) + (when!=="today"? " · "+when : ""); }
+  const _now=new Date(TODAY.getTime());
+  const _up=_allUp.filter(m=>m._dt>_now).sort((a,b)=>a._dt-b._dt);
+  let next=_up[0]||null;
+  let when = !next ? null : (_sameDay(next._dt,_realToday)?"today":_sameDay(next._dt,_realTmr)?"tomorrow":"later");
+  if(next){ $("stNext").textContent=prettyTime(next.start); $("stNextSub").textContent= nm(next) + (when==="today"? "" : " · "+_dlabel(next._dt)); }
   else { $("stNext").textContent="—"; $("stNextSub").textContent="No upcoming classes"; }
   // ---- live next-class hero (per-student, from real schedule) ----
   var ncEl=$("nextcard");
   if(ncEl){ var ncN=$("ncName"), ncM=$("ncMeta"), ncC=$("ncCount"), ncG=$("ncNudge");
     ncEl.hidden=false;
-    var _tmr=new Date(TODAY.getTime()+86400000).toLocaleDateString("en-US",{weekday:"long"});
-    var _tn=meetings.filter(function(m){return m.day===_tmr&&m.changed!=="out";}).length;
+    var _tn=_allUp.filter(function(m){return _sameDay(m._dt,_realTmr);}).length;
     if(ncG){ ncG.hidden=false; ncG.textContent = _tn===0 ? "\ud83c\udf89 No classes tomorrow \u2014 enjoy the break" : (_tn>=4 ? ("\ud83d\udcda Busy day tomorrow \u2014 "+_tn+" classes") : ("\ud83d\udcc5 "+_tn+" class"+(_tn>1?"es":"")+" tomorrow")); }
     if(next){
       ncN.textContent=nm(next);
@@ -1028,8 +1036,8 @@ function homeStats(st){ const g=$("glance"); var _ncx=$("nextcard"); if(!st){ g.
       if(next.sec.room) _mb.push("Room "+next.sec.room);
       var _f=cleanSub(next.sec.faculty); if(_f) _mb.push(_f);
       ncM.textContent=_mb.join(" \u00b7 ");
-      if(when==="today"){ var _t=toMin(next.start), _tg=new Date(); _tg.setHours(Math.floor(_t/60),_t%60,0,0); window.__ncTarget=_tg.getTime(); }
-      else { window.__ncTarget=null; var _tm=new Date(TODAY.getTime()+86400000).toLocaleDateString("en-US",{weekday:"short"}); ncC.textContent=(when===_tm?"Tomorrow":when); }
+      if(when==="today"){ window.__ncTarget=next._dt.getTime(); var _mn=Math.round((next._dt.getTime()-Date.now())/60000); ncC.textContent = _mn>60?("in "+Math.floor(_mn/60)+"h "+(_mn%60)+"m"):_mn>1?("in "+_mn+" min"):(_mn>=0?"happening now":"just ended"); }
+      else { window.__ncTarget=null; ncC.textContent = (when==="tomorrow"?"Tomorrow":_dlabel(next._dt)); }
     } else {
       ncN.textContent="You're all set"; ncM.textContent="No more classes this week"; ncC.textContent="\u2713"; window.__ncTarget=null;
     }
