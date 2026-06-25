@@ -996,6 +996,10 @@ function homeStats(st){ const g=$("glance"); var _ncx=$("nextcard"); if(!st){ g.
     if(el&&ses&&c.new_day&&!isTBA(c)&&c.type!=="Cancelled") meetings.push({sec:el,day:c.new_day,start:ses.start,changed:"in"});
     if(c.old_day) changeMap.set(c.old_day+"|"+ckey(c.abbr,c.division), c); });
   meetings.forEach(m=>{ if(m.changed) return; if(changeMap.get(m.day+"|"+ckey(m.sec.abbr,m.sec.division))) m.changed="out"; });
+  // attach room-change notices to meetings (same matching the timetable uses)
+  const roomMap=new Map();
+  myChanges.forEach(c=>{ if(isRoomChange(c)&&c.new_day) roomMap.set(c.new_day+"|"+ckey(c.abbr,c.division), c); });
+  meetings.forEach(m=>{ const rc=roomMap.get(m.day+"|"+ckey(m.sec.abbr,m.sec.division)); if(rc) m.roomChg=rc; });
   const nm=m=>cleanSub(m.sec.name)||m.sec.abbr;
   // anchor today/tomorrow/next to REAL dates: the schedule's meetings belong to
   // the week starting WK_MON (which may be a future week when the current week
@@ -1034,7 +1038,8 @@ function homeStats(st){ const g=$("glance"); var _ncx=$("nextcard"); if(!st){ g.
     if(next){
       ncN.textContent=nm(next);
       var _mb=[prettyTime(next.start)];
-      if(next.sec.room) _mb.push("Room "+next.sec.room);
+      var _rm = next.roomChg ? (next.roomChg.new_room||next.sec.room) : next.sec.room;
+      if(_rm){ _mb.push("Room "+_rm + (next.roomChg&&next.roomChg.old_room&&next.roomChg.new_room&&next.roomChg.new_room!==next.roomChg.old_room ? " (was "+next.roomChg.old_room+")" : "")); }
       var _f=cleanSub(next.sec.faculty); if(_f) _mb.push(_f);
       ncM.textContent=_mb.join(" \u00b7 ");
       if(when==="today"){ window.__ncTarget=next._dt.getTime(); var _mn=Math.round((next._dt.getTime()-Date.now())/60000); ncC.textContent = _mn>60?("in "+Math.floor(_mn/60)+"h "+(_mn%60)+"m"):_mn>1?("in "+_mn+" min"):(_mn>=0?"happening now":"just ended"); }
