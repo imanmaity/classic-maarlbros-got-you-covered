@@ -961,16 +961,18 @@ function renderUpdates(){ const w=$("updList"); if(!w) return;
   }
 }
 function prettyTime(t){ const m=String(t).match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i); return m?((+m[1])+":"+m[2]+" "+m[3].toUpperCase()):t; }
+// shared schedule helpers (single source of truth)
+const toMin=hhmm=>{const m=String(hhmm).match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i); if(!m)return 0; let h=(+m[1])%12; if(/pm/i.test(m[3]||""))h+=12; return h*60+(+m[2]);};
+const canon=a=>{const u=String(a||"").toUpperCase(); return u==="I&PM"?"I&PM":u.replace(/&/g,"");};
+const ckey=(a,d)=>canon(a)+"|"+(d||"");
+const normHM=s=>{const m=String(s||"").match(/(\d{1,2})[:.](\d{2})/); return m?parseInt(m[1])+":"+m[2]:"";};
+const sessByHM=hm=>(DATA.sessions||[]).find(s=>normHM(s.start)===normHM(hm));
+const isTBA=c=>!!(c.tba || !sessByHM(c.new_hhmm));
+const isRoomChange=c=>(c.type==="Room Change")&&!!c.new_room;
 function homeStats(st){ const g=$("glance"); var _ncx=$("nextcard"); if(!st){ g.hidden=true; if(_ncx)_ncx.hidden=true; return; }
   const dayName=TODAY.toLocaleDateString("en-US",{weekday:"long"});
   const secs=st.s.map(id=>DATA.sections[id]).filter(Boolean);
-  const toMin=hhmm=>{const m=String(hhmm).match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i); if(!m)return 0; let h=(+m[1])%12; if(/pm/i.test(m[3]||""))h+=12; return h*60+(+m[2]);};
   // mirror the timetable's change handling so the count matches what actually happens
-  const canon=a=>{const u=String(a||"").toUpperCase(); return u==="I&PM"?"I&PM":u.replace(/&/g,"");};
-  const ckey=(a,d)=>canon(a)+"|"+(d||"");
-  const normHM=s=>{const m=String(s||"").match(/(\d{1,2})[:.](\d{2})/); return m?parseInt(m[1])+":"+m[2]:"";};
-  const sessByHM=hm=>(DATA.sessions||[]).find(s=>normHM(s.start)===normHM(hm));
-  const isTBA=c=>!!(c.tba || !sessByHM(c.new_hhmm));
   const inWk=ds=>{ if(!ds) return false; try{const d=new Date(ds+"T00:00:00"); return d>=WK_MON&&d<=WK_END;}catch(e){return false;} };
   const elBy={}; secs.forEach(e=>{ elBy[ckey(e.abbr,e.division)]=e; });
   const myKey=new Set(secs.map(e=>ckey(e.abbr,e.division)));
@@ -978,7 +980,6 @@ function homeStats(st){ const g=$("glance"); var _ncx=$("nextcard"); if(!st){ g.
   const meetings=[];
   secs.forEach(e=>(e.meetings||[]).forEach(m=>meetings.push({sec:e,day:m.day,start:m.start})));
   const changeMap=new Map();
-  const isRoomChange=c=>(c.type==="Room Change")&&!!c.new_room;
   myChanges.forEach(c=>{ if(isRoomChange(c)) return; const el=elBy[ckey(c.abbr,c.division)], ses=sessByHM(c.new_hhmm);
     if(el&&ses&&c.new_day&&!isTBA(c)&&c.type!=="Cancelled") meetings.push({sec:el,day:c.new_day,start:ses.start,changed:"in"});
     if(c.old_day) changeMap.set(c.old_day+"|"+ckey(c.abbr,c.division), c); });
@@ -1101,15 +1102,9 @@ function render(){
   const meetings=[];
   electives.forEach(e=>(e.meetings||[]).forEach(m=>meetings.push(Object.assign({sec:e},m))));
 
-  const canon=a=>{const u=String(a||'').toUpperCase(); return u==='I&PM'?'I&PM':u.replace(/&/g,'');};
-  const ckey=(a,d)=>canon(a)+'|'+(d||'');
   const myKey=new Set(electives.map(e=>ckey(e.abbr,e.division)));
   const myChanges=(DATA.changes||[]).filter(c=>myKey.has(ckey(c.abbr,c.division)) && (inWk(c.old_date)||inWk(c.new_date)));
   const elBy={}; electives.forEach(e=>{elBy[ckey(e.abbr,e.division)]=e;});
-  const normHM=s=>{const m=String(s||'').match(/(\d{1,2})[:.](\d{2})/); return m?parseInt(m[1])+':'+m[2]:'';};
-  const sessByHM=hm=>DATA.sessions.find(s=>normHM(s.start)===normHM(hm));
-  const isTBA=c=>!!(c.tba || !sessByHM(c.new_hhmm));
-  const isRoomChange=c=>(c.type==='Room Change')&&!!c.new_room;
   const changeMap=new Map(), roomMap=new Map();
   myChanges.forEach(c=>{
     if(isRoomChange(c)){ if(c.new_day) roomMap.set(c.new_day+'|'+ckey(c.abbr,c.division), c); return; }
