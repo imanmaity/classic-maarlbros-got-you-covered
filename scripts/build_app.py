@@ -448,6 +448,8 @@ button.go:hover{filter:brightness(1.06)} button.go:active{transform:translateY(1
 .chip2 .lab{font-size:13px;font-weight:600;color:var(--ink)}
 
 .empty-week{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:22px;text-align:center;color:var(--muted);font-size:14px}
+.ew-jump{appearance:none;background:none;border:none;padding:0;margin:0;font:inherit;cursor:pointer;color:var(--ink);font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.ew-jump:hover{opacity:.8}
 
 .dir{margin-top:16px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;backdrop-filter:blur(8px)}
 .dir summary{cursor:pointer;list-style:none;padding:14px 16px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
@@ -913,6 +915,9 @@ const TODAY=new Date();
 const WK_MON=mondayOf(new Date((DATA.meta.week_of||dateStr(TODAY))+"T00:00:00"));
 const WK_END=new Date(WK_MON); WK_END.setDate(WK_MON.getDate()+6);
 const HAS_NEXT=Object.values(DATA.sections||{}).some(s=>(s.meetingsNext||[]).length>0);
+// how many classes a given student has in this-week (next=false) or next-week (next=true)
+function stMeetCount(st,next){ if(!st) return 0;
+  return (st.s||[]).reduce((n,id)=>{const s=DATA.sections[id]||{}; return n+((next?s.meetingsNext:s.meetings)||[]).length;},0); }
 let currentRoll=null; let ttWeek=0;
 
 // home hero reflects the schedule's week
@@ -1092,8 +1097,12 @@ function doLookup(){
   if(!roll){ err.textContent="Type your roll number to continue."; err.classList.add("show"); $("weeklabel").hidden=true; return; }
   if(!DATA.students[roll]){ err.textContent="No student found for "+roll+". Check the roll number and try again."; err.classList.add("show"); $("weeklabel").hidden=true; return; }
   currentRoll=roll; putRoll(roll); closeAC(); var _sb=document.getElementById("shareWeekBtn"); if(_sb)_sb.hidden=false;
-  $("weeklabel").textContent="Week of "+fmt(WK_MON)+" – "+fmt(WK_END); $("weeklabel").hidden=false;
-  ttWeek=0; var _wt=$("wkToggle"); if(_wt){ _wt.hidden=!HAS_NEXT; var _wa=$("wkThis"),_wb=$("wkNext"); if(_wa)_wa.classList.add("active"); if(_wb)_wb.classList.remove("active"); }
+  // decide which week to open on: if this week is empty for this student but next week has classes, open on next
+  var _st=DATA.students[roll], _nThis=stMeetCount(_st,false), _nNext=stMeetCount(_st,true);
+  ttWeek=(_nThis===0 && _nNext>0)?1:0;
+  var _wt=$("wkToggle"); if(_wt){ _wt.hidden=!(_nNext>0); var _wa=$("wkThis"),_wb=$("wkNext"); if(_wa)_wa.classList.toggle("active",ttWeek===0); if(_wb)_wb.classList.toggle("active",ttWeek===1); }
+  var _lm=ttWeek===1?new Date(WK_MON.getTime()+604800000):WK_MON, _le=ttWeek===1?new Date(WK_END.getTime()+604800000):WK_END;
+  $("weeklabel").textContent="Week of "+fmt(_lm)+" – "+fmt(_le); $("weeklabel").hidden=false;
   render();
 }
 
@@ -1152,7 +1161,12 @@ function render(){
   const usedSess=DATA.sessions.filter(s=>meetings.some(m=>m.session===s.name));
 
   if(!usedDays.length||!usedSess.length){
-    html+=`<div class="empty-week">No classes scheduled for you ${useNext?'next':'this'} week.</div>`;
+    const otherHas=stMeetCount(st,!useNext)>0;
+    if(otherHas){
+      html+=`<div class="empty-week">No classes for you ${useNext?'next':'this'} week — <button class="ew-jump" type="button" onclick="setWeek(${useNext?0:1})">see ${useNext?'this':'next'} week ›</button></div>`;
+    } else {
+      html+=`<div class="empty-week">No classes scheduled for you ${useNext?'next':'this'} week.</div>`;
+    }
   } else {
     const cols=`${TCOL}px repeat(${usedDays.length},minmax(46px,1fr))`;
     html+=`<div class="grid-wrap"><div class="calcard">`;
