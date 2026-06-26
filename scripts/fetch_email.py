@@ -47,6 +47,38 @@ ROOM_RE = r'(?:[A-Za-z]{1,4}-?\d{1,3}[A-Za-z]?|\d{2,4}-[A-Za-z]{1,3})'
 _WEEKDAYS = {"monday":0,"tuesday":1,"wednesday":2,"thursday":3,"friday":4,"saturday":5,"sunday":6}
 def _room_norm(s): return re.sub(r'\s+', '', str(s)).upper()
 
+def _secs_in(t):
+    """(abbr, division) pairs mentioned in a fragment of notice text."""
+    s = []
+    for ab, dvgroup in re.findall(r'([A-Za-z&]{2,6})\(\s*([A-Za-z][A-Za-z&,\s]*?)\s*\)', t):
+        for dv in re.findall(r'[A-Za-z]', dvgroup):
+            s.append((ab, dv))
+    return s
+
+def _detect_rooms(t):
+    """(new_room, old_room) from a fragment, using the same venue patterns."""
+    nr = orr = None
+    m = re.search(r'\b(' + ROOM_RE + r')\s+to\s+(' + ROOM_RE + r')\b', t, re.I)   # "from E6 to T3"
+    if m: orr, nr = _room_norm(m.group(1)), _room_norm(m.group(2))
+    if nr is None:                                                               # "T3 classroom"
+        m = re.search(r'\b(' + ROOM_RE + r')\s+class\s*-?\s*room\b', t, re.I)
+        if m: nr = _room_norm(m.group(1))
+    if nr is None:                                                               # "held in / shifted to / venue: T3"
+        m = re.search(r'(?:held|conducted|shifted|moved|take\s*place|venue|class\s*-?\s*room|classroom|room|hall)\b'
+                      r'[^.\n]{0,25}?\b(?:in|to|at|:)\s*(?:room\s*(?:no\.?)?\s*|class\s*-?\s*room\s*|venue\s*|hall\s*)?'
+                      r'(' + ROOM_RE + r')\b', t, re.I)
+        if m: nr = _room_norm(m.group(1))
+    if orr is None:                                                              # "instead of E6"
+        m = re.search(r'(?:instead of|in place of|rather than|in lieu of|not in)\s+(?:room\s*)?(' + ROOM_RE + r')\b', t, re.I)
+        if m: orr = _room_norm(m.group(1))
+    return nr, orr
+
+def _clauses(t):
+    """Split a notice into venue clauses on numbered markers ("1)", "2)") and
+    sentence enders, so each subject group pairs with the room in its own clause."""
+    segs = re.split(r'(?:\s*\b\d+\)\s*)|(?<=[.;])\s+', t)
+    return [s for s in segs if s and s.strip()]
+
 def parse_change(text, edate=None):
     # edate = the email's own date, so "today"/"tomorrow"/weekday resolve correctly
     edate = edate or datetime.date.today()
@@ -87,20 +119,7 @@ def parse_change(text, edate=None):
         if wd:
             rel_date = _add((_WEEKDAYS[wd.group(1)] - edate.weekday()) % 7)
     # ---- room / venue detection (only the classroom changes; day & time stay put) ----
-    new_room = old_room = None
-    m = re.search(r'\b(' + ROOM_RE + r')\s+to\s+(' + ROOM_RE + r')\b', text, re.I)   # "from E6 to T3"
-    if m: old_room, new_room = _room_norm(m.group(1)), _room_norm(m.group(2))
-    if new_room is None:                                                              # "T3 classroom"
-        m = re.search(r'\b(' + ROOM_RE + r')\s+class\s*-?\s*room\b', text, re.I)
-        if m: new_room = _room_norm(m.group(1))
-    if new_room is None:                                                              # "held in / shifted to / venue: T3"
-        m = re.search(r'(?:held|conducted|shifted|moved|take\s*place|venue|class\s*-?\s*room|classroom|room|hall)\b'
-                      r'[^.\n]{0,25}?\b(?:in|to|at|:)\s*(?:room\s*(?:no\.?)?\s*|class\s*-?\s*room\s*|venue\s*|hall\s*)?'
-                      r'(' + ROOM_RE + r')\b', text, re.I)
-        if m: new_room = _room_norm(m.group(1))
-    if old_room is None:                                                              # "instead of E6"
-        m = re.search(r'(?:instead of|in place of|rather than|in lieu of|not in)\s+(?:room\s*)?(' + ROOM_RE + r')\b', text, re.I)
-        if m: old_room = _room_norm(m.group(1))
+    new_room, old_room = _detect_rooms(text)
     has_time_shift = bool(times)
     has_date_shift = bool(new_date) and (new_date != old_date)
     is_room_change = (new_room is not None) and not has_time_shift and not has_date_shift \
@@ -118,11 +137,22 @@ def parse_change(text, edate=None):
         d0 = old_date or new_date or rel_date or edate.isoformat()   # the day the relocated class meets
         d_day = day(d0)
         hhmm = times[0] if len(times) == 1 else None                 # optional; room change attaches by day
+        # A single notice can assign different rooms to different groups, e.g.
+        #   "1) IPM(A),FSA(C) ... E2 Classroom.  2) CB(A),CB(B) ... E1 classroom."
+        # Pair each section with the room mentioned in ITS clause; fall back to the
+        # global room only if a section's clause names no venue of its own.
+        seg_room = {}
+        for seg in _clauses(text):
+            snr, sorr = _detect_rooms(seg)
+            if snr is None: continue
+            for ab, dv in _secs_in(seg):
+                seg_room[(ab.upper(), dv.upper())] = (snr, sorr or old_room)
         for ab, dv in secs:
+            nr, orr = seg_room.get((ab.upper(), dv.upper()), (new_room, old_room))
             out.append({"abbr": ab.upper(), "division": dv.upper(), "type": "Room Change",
                         "old_date": d0, "old_day": d_day, "new_date": d0, "new_day": d_day,
                         "old_hhmm": hhmm, "new_hhmm": hhmm,
-                        "old_room": old_room, "new_room": new_room, "tba": False, "raw": raw})
+                        "old_room": orr, "new_room": nr, "tba": False, "raw": raw})
         return out
     # a dateless time/cancel change ("cancelled today") still gets a concrete day to render on
     if old_date is None and rel_date:
