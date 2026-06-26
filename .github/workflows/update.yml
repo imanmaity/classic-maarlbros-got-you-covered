@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: "0,30 0-15 * * *"   # every 30 min, 05:30-21:00 IST (UTC 00:00-15:30)
   workflow_dispatch:           # lets you run it manually from the Actions tab
+    inputs:
+      force_publish:
+        description: "Publish even if the shrink-guard detects a big data drop (use only when the shrink is intentional)"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -36,6 +41,10 @@ jobs:
         run: python scripts/fetch_email.py rosters/schedule_latest.xlsx
 
       - name: Build dataset
+        # force_publish is only ever true on a manual run with the box ticked;
+        # scheduled runs always respect the shrink-guard.
+        env:
+          FORCE_PUBLISH: ${{ github.event_name == 'workflow_dispatch' && inputs.force_publish && '1' || '' }}
         run: python scripts/build_dataset.py --input rosters --output data
       - name: Export JSON
         run: python scripts/export_json.py data/university.db data/schedule_data.json
