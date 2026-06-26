@@ -1595,6 +1595,18 @@ _BUILT_D = _bnow.strftime("%-d %b")            # hero badge: date only
 open(OUT_PATH, "w", encoding="utf-8").write(TEMPLATE.replace("__REQEMAIL__", REQUEST_EMAIL).replace("__REQFORM__", REQUEST_FORM_URL).replace("__SHAREDSECTION__", SHARED_HTML).replace("__INSTA__", INSTA_URL).replace("__VAPID__", VAPID_PUBLIC_KEY).replace("__NOTIFYEP__", NOTIFY_ENDPOINT).replace("__NOTESEP__", NOTES_ENDPOINT).replace("__NOTIFYON__", "true" if NOTIFY_ENABLED else "false").replace("__VER__", APP_VERSION).replace("__BUILTD__", _BUILT_D).replace("__BUILT__", _BUILT).replace("__DATA__", data))
 print(f"Wrote {OUT_PATH}")
 
+# Publish the build's stats next to index.html so the NEXT run can fetch it as the
+# shrink-guard baseline. It only actually goes live when this build passes the
+# publish gate, so a refused (shrunken) build never overwrites the good baseline.
+try:
+    import shutil
+    _src = os.path.join(os.path.dirname(os.path.abspath(DATA_PATH)) or ".", "build_stats.json")
+    if os.path.exists(_src):
+        shutil.copyfile(_src, os.path.join(os.path.dirname(os.path.abspath(OUT_PATH)) or ".", "build_stats.json"))
+        print("Published build_stats.json")
+except Exception as e:
+    print("build_stats.json copy skipped:", e)
+
 
 # ---- write home-screen icons + web manifest next to index.html ----
 import base64 as _b64

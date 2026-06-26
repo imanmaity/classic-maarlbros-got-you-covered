@@ -11,7 +11,7 @@ rosters = source of truth for enrollment. Full rebuild each run => idempotent.
 If the master workbook is not found in --input, an embedded snapshot (captured
 from the user's own schedule file) is used so the build still completes.
 """
-import argparse, glob, os, re, sqlite3, csv
+import argparse, glob, os, re, sqlite3, csv, json, urllib.request
 from datetime import datetime
 from openpyxl import load_workbook
 
@@ -362,8 +362,70 @@ def build(input_dir, output_dir):
         note("ERROR", "Timetable parsed to 0 meetings — refusing to publish an empty week. "
                       "The master workbook was found but no weekly grid was read; check the "
                       "schedule sheet's name/layout (needs a 'Session-*' header row).")
+    shrink_guard(counts, output_dir)
     write_report(output_dir, counts, master_path, roster_files)
     return counts
+
+# --------------------------------------------------------------- partial-parse guard
+# The empty-week guard above only fires when EVERYTHING vanishes (0 meetings). The
+# more common — and more dangerous — failure is partial: an admin reshuffles the
+# master sheet and HALF the sections quietly drop, leaving a nonzero total that
+# sails through. This guard compares the new build against the last successfully
+# *published* build (its build_stats.json, fetched from the live site) and refuses
+# to publish when any key metric shrinks past a threshold, so the previous good
+# schedule stays live instead of a half-empty one reaching 150 students.
+STATS_BASELINE_URL = os.environ.get(
+    "STATS_BASELINE_URL",
+    "https://imanmaity.github.io/classic-maarlbros-got-you-covered/build_stats.json")
+SHRINK_DROP  = float(os.environ.get("SHRINK_DROP", "0.25"))   # >25% drop on any key => refuse
+SHRINK_KEYS  = ("meetings", "sections", "enrollments", "students")
+SHRINK_FLOOR = 8   # ignore tiny baselines (seed/first runs) so the guard doesn't fire on noise
+
+def _fetch_baseline():
+    try:
+        req = urllib.request.Request(STATS_BASELINE_URL, headers={"User-Agent": "imnu-build"})
+        with urllib.request.urlopen(req, timeout=15) as r:
+            return json.loads(r.read().decode("utf-8"))
+    except Exception as e:
+        # Fail OPEN: a transient network blip or a missing baseline (first ever run)
+        # must not freeze schedule updates. We only ever BLOCK on a real, measured drop.
+        note("INFO", f"Shrink-guard baseline unavailable ({type(e).__name__}); "
+                     "no comparison this run (this build becomes the baseline).")
+        return None
+
+def shrink_guard(counts, output_dir):
+    # Record this build's stats first; build_app copies it into site/, so a
+    # successful publish becomes the next run's baseline. A refused build is never
+    # uploaded, so the baseline correctly stays at the last GOOD build.
+    stats = {k: int(counts.get(k, 0) or 0) for k in SHRINK_KEYS}
+    stats["generated"] = f"{datetime.now():%Y-%m-%dT%H:%M}"
+    try:
+        with open(os.path.join(output_dir, "build_stats.json"), "w") as fh:
+            json.dump(stats, fh)
+    except Exception as e:
+        note("WARN", f"Could not write build_stats.json: {e}")
+
+    base = _fetch_baseline()
+    if not base:
+        return
+    forced = os.environ.get("FORCE_PUBLISH", "").strip().lower() in ("1", "true", "yes")
+    hits = []
+    for k in SHRINK_KEYS:
+        old = int(base.get(k, 0) or 0); new = int(counts.get(k, 0) or 0)
+        if old >= SHRINK_FLOOR and new < old * (1 - SHRINK_DROP):
+            hits.append(f"{k} {old}\u2192{new} (\u2212{round((1 - new/old)*100)}%)")
+    if hits:
+        detail = ("Build lost a large share of data vs the last published build: "
+                  + "; ".join(hits) + ". This usually means the master sheet was reshuffled and "
+                  "sections were silently dropped. "
+                  + ("Publishing anyway because FORCE_PUBLISH is set."
+                     if forced else
+                     "Refusing to publish so the previous good schedule stays live. "
+                     "If this shrink is intentional, re-run with FORCE_PUBLISH=1."))
+        note("WARN" if forced else "ERROR", detail)
+    else:
+        note("INFO", "Shrink-guard OK — volume consistent with last published build ("
+                     + ", ".join(f"{k}:{counts.get(k,0)}" for k in SHRINK_KEYS) + ").")
 
 def write_report(output_dir, counts, master_path, roster_files):
     order = {"ERROR":0,"WARN":1,"INFO":2}
