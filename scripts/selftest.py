@@ -16,17 +16,22 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 
 def load_parse_change():
     """Pull parse_change (+ its helper globals) from fetch_email.py and exec only those,
-    so importing doesn't run the module-level IMAP/login code."""
+    so importing doesn't run the module-level IMAP/login code.
+
+    We grab EVERY top-level function (they're all parser helpers and have no
+    side-effects at definition time) plus the module-level regex/lookup constants.
+    Doing it by category — rather than a hardcoded name list — means new helper
+    functions are picked up automatically and can't silently fall out of the slice."""
     src = open(os.path.join(HERE, "fetch_email.py"), encoding="utf-8").read()
     tree = ast.parse(src)
-    want = {"ROOM_RE", "_WEEKDAYS", "_room_norm", "parse_change"}
+    want_const = {"ROOM_RE", "_WEEKDAYS"}   # module-level constants parse_change relies on
     chunks = []
     for node in tree.body:
-        if isinstance(node, ast.FunctionDef) and node.name in want:
-            chunks.append(ast.get_source_segment(src, node))
+        if isinstance(node, ast.FunctionDef):
+            chunks.append(ast.get_source_segment(src, node))          # all helpers incl. parse_change
         elif isinstance(node, ast.Assign):
             names = {t.id for t in node.targets if isinstance(t, ast.Name)}
-            if names & want:
+            if names & want_const:
                 chunks.append(ast.get_source_segment(src, node))
     ns = {"re": re, "datetime": datetime}
     exec("\n".join(chunks), ns)
@@ -77,6 +82,16 @@ def main():
 
     check("three divisions in one mail",
           len(parse_change("BM(A), BM(B) and BM(C) will be held in T6 today.", E)) == 3)
+
+    # multi-venue notice: each clause's subjects must get THAT clause's room.
+    # (Regression guard for the bug where one global room got stamped onto all subjects.)
+    rr = parse_change("1) IPM(A),IPM(B),FSA(C) & BI(B) sessions will be held in E2 Classroom. "
+                      "2) CB(A) & CB(B) Sessions will be held in E1 classroom on 29.06.2026.", E)
+    rm = {(c["abbr"], c["division"]): c.get("new_room") for c in rr}
+    check("multi-venue: E2 group",
+          all(rm.get(k) == "E2" for k in [("IPM", "A"), ("IPM", "B"), ("FSA", "C"), ("BI", "B")]), rm)
+    check("multi-venue: CB stays E1 (not the first room E2)",
+          rm.get(("CB", "A")) == "E1" and rm.get(("CB", "B")) == "E1", rm)
 
     # ---- regressions: these must NOT become Room Changes ----
     c = first("Dear Students, The SBM(A) & SBM(B) session scheduled on 23.06.2026 is "
