@@ -576,17 +576,38 @@ html[data-theme="light"] #view-books .bk-intro,html[data-theme="light"] #view-no
 #view-notes .bk-intro{background:#ff5e9a}
 #view-updates .bk-intro{background:#f5b13d}
 #view-books .bk-intro b,#view-notes .bk-intro b,#view-updates .bk-intro b{color:#0b0c0a !important}
-/* live next-class hero */
-.nextcard{margin-top:16px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:15px 17px;backdrop-filter:blur(8px);position:relative;overflow:hidden}
-.nextcard::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(120% 80% at 100% 0%,var(--accent-soft),transparent 60%)}
-.nc-top{display:flex;align-items:center;justify-content:space-between;gap:10px;position:relative}
-.nc-lbl{font-size:10px;font-weight:800;letter-spacing:.14em;color:var(--muted)}
-.nc-count{display:flex;align-items:center;gap:7px;font-size:14.5px;font-weight:800;color:var(--accent)}
-.nc-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:ncpulse 1.8s ease-out infinite}
-@keyframes ncpulse{0%{box-shadow:0 0 0 0 var(--accent-soft)}70%{box-shadow:0 0 0 9px transparent}100%{box-shadow:0 0 0 0 transparent}}
-.nc-name{margin-top:9px;font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:23px;letter-spacing:-.01em;color:var(--ink);line-height:1.1;position:relative}
-.nc-meta{margin-top:4px;font-size:13px;color:var(--muted);font-weight:600;position:relative}
-.nc-nudge{margin-top:13px;display:inline-flex;align-items:center;gap:7px;background:color-mix(in srgb,var(--ink) 6%,transparent);border:1px solid var(--line);border-radius:11px;padding:7px 12px;font-size:12.5px;font-weight:700;color:var(--ink);position:relative}
+/* live today section */
+.livetoday{margin-top:16px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:15px 16px 13px;backdrop-filter:blur(8px);position:relative;overflow:hidden}
+.livetoday::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(120% 80% at 100% 0%,var(--accent-soft),transparent 60%)}
+.lt-hero{display:flex;align-items:center;gap:12px;position:relative}
+.lt-hicon{flex:none;width:42px;height:42px;border-radius:13px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent)}
+.lt-hicon svg{width:22px;height:22px}
+.lt-htx{min-width:0;flex:1}
+.lt-kick{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:800;letter-spacing:.14em;color:var(--muted)}
+.lt-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);animation:ltpulse 1.8s ease-out infinite}
+@keyframes ltpulse{0%{box-shadow:0 0 0 0 var(--accent-soft)}70%{box-shadow:0 0 0 8px transparent}100%{box-shadow:0 0 0 0 transparent}}
+.lt-top{margin-top:3px;font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:21px;letter-spacing:-.01em;color:var(--ink);line-height:1.12;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lt-sub{margin-top:2px;font-size:12.5px;color:var(--muted);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lt-was{color:var(--rm);font-weight:700}
+.lt-list{margin-top:12px;display:flex;flex-direction:column;gap:7px;position:relative}
+.lt-list:empty{margin-top:0}
+.lt-row{display:flex;align-items:center;gap:11px;padding:9px 11px;border-radius:13px;background:var(--card2);border:1px solid var(--line);position:relative;overflow:hidden}
+.lt-row.done{opacity:.5}
+.lt-row.now{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 9%,var(--card2))}
+.lt-time{flex:none;width:58px;font-size:11.5px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums;line-height:1.2}
+.lt-body{min-width:0;flex:1}
+.lt-nm{font-size:13.5px;font-weight:800;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lt-rm{margin-top:1px;font-size:11.5px;color:var(--muted);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lt-state{flex:none;display:flex;align-items:center;gap:4px;font-size:11px;font-weight:800;color:var(--accent);white-space:nowrap}
+.lt-state.dim{color:var(--faint)}
+.lt-state svg{width:14px;height:14px}
+.lt-prog{position:absolute;left:0;bottom:0;height:2.5px;width:0;background:var(--accent);border-radius:0 2px 2px 0;transition:width .9s linear}
+.lt-break{display:flex;align-items:center;gap:7px;padding:1px 11px;font-size:11px;font-weight:700;color:var(--faint)}
+.lt-break svg{width:13px;height:13px;opacity:.85}
+.lt-break .ln{flex:1;height:1px;background:var(--line)}
+.lt-confetti{position:absolute;top:-8px;width:7px;height:10px;border-radius:2px;opacity:.9;pointer-events:none;animation:ltfall 1.8s ease-in forwards}
+@keyframes ltfall{0%{transform:translateY(0) rotate(0);opacity:1}100%{transform:translateY(230px) rotate(360deg);opacity:0}}
+.lt-nudge{margin-top:12px;display:inline-flex;align-items:center;gap:7px;background:color-mix(in srgb,var(--ink) 6%,transparent);border:1px solid var(--line);border-radius:11px;padding:7px 12px;font-size:12.5px;font-weight:700;color:var(--ink);position:relative}
 /* shareable timecard */
 .sharebtn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin:20px 0 4px;border:none;border-radius:16px;padding:15px;font-size:15px;font-weight:800;cursor:pointer;color:#1a1208;background:linear-gradient(95deg,#ffb43d,#ff7f5e,#ff5e9a);box-shadow:0 10px 26px rgba(255,127,94,.3)}
 .sharebtn:active{transform:scale(.99)}
@@ -650,11 +671,17 @@ html[data-theme="light"] .sc-card{--sci:#221a12;--scm:#6c5b46;--scline:rgba(120,
       <div class="todaypill"><span class="tp-dot"></span><span class="tp-today">Today</span><span class="tp-sep">·</span><span class="tp-date" id="todayDate"></span></div>
     </header>
 
-    <div class="nextcard" id="nextcard" hidden>
-      <div class="nc-top"><span class="nc-lbl">NEXT CLASS</span><span class="nc-count"><span class="nc-dot"></span><span id="ncCount">in 42 min</span></span></div>
-      <div class="nc-name" id="ncName">Consumer Behaviour</div>
-      <div class="nc-meta" id="ncMeta">2:40 PM · Room T4 · Prof. Mehta</div>
-      <div class="nc-nudge" id="ncNudge">🎉 No classes tomorrow — enjoy the break</div>
+    <div class="livetoday" id="livetoday" hidden>
+      <div class="lt-hero">
+        <span class="lt-hicon" id="ltHicon"></span>
+        <span class="lt-htx">
+          <span class="lt-kick" id="ltKick"><span class="lt-dot"></span><span>LIVE TODAY</span></span>
+          <div class="lt-top" id="ltTop">&mdash;</div>
+          <div class="lt-sub" id="ltSub"></div>
+        </span>
+      </div>
+      <div class="lt-list" id="ltList"></div>
+      <div class="lt-nudge" id="ltNudge" hidden></div>
     </div>
 
     <div class="deck" id="deck">
@@ -980,7 +1007,7 @@ const normHM=s=>{const m=String(s||"").match(/(\d{1,2})[:.](\d{2})/); return m?p
 const sessByHM=hm=>(DATA.sessions||[]).find(s=>normHM(s.start)===normHM(hm));
 const isTBA=c=>!!(c.tba || !sessByHM(c.new_hhmm));
 const isRoomChange=c=>(c.type==="Room Change")&&!!c.new_room;
-function homeStats(st){ const g=$("glance"); var _ncx=$("nextcard"); if(!st){ g.hidden=true; if(_ncx)_ncx.hidden=true; return; }
+function homeStats(st){ const g=$("glance"); var _ncx=$("livetoday"); if(!st){ g.hidden=true; if(_ncx)_ncx.hidden=true; return; }
   const dayName=TODAY.toLocaleDateString("en-US",{weekday:"long"});
   const secs=st.s.map(id=>DATA.sections[id]).filter(Boolean);
   // mirror the timetable's change handling so the count matches what actually happens
@@ -1028,24 +1055,28 @@ function homeStats(st){ const g=$("glance"); var _ncx=$("nextcard"); if(!st){ g.
   let when = !next ? null : (_sameDay(next._dt,_realToday)?"today":_sameDay(next._dt,_realTmr)?"tomorrow":"later");
   if(next){ $("stNext").textContent=prettyTime(next.start); $("stNextSub").textContent= nm(next) + (when==="today"? "" : " · "+_dlabel(next._dt)); }
   else { $("stNext").textContent="—"; $("stNextSub").textContent="No upcoming classes"; }
-  // ---- live next-class hero (per-student, from real schedule) ----
-  var ncEl=$("nextcard");
-  if(ncEl){ var ncN=$("ncName"), ncM=$("ncMeta"), ncC=$("ncCount"), ncG=$("ncNudge");
-    ncEl.hidden=false;
+  // ---- Live Today (per-student, from real schedule) ----
+  var ltEl=$("livetoday");
+  if(ltEl){
+    ltEl.hidden=false;
+    var _mkEnd=function(m){ var ses=sessByHM(m.start), em=ses&&ses.end?toMin(ses.end):null;
+      if(em==null) return m._dt.getTime()+60*60000;
+      var d=new Date(m._dt.getTime()); d.setHours(Math.floor(em/60),em%60,0,0); return d.getTime(); };
+    var _roomOf=function(m){ var rc=m.roomChg; return { room:(rc&&rc.new_room)||m.sec.room||"",
+      oldR:(rc&&rc.old_room&&rc.new_room&&rc.new_room!==rc.old_room)?rc.old_room:"" }; };
+    var _cls=active.map(function(m){ var r=_roomOf(m);
+      return { s:m._dt.getTime(), e:_mkEnd(m), name:nm(m), tL:prettyTime(m.start), room:r.room, oldR:r.oldR, fac:cleanSub(m.sec.faculty)||"" }; });
     var _tn=_allUp.filter(function(m){return _sameDay(m._dt,_realTmr);}).length;
-    if(ncG){ ncG.hidden=false; ncG.textContent = _tn===0 ? "\ud83c\udf89 No classes tomorrow \u2014 enjoy the break" : (_tn>=4 ? ("\ud83d\udcda Busy day tomorrow \u2014 "+_tn+" classes") : ("\ud83d\udcc5 "+_tn+" class"+(_tn>1?"es":"")+" tomorrow")); }
-    if(next){
-      ncN.textContent=nm(next);
-      var _mb=[prettyTime(next.start)];
-      var _rm = next.roomChg ? (next.roomChg.new_room||next.sec.room) : next.sec.room;
-      if(_rm){ _mb.push("Room "+_rm + (next.roomChg&&next.roomChg.old_room&&next.roomChg.new_room&&next.roomChg.new_room!==next.roomChg.old_room ? " (was "+next.roomChg.old_room+")" : "")); }
-      var _f=cleanSub(next.sec.faculty); if(_f) _mb.push(_f);
-      ncM.textContent=_mb.join(" \u00b7 ");
-      if(when==="today"){ window.__ncTarget=next._dt.getTime(); var _mn=Math.round((next._dt.getTime()-Date.now())/60000); ncC.textContent = _mn>60?("in "+Math.floor(_mn/60)+"h "+(_mn%60)+"m"):_mn>1?("in "+_mn+" min"):(_mn>=0?"happening now":"just ended"); }
-      else { window.__ncTarget=null; ncC.textContent = (when==="tomorrow"?"Tomorrow":_dlabel(next._dt)); }
-    } else {
-      ncN.textContent="You're all set"; ncM.textContent="No more classes this week"; ncC.textContent="\u2713"; window.__ncTarget=null;
-    }
+    var _nudge = _tn===0 ? "\ud83c\udf89 No classes tomorrow \u2014 enjoy the break"
+               : (_tn>=4 ? ("\ud83d\udcda Busy day tomorrow \u2014 "+_tn+" classes")
+                         : ("\ud83d\udcc5 "+_tn+" class"+(_tn>1?"es":"")+" tomorrow"));
+    var _nx=null;
+    if(next){ var nr=_roomOf(next);
+      _nx={ s:next._dt.getTime(), abbr:next.sec.abbr||"", name:nm(next), tL:prettyTime(next.start),
+            when:when, dlab:_dlabel(next._dt), room:nr.room, oldR:nr.oldR, fac:cleanSub(next.sec.faculty)||"" }; }
+    window.__LT={ classes:_cls, nudge:_nudge, next:_nx };
+    window.__ltSig=null;
+    if(window.ltPaint) window.ltPaint();
   }
   g.hidden=false;}
 // routing: Home <-> Timetable
@@ -1472,15 +1503,85 @@ showView();
 </script>
 <script>
 (function(){
-  var el=document.getElementById('ncCount'); if(!el) return;
-  function fmt(){ var tg=window.__ncTarget; if(!tg) return; var min=Math.round((tg-Date.now())/60000);
-    if(min>60){ el.textContent='in '+Math.floor(min/60)+'h '+(min%60)+'m'; }
-    else if(min>1){ el.textContent='in '+min+' min'; }
-    else if(min===1){ el.textContent='in 1 min'; }
-    else if(min<=0&&min>-50){ el.textContent='happening now'; }
-    else { el.textContent='just ended'; }
+  var ICO={
+    walk:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="4" r="1.7"/><path d="M11.5 21l1.3-5.5L9.5 12l1-5 3.8 2 2.4 2.2M9.5 12l-2 3.2"/></svg>',
+    clock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>',
+    party:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l5-13 8 8z"/><path d="M14 4.5c1.2 0 1.3 1.6 2.5 1.6M18.5 9c1 0 1.5-.9 1.5-1.9M20 13.6c-.9-.4-2 .1-2.3 1.1"/></svg>',
+    coffee:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h13v5a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4z"/><path d="M17 10h2a2.5 2.5 0 0 1 0 5h-2M8 3v2.2M12 3v2.2"/></svg>',
+    check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>'
+  };
+  function esc2(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function fmtIn(ms){ var min=Math.round(ms/60000); if(min>60) return Math.floor(min/60)+'h '+(min%60)+'m'; if(min>1) return min+' min'; if(min===1) return '1 min'; return 'now'; }
+  function rmHtml(room,oldR){ if(!room) return ''; return 'Room '+esc2(room)+(oldR?' <span class="lt-was">(was '+esc2(oldR)+')</span>':''); }
+
+  function ltConfetti(host){
+    if(host.__confettiDone) return; host.__confettiDone=true;
+    var colors=['#ff9e3d','#ff5e9a','#7aa2ff','#3fd6a8'];
+    for(var i=0;i<14;i++){ var p=document.createElement('span'); p.className='lt-confetti';
+      p.style.left=(8+Math.random()*84)+'%'; p.style.background=colors[i%colors.length];
+      p.style.animationDelay=(Math.random()*0.3).toFixed(2)+'s'; host.appendChild(p);
+      (function(el){ setTimeout(function(){ if(el&&el.parentNode) el.parentNode.removeChild(el); },2200); })(p); }
   }
-  fmt(); setInterval(fmt,1000);
+
+  window.ltPaint=function(){
+    var host=document.getElementById('livetoday'); if(!host) return;
+    var D=window.__LT; if(!D) return;
+    var now=Date.now(), cls=D.classes||[], curIdx=-1, i;
+    for(i=0;i<cls.length;i++){ if(now>=cls[i].s && now<cls[i].e){ curIdx=i; break; } }
+    var hi=document.getElementById('ltHicon'), kick=document.getElementById('ltKick'),
+        top=document.getElementById('ltTop'), sub=document.getElementById('ltSub');
+    if(curIdx>=0){
+      var c=cls[curIdx];
+      hi.innerHTML=ICO.walk;
+      kick.innerHTML='<span class="lt-dot"></span><span>IN CLASS NOW</span>';
+      top.textContent=c.name;
+      sub.innerHTML=[rmHtml(c.room,c.oldR), esc2(c.fac), 'ends in '+esc2(fmtIn(c.e-now))].filter(Boolean).join(' \u00b7 ');
+    } else if(D.next){
+      var n=D.next;
+      hi.innerHTML=ICO.clock;
+      if(n.when==='today'){ kick.innerHTML='<span class="lt-dot"></span><span>NEXT \u00b7 '+esc2((n.abbr||'CLASS')+' in '+fmtIn(n.s-now))+'</span>'; }
+      else { kick.innerHTML='<span>NEXT CLASS</span>'; }
+      top.textContent=n.name;
+      var when2 = n.when==='today'?n.tL : (n.when==='tomorrow'?('Tomorrow \u00b7 '+n.tL):(n.dlab+' \u00b7 '+n.tL));
+      sub.innerHTML=[esc2(when2), rmHtml(n.room,n.oldR), esc2(n.fac)].filter(Boolean).join(' \u00b7 ');
+    } else {
+      hi.innerHTML=ICO.party;
+      kick.innerHTML='<span>ALL DONE</span>';
+      top.textContent = cls.length ? "That's a wrap for today" : 'No classes today';
+      sub.textContent = cls.length ? 'Every class done \u2014 nice work' : 'Enjoy the free day';
+      ltConfetti(host);
+    }
+    var list=document.getElementById('ltList');
+    var sig=cls.map(function(x){return x.s;}).join(',')+'|'+curIdx+'|'+Math.floor(now/60000);
+    if(window.__ltSig!==sig){
+      window.__ltSig=sig;
+      var h='', j;
+      for(j=0;j<cls.length;j++){
+        var x=cls[j], stt = now>=x.e?'done':(now>=x.s&&now<x.e?'now':'up');
+        var stateHtml = stt==='done' ? '<span class="lt-state dim">'+ICO.check+'</span>'
+                      : stt==='now'  ? '<span class="lt-state">in progress</span>'
+                      : '<span class="lt-state">in '+esc2(fmtIn(x.s-now))+'</span>';
+        var prog = stt==='now' ? '<span class="lt-prog"></span>' : '';
+        h+='<div class="lt-row '+(stt==='done'?'done':stt==='now'?'now':'')+'">'
+          +'<span class="lt-time">'+esc2(x.tL)+'</span>'
+          +'<span class="lt-body"><span class="lt-nm">'+esc2(x.name)+'</span><span class="lt-rm">'+([rmHtml(x.room,x.oldR),esc2(x.fac)].filter(Boolean).join(' \u00b7 '))+'</span></span>'
+          +stateHtml+prog+'</div>';
+        if(j<cls.length-1){ var gap=cls[j+1].s - x.e;
+          if(gap>=20*60000){
+            var act = now>=x.e && now<cls[j+1].s;
+            var lbl = act ? ('Free now \u00b7 '+fmtIn(cls[j+1].s-now)+' till next') : ('Break \u00b7 '+fmtIn(gap));
+            h+='<div class="lt-break">'+ICO.coffee+'<span>'+esc2(lbl)+'</span><span class="ln"></span></div>';
+          }
+        }
+      }
+      list.innerHTML=h;
+    }
+    if(curIdx>=0){ var bar=list.querySelector('.lt-prog'); if(bar){ var cc=cls[curIdx]; var pct=Math.max(0,Math.min(100,(now-cc.s)/(cc.e-cc.s)*100)); bar.style.width=pct.toFixed(1)+'%'; } }
+    var ng=document.getElementById('ltNudge');
+    if(ng){ if(D.nudge){ ng.hidden=false; ng.textContent=D.nudge; } else { ng.hidden=true; } }
+  };
+
+  if(document.getElementById('livetoday')){ window.ltPaint(); setInterval(window.ltPaint,1000); }
 })();
 </script>
 </body>
