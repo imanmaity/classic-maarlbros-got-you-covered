@@ -38,11 +38,13 @@ def load_parse_change():
     if "parse_change" not in ns:
         print("SELFTEST ERROR: parse_change not found in fetch_email.py")
         sys.exit(2)
-    return ns["parse_change"]
+    return ns
 
 
 def main():
-    parse_change = load_parse_change()
+    ns = load_parse_change()
+    parse_change = ns["parse_change"]
+    _name_dates = ns.get("_name_dates")
     E = datetime.date(2026, 6, 23)   # a fixed Tuesday, so "today" etc. are deterministic
     fails = []
 
@@ -110,6 +112,14 @@ def main():
 
     c = first("BI(A) session scheduled on 23.06.2026 is rescheduled to 26.06.2026 (time TBA).")
     check("reschedule with new date stays Rescheduled", c and c["type"] == "Rescheduled", c)
+
+    # ---- inbox-trust helper: schedule filename date-range parsing ----
+    if _name_dates:
+        ds = _name_dates("MBA_Term_IV_class_schedule_29_06_2026-12_07_2026.xlsx")
+        check("filename date-range parsed",
+              bool(ds) and min(ds) == datetime.date(2026, 6, 29) and max(ds) == datetime.date(2026, 7, 12), ds)
+        check("no-date filename yields nothing (won't false-reject)",
+              _name_dates("rosters_final_v2.xlsx") == [], _name_dates("rosters_final_v2.xlsx"))
 
     if fails:
         print(f"SELFTEST FAILED: {len(fails)} check(s) did not pass\n")

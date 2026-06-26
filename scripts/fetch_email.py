@@ -12,7 +12,7 @@ Change parsing is best-effort and never fails the build.
 """
 import imaplib, email, os, sys, re, json, datetime
 from email.header import decode_header
-from email.utils import parsedate_to_datetime
+from email.utils import parsedate_to_datetime, parseaddr
 
 OUT  = sys.argv[1] if len(sys.argv) > 1 else "rosters/schedule_latest.xlsx"
 CHANGES_OUT = os.environ.get("CHANGES_OUT", "data/changes.json")
@@ -41,6 +41,38 @@ def body_text(msg):
         return ""
     try: return msg.get_payload(decode=True).decode(msg.get_content_charset() or "utf-8", "ignore")
     except Exception: return ""
+
+# ---- trust guards: only an email from the right sender, carrying a current-dated
+#      schedule, may overwrite the roster. Stops a stray/spoofed or stale re-sent
+#      mail from quietly kicking off a build for 150 students. ----
+def _addr_of(msg):
+    return parseaddr(decode(msg.get("From", "")))[1].strip().lower()
+
+def _sender_ok(msg):
+    """True only if the real From address matches SENDER. If SENDER is a full
+    address, require an EXACT match (IMAP's FROM search is a loose substring and
+    can be fooled by a display name or look-alike). If SENDER is a bare domain,
+    require the address to be in that domain."""
+    if not SENDER:
+        return True
+    addr, want = _addr_of(msg), SENDER.strip().lower()
+    if not addr:
+        return False
+    if "@" in want:
+        return addr == want
+    return addr.split("@")[-1] == want            # SENDER given as a domain
+
+def _name_dates(fn):
+    """Calendar dates found in an attachment filename, e.g. the
+    '29_06_2026-12_07_2026' range in the weekly schedule file name."""
+    out = []
+    for d, m, y in re.findall(r'(\d{1,2})[._\-/](\d{1,2})[._\-/](\d{2,4})', fn or ""):
+        y = int(y); y = 2000 + y if y < 100 else y
+        try: out.append(datetime.date(y, int(m), int(d)))
+        except ValueError:
+            try: out.append(datetime.date(y, int(d), int(m)))   # tolerate m/d swap
+            except ValueError: pass
+    return out
 
 # room/venue token, e.g. "T3", "E6", "T-3", "309-F", "LH1" (letters+digits, or digits-letters)
 ROOM_RE = r'(?:[A-Za-z]{1,4}-?\d{1,3}[A-Za-z]?|\d{2,4}-[A-Za-z]{1,3})'
@@ -246,21 +278,42 @@ except Exception as e:
     print("Committee updates write skipped:", e)
 
 # ---- 2) schedule attachment (required) ----
-crit = ["FROM", SENDER] if SENDER else ["ALL"]
+# Only consider recent mail (bounds the search; never reaches back to ancient threads).
+SCHED_SINCE_DAYS = int(os.environ.get("SCHEDULE_SINCE_DAYS", "180"))
+SCHED_GRACE_DAYS = int(os.environ.get("SCHEDULE_GRACE_DAYS", "10"))
+TODAY_IST = (datetime.datetime.utcnow() + datetime.timedelta(hours=5, minutes=30)).date()
+since_s = (TODAY_IST - datetime.timedelta(days=SCHED_SINCE_DAYS)).strftime("%d-%b-%Y")
+
+crit = (["FROM", SENDER] if SENDER else []) + ["SINCE", since_s]
 typ, data = M.search(None, *crit)
 ids = data[0].split()
 if not ids:
-    M.logout(); sys.exit(f"No emails found from {SENDER or 'anyone'}.")
-for num in reversed(ids):
+    M.logout(); sys.exit(f"No emails from {SENDER or 'anyone'} since {since_s} — not publishing.")
+
+skipped = []   # reasons, for a clear log if nothing usable is found
+for num in reversed(ids):                 # newest first
     typ, md = M.fetch(num, "(RFC822)")
     msg = email.message_from_bytes(md[0][1])
-    if SUBJ and SUBJ.lower() not in decode(msg.get("Subject", "")).lower():
+    subj = decode(msg.get("Subject", ""))
+    if not _sender_ok(msg):               # exact-sender guard (IMAP FROM is only a hint)
+        skipped.append(f"from {_addr_of(msg)!r} != {SENDER!r}")
+        continue
+    if SUBJ and SUBJ.lower() not in subj.lower():
         continue
     for part in msg.walk():
         fn = part.get_filename()
-        if fn and decode(fn).lower().endswith((".xlsx", ".xls")):
-            os.makedirs(os.path.dirname(OUT) or ".", exist_ok=True)
-            open(OUT, "wb").write(part.get_payload(decode=True))
-            print(f"Saved {decode(fn)!r} (subject: {decode(msg.get('Subject',''))!r}) -> {OUT}")
-            M.logout(); sys.exit(0)
-M.logout(); sys.exit("No .xlsx attachment found in matching emails — not publishing.")
+        if not (fn and decode(fn).lower().endswith((".xlsx", ".xls"))):
+            continue
+        fn = decode(fn)
+        ds = _name_dates(fn)              # staleness guard: reject an old re-sent schedule
+        if ds and max(ds) < TODAY_IST - datetime.timedelta(days=SCHED_GRACE_DAYS):
+            skipped.append(f"{fn!r} stale (range ends {max(ds)})")
+            continue
+        os.makedirs(os.path.dirname(OUT) or ".", exist_ok=True)
+        open(OUT, "wb").write(part.get_payload(decode=True))
+        rng = f", covers {min(ds)}..{max(ds)}" if ds else ""
+        print(f"Saved {fn!r} (from {_addr_of(msg)}, subject {subj!r}{rng}) -> {OUT}")
+        M.logout(); sys.exit(0)
+M.logout()
+sys.exit("No fresh .xlsx schedule from the expected sender — not publishing (keeping the last good one). "
+         + ("Skipped: " + "; ".join(skipped[:6]) if skipped else ""))

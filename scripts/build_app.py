@@ -267,7 +267,7 @@ a.upd:active{transform:scale(.995)}
   backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 8px 24px var(--shadow)}
 .nc-ic{flex:none;color:var(--accent)} .nc-ic svg{width:21px;height:21px}
 .nc-tx{flex:1;font-size:12.5px;color:var(--muted);line-height:1.4}
-.nc-go{flex:none;color:var(--faint)} .nc-go svg{width:18px;height:18px}
+.nc-em{color:#ff2e54;font-weight:700}
 .notifycard{margin-top:14px;padding:16px;border-radius:var(--radius);border:1px solid var(--line);
   background:var(--card2);box-shadow:0 8px 24px var(--shadow);
   backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
@@ -716,8 +716,7 @@ html[data-theme="light"] .sc-card{--sci:#221a12;--scm:#6c5b46;--scline:rgba(120,
 
     <div class="notecard">
       <span class="nc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span>
-      <span class="nc-tx">Tentative weekly schedule — confirm any room/time changes with the department.</span>
-      <span class="nc-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
+      <span class="nc-tx"><b class="nc-em">Tentative Weekly Schedule</b> — confirm any room/time changes with the department.</span>
     </div>
 
     <footer class="sitefoot">
