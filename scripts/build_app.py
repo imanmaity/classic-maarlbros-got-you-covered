@@ -1457,6 +1457,11 @@ showView();
     $id('scWho').textContent=st.n+' \u00b7 '+roll;
     $id('scRange').textContent=base.toLocaleDateString('en-US',{weekday:'long',day:'numeric',month:'short'})+' '+base.getFullYear();
     var list=(byDay[dayName]||[]).sort(function(a,b){return toMin(a.start)-toMin(b.start);});
+    // only show classes if this real date actually falls inside the displayed week
+    // (matches the home page: a future week's "Saturday" must not show up as today)
+    var _wm=new Date(WK_MON.getFullYear(),WK_MON.getMonth(),WK_MON.getDate());
+    var _we=new Date(WK_END.getFullYear(),WK_END.getMonth(),WK_END.getDate());
+    if(base.getTime()<_wm.getTime() || base.getTime()>_we.getTime()) list=[];
     var colorOf={}, ci=0, rows='';
     if(list.length){ list.forEach(function(c){ if(!colorOf[c.name]){colorOf[c.name]=PAL[ci%PAL.length];ci++;}
       rows+='<div class="sc-row"><span class="sc-dot" style="background:'+colorOf[c.name]+'"></span><span class="sc-t">'+esc(prettyTime(c.start))+'</span><span class="sc-nm">'+esc(c.name)+'</span>'+(c.room?'<span class="sc-rm">'+esc(c.room)+'</span>':'')+'</div>';
