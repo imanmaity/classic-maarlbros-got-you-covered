@@ -243,6 +243,7 @@ COMMITTEES = [
     ("XQUIZIT",   "Quiz Club",                  os.environ.get("XQUIZIT_FROM",   "xquizit.im@nirmauni.ac.in")),
     ("SPORTZZZ",  "Sports Committee",           os.environ.get("SPORTZZZ_FROM",  "sportzzzcomm.im@nirmauni.ac.in")),
     ("OPTIMUS",   "Operations Club",            os.environ.get("OPTIMUS_FROM",   "optimus.im@nirmauni.ac.in")),
+    ("SIP",       "Summer Internship",          os.environ.get("SIP_FROM",       "summerpc.imnu@nirmauni.ac.in")),
 ]
 def msg_date(msg):
     try: return parsedate_to_datetime(msg.get("Date")).date().isoformat()
@@ -263,9 +264,12 @@ for code, cname, addr in COMMITTEES:
             d = msg_date(msg)
             if not d or d[:7] != _month:                # current month only
                 continue
-            body = re.sub(r"\s+", " ", body_text(msg)).strip()
+            raw = body_text(msg)
+            body = re.sub(r"\s+", " ", raw).strip()                        # one-line, for the short snippet
+            full = re.sub(r"[ \t]+", " ", raw)                             # keep line breaks for the full read
+            full = re.sub(r"\n[ \t]*(\n[ \t]*)+", "\n\n", full).strip()    # collapse runs of blank lines
             updates.append({"code": code, "committee": cname, "subject": subj[:140],
-                            "date": d, "snippet": body[:200], "from": addr})
+                            "date": d, "snippet": body[:200], "body": full[:1600], "from": addr})
     except Exception as e:
         print(f"Committee fetch skipped ({code}):", e)
 updates.sort(key=lambda u: (u["date"] or ""), reverse=True)

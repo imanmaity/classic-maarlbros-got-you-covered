@@ -224,6 +224,15 @@ a.upd:active{transform:scale(.995)}
 .upd-meta{display:block;margin-top:3px;font-size:12px;color:var(--faint)}
 .upd-go{flex:none;align-self:center;color:var(--faint)}
 .upd-go svg{width:18px;height:18px}
+.upd.has-body{cursor:pointer}
+.upd.has-body:hover{border-color:color-mix(in srgb,var(--c) 45%,transparent)}
+.upd-chev{flex:none;align-self:center;color:var(--faint);transition:transform .2s,color .2s}
+.upd-chev svg{width:18px;height:18px;display:block}
+.upd.open .upd-chev{transform:rotate(90deg);color:var(--c)}
+.upd.open{border-color:color-mix(in srgb,var(--c) 45%,transparent)}
+.upd-more{color:var(--c);font-weight:700}
+.upd-full{display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);font-size:13px;line-height:1.55;color:var(--muted);white-space:pre-wrap;word-break:break-word}
+.upd.open .upd-full{display:block}
 .c-place{--c:var(--fin);--cb:var(--fin-bg)}
 .c-sac{--c:var(--ob);--cb:var(--ob-bg)}
 .c-swc{--c:var(--dna);--cb:var(--dna-bg)}
@@ -236,6 +245,8 @@ a.upd:active{transform:scale(.995)}
 .c-quiz{--c:var(--hol);--cb:var(--hol-bg)}
 .c-sport{--c:var(--pp);--cb:var(--pp-bg)}
 .c-optimus{--c:var(--gen);--cb:var(--gen-bg)}
+.c-sip{--c:#1fb88a;--cb:rgba(31,184,138,.15)}
+html[data-theme="light"] .c-sip{--c:#0f9b73;--cb:rgba(15,155,115,.12)}
 .upd-empty{font-size:13px;color:var(--muted);margin:0 2px 12px;line-height:1.5}
 .upd-contact{display:flex;align-items:center;gap:12px;text-decoration:none;color:var(--ink);
   background:var(--card);border:1px solid var(--line);border-radius:14px;padding:11px 13px;margin-bottom:10px;
@@ -976,7 +987,8 @@ const COMMS={
   CLIQUE:    {short:"Clique",     name:"The IT Club",             email:"clique.im@nirmauni.ac.in",       cls:"c-clique"},
   XQUIZIT:   {short:"XquizIT",    name:"Quiz Club",               email:"xquizit.im@nirmauni.ac.in",      cls:"c-quiz"},
   SPORTZZZ:  {short:"Sportzzz",   name:"Sports Committee",        email:"sportzzzcomm.im@nirmauni.ac.in", cls:"c-sport"},
-  OPTIMUS:   {short:"Optimus",    name:"Operations Club",         email:"optimus.im@nirmauni.ac.in",      cls:"c-optimus"}
+  OPTIMUS:   {short:"Optimus",    name:"Operations Club",         email:"optimus.im@nirmauni.ac.in",      cls:"c-optimus"},
+  SIP:       {short:"SIP",        name:"Summer Internship",       email:"summerpc.imnu@nirmauni.ac.in",   cls:"c-sip"}
 };
 const UCHEV='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>';
 const UMAIL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M4 7l8 6 8-6"/></svg>';
@@ -988,13 +1000,21 @@ function renderUpdates(){ const w=$("updList"); if(!w) return;
   if(ups.length){
     w.innerHTML=ups.slice(0,30).map(u=>{ const c=COMMS[u.code];
       const meta=[updDate(u.date), c.name].filter(Boolean).join(" · ");
-      return '<div class="upd '+c.cls+'">'
+      const full=String(u.body||u.snippet||"").trim();
+      return '<div class="upd '+c.cls+(full?' has-body':'')+'"'+(full?' role="button" tabindex="0" aria-expanded="false"':'')+'>'
         +'<span class="upd-dot"></span>'
         +'<span class="upd-body"><span class="upd-tag">'+esc(c.short)+'</span>'
         +'<span class="upd-sub">'+esc(u.subject||"Update")+'</span>'
-        +'<span class="upd-meta">'+esc(meta)+'</span></span>'
+        +'<span class="upd-meta">'+esc(meta)+(full?' · <span class="upd-more">tap to read</span>':'')+'</span>'
+        +(full?'<div class="upd-full">'+esc(full)+'</div>':'')
+        +'</span>'
+        +(full?'<span class="upd-chev">'+UCHEV+'</span>':'')
         +'</div>';
     }).join("");
+    const _tog=r=>{ const open=r.classList.toggle('open'); r.setAttribute('aria-expanded',open?'true':'false');
+      const more=r.querySelector('.upd-more'); if(more) more.textContent=open?'tap to close':'tap to read'; };
+    w.onclick=e=>{ const r=e.target.closest('.upd.has-body'); if(r) _tog(r); };
+    w.onkeydown=e=>{ if(e.key!=='Enter'&&e.key!==' ')return; const r=e.target.closest&&e.target.closest('.upd.has-body'); if(r){ e.preventDefault(); _tog(r); } };
   } else {
     w.innerHTML='<p class="upd-empty">No notices posted right now.</p>'
       +'<p class="upd-empty">Updates from Placecomm, SAC and SWC will appear here.</p>';
