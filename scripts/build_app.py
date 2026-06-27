@@ -614,6 +614,7 @@ html[data-theme="light"] #view-books .bk-intro,html[data-theme="light"] #view-no
 .sc-modal{position:fixed;inset:0;z-index:200;display:none;align-items:flex-start;justify-content:center;overflow:auto;padding:24px 14px;background:rgba(0,0,0,.62);backdrop-filter:blur(5px)}
 .sc-modal.show{display:flex}
 .sc-wrap{width:360px;max-width:100%;display:flex;flex-direction:column;gap:12px}
+.sc-toggle{max-width:100%;margin:0}
 .sc-card{--sci:#f7efe6;--scm:#b39e86;--scline:rgba(255,255,255,.10);--scrow:rgba(255,255,255,.05);--scchip:rgba(255,255,255,.08);
   --scbg:radial-gradient(120% 70% at 100% 0%,rgba(255,140,76,.28),transparent 55%),radial-gradient(90% 60% at 0% 100%,rgba(176,112,255,.22),transparent 60%),linear-gradient(165deg,#1a1410 0%,#171019 100%);
   border-radius:30px;padding:28px 24px 22px;color:var(--sci);background:var(--scbg);box-shadow:0 30px 70px rgba(0,0,0,.5);position:relative;overflow:hidden}
@@ -783,16 +784,17 @@ html[data-theme="light"] .sc-card{--sci:#221a12;--scm:#6c5b46;--scline:rgba(120,
     <div class="weeklabel" id="weeklabel" hidden></div>
     <div class="wk-toggle" id="wkToggle" hidden><button class="wk-seg active" id="wkThis" type="button">This Week</button><button class="wk-seg" id="wkNext" type="button">Next Week</button></div>
     <div id="result"></div>
-    <button class="sharebtn" id="shareWeekBtn" hidden>↗ Share my week</button>
+    <button class="sharebtn" id="shareDayBtn" hidden>↗ Share my day</button>
     <footer><span class="built">Updated __BUILT__ IST</span> · Tentative weekly schedule — confirm any room/time changes with the department.</footer>
   </section>
 
   <div class="sc-modal" id="scModal">
     <div class="sc-wrap">
+      <div class="wk-toggle sc-toggle" id="dayToggle"><button class="wk-seg active" id="dayToday" type="button">Today</button><button class="wk-seg" id="dayTmr" type="button">Tomorrow</button></div>
       <div class="sc-card" id="scCard">
         <button class="sc-x" id="scClose" aria-label="Close">✕</button>
         <div class="sc-inst">INSTITUTE OF MANAGEMENT · MBA TERM-IV</div>
-        <div class="sc-h">My <em>Week</em></div>
+        <div class="sc-h" id="scH"><em>Today</em></div>
         <div class="sc-who" id="scWho"></div>
         <div class="sc-range" id="scRange"></div>
         <div class="sc-days" id="scDays"></div>
@@ -802,7 +804,7 @@ html[data-theme="light"] .sc-card{--sci:#221a12;--scm:#6c5b46;--scline:rgba(120,
         </div>
       </div>
       <div class="sc-acts">
-        <button class="sc-share" id="scShare">↗ Share my week</button>
+        <button class="sc-share" id="scShare">↗ Share my day</button>
         <button class="sc-save" id="scSave">⤓ Save image</button>
       </div>
     </div>
@@ -1142,7 +1144,7 @@ function doLookup(){
   const err=$("err"),res=$("result"); res.classList.remove("show"); err.classList.remove("show");
   if(!roll){ err.textContent="Type your roll number to continue."; err.classList.add("show"); $("weeklabel").hidden=true; return; }
   if(!DATA.students[roll]){ err.textContent="No student found for "+roll+". Check the roll number and try again."; err.classList.add("show"); $("weeklabel").hidden=true; return; }
-  currentRoll=roll; putRoll(roll); closeAC(); var _sb=document.getElementById("shareWeekBtn"); if(_sb)_sb.hidden=false;
+  currentRoll=roll; putRoll(roll); closeAC(); var _sb=document.getElementById("shareDayBtn"); if(_sb)_sb.hidden=false;
   // decide which week to open on: if this week is empty for this student but next week has classes, open on next
   var _st=DATA.students[roll], _nThis=stMeetCount(_st,false), _nNext=stMeetCount(_st,true);
   ttWeek=(_nThis===0 && _nNext>0)?1:0;
@@ -1439,7 +1441,8 @@ showView();
 (function(){
   var $id=function(i){return document.getElementById(i);};
   var PAL=['#ff7f5e','#ffb43d','#b070ff','#ff5e9a'];
-  function buildWeek(){
+  var shareDay='today';
+  function buildDay(){
     var roll=(typeof currentRoll!=='undefined'&&currentRoll)||null;
     if(!roll){ try{roll=getRoll();}catch(e){} }
     var st=roll&&DATA.students[roll]; if(!st) return false;
@@ -1447,31 +1450,32 @@ showView();
     var toMin=function(t){var m=String(t).match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);if(!m)return 0;var h=(+m[1])%12;if(/pm/i.test(m[3]||''))h+=12;return h*60+(+m[2]);};
     var byDay={};
     secs.forEach(function(e){(e.meetings||[]).forEach(function(m){ (byDay[m.day]=byDay[m.day]||[]).push({start:m.start,name:(cleanSub(e.name)||e.abbr),room:e.room||''}); });});
+    var base=new Date(TODAY.getFullYear(),TODAY.getMonth(),TODAY.getDate());
+    if(shareDay==='tomorrow') base.setDate(base.getDate()+1);
+    var dayName=base.toLocaleDateString('en-US',{weekday:'long'});
+    $id('scH').innerHTML = shareDay==='tomorrow' ? '<em>Tomorrow</em>' : '<em>Today</em>';
     $id('scWho').textContent=st.n+' \u00b7 '+roll;
-    $id('scRange').textContent=fmt(WK_MON)+' \u2013 '+fmt(WK_END)+' '+TODAY.getFullYear();
-    var todayDay=TODAY.toLocaleDateString('en-US',{weekday:'long'});
-    var colorOf={}, ci=0, html='';
-    (DATA.days||[]).forEach(function(d){
-      var list=(byDay[d]||[]).sort(function(a,b){return toMin(a.start)-toMin(b.start);});
-      html+='<div class="sc-day'+(d===todayDay?' today':'')+'"><div class="sc-dl">'+d.slice(0,3).toUpperCase()+'</div><div class="sc-rows">';
-      if(list.length){ list.forEach(function(c){ if(!colorOf[c.name]){colorOf[c.name]=PAL[ci%PAL.length];ci++;}
-        html+='<div class="sc-row"><span class="sc-dot" style="background:'+colorOf[c.name]+'"></span><span class="sc-t">'+esc(prettyTime(c.start))+'</span><span class="sc-nm">'+esc(c.name)+'</span>'+(c.room?'<span class="sc-rm">'+esc(c.room)+'</span>':'')+'</div>';
-      }); } else { html+='<div class="sc-free">No classes \u2014 free day</div>'; }
-      html+='</div></div>';
-    });
-    $id('scDays').innerHTML=html; return true;
+    $id('scRange').textContent=base.toLocaleDateString('en-US',{weekday:'long',day:'numeric',month:'short'})+' '+base.getFullYear();
+    var list=(byDay[dayName]||[]).sort(function(a,b){return toMin(a.start)-toMin(b.start);});
+    var colorOf={}, ci=0, rows='';
+    if(list.length){ list.forEach(function(c){ if(!colorOf[c.name]){colorOf[c.name]=PAL[ci%PAL.length];ci++;}
+      rows+='<div class="sc-row"><span class="sc-dot" style="background:'+colorOf[c.name]+'"></span><span class="sc-t">'+esc(prettyTime(c.start))+'</span><span class="sc-nm">'+esc(c.name)+'</span>'+(c.room?'<span class="sc-rm">'+esc(c.room)+'</span>':'')+'</div>';
+    }); } else { rows='<div class="sc-free">No classes \u2014 free day \uD83C\uDF89</div>'; }
+    $id('scDays').innerHTML='<div class="sc-day"><div class="sc-rows">'+rows+'</div></div>'; return true;
   }
-  function openModal(){ if(!buildWeek()){ alert('Look up your schedule first.'); return; } $id('scModal').classList.add('show'); }
+  function setDay(d){ shareDay=d; var a=$id('dayToday'),b=$id('dayTmr'); if(a)a.classList.toggle('active',d==='today'); if(b)b.classList.toggle('active',d==='tomorrow'); buildDay(); }
+  function openModal(){ if(!buildDay()){ alert('Look up your schedule first.'); return; } $id('scModal').classList.add('show'); }
   function closeModal(){ $id('scModal').classList.remove('show'); }
   function ensureH2C(cb){ if(window.html2canvas) return cb();
     var sc=document.createElement('script'); sc.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
     sc.onload=function(){cb();}; sc.onerror=function(){alert('Could not load the image tool \u2014 check your connection and try again.');}; document.head.appendChild(sc); }
   function capture(cb){ ensureH2C(function(){ window.html2canvas($id('scCard'),{backgroundColor:null,scale:2,useCORS:true,logging:false}).then(function(cv){ cv.toBlob(function(b){cb(b,cv);},'image/png'); }); }); }
-  function dl(cv){ var a=document.createElement('a'); a.download='my-week.png'; a.href=cv.toDataURL('image/png'); a.click(); }
-  function doShare(){ capture(function(blob,cv){ var f=new File([blob],'my-week.png',{type:'image/png'});
-    if(navigator.canShare&&navigator.canShare({files:[f]})){ navigator.share({files:[f],title:'My Week'}).catch(function(){}); } else { dl(cv); } }); }
+  function dl(cv){ var a=document.createElement('a'); a.download='my-day.png'; a.href=cv.toDataURL('image/png'); a.click(); }
+  function doShare(){ capture(function(blob,cv){ var f=new File([blob],'my-day.png',{type:'image/png'});
+    if(navigator.canShare&&navigator.canShare({files:[f]})){ navigator.share({files:[f],title:'My Day'}).catch(function(){}); } else { dl(cv); } }); }
   function bind(id,fn){ var el=$id(id); if(el) el.addEventListener('click',fn); }
-  bind('shareWeekBtn',openModal); bind('scShare',doShare); bind('scSave',function(){capture(function(b,cv){dl(cv);});}); bind('scClose',closeModal);
+  bind('shareDayBtn',openModal); bind('scShare',doShare); bind('scSave',function(){capture(function(b,cv){dl(cv);});}); bind('scClose',closeModal);
+  bind('dayToday',function(){setDay('today');}); bind('dayTmr',function(){setDay('tomorrow');});
   var m=$id('scModal'); if(m) m.addEventListener('click',function(e){ if(e.target===m) closeModal(); });
 })();
 </script>
