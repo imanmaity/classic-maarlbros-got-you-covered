@@ -651,6 +651,9 @@ html[data-theme="light"] .sc-card{--sci:#221a12;--scm:#6c5b46;--scline:rgba(120,
 .sc-nm{flex:1;font-size:13px;font-weight:700;min-width:0}
 .sc-rm{flex:none;font-size:11px;font-weight:800;background:var(--scchip);border-radius:7px;padding:3px 8px}
 .sc-free{font-size:12px;color:var(--scm);padding:7px 2px;font-weight:600;opacity:.75}
+.sc-row.pp{opacity:.62}
+.sc-pp{flex:none;font-size:9.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#ff5e9a;background:rgba(255,94,154,.16);border-radius:7px;padding:3px 8px}
+.sc-was{flex:none;font-size:10px;color:var(--scm);font-weight:600}
 .sc-foot{margin-top:20px;padding-top:15px;border-top:1px solid var(--scline);display:flex;align-items:center;justify-content:space-between}
 .sc-brand{display:flex;align-items:center;gap:9px}
 .sc-logo{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:linear-gradient(140deg,#ffb43d,#ff7f5e,#ff5e9a);color:#1a1208;font-weight:900;font-size:17px}
@@ -1027,16 +1030,20 @@ function renderUpdates(){ const w=$("updList"); if(!w) return;
 function prettyTime(t){ const m=String(t).match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i); return m?((+m[1])+":"+m[2]+" "+m[3].toUpperCase()):t; }
 // shared schedule helpers (single source of truth)
 const toMin=hhmm=>{const m=String(hhmm).match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i); if(!m)return 0; let h=(+m[1])%12; if(/pm/i.test(m[3]||""))h+=12; return h*60+(+m[2]);};
-function lecturesDone(meetings){
-  if(!meetings||!meetings.length) return 0;
-  var TS=new Date(2026,5,18), now=new Date();          // term start: 18 Jun 2026
+// Exact lectures held 18–28 Jun (the two ramp-up weeks), counted from the
+// official sheets per section. After 28 Jun the steady schedule begins, so we
+// add live occurrences from 29 Jun onward. Key = canon(abbr)+"|"+division.
+const LEC_BASE={"BI|A":2,"BI|B":2,"BM|A":2,"BM|B":2,"BM|C":2,"CB|A":2,"CB|B":2,"CB|C":2,"FSA|A":2,"FSA|B":2,"FSA|C":2,"I&PM|A":2,"I&PM|B":2,"I&PM|C":2,"IPM|A":2,"IPM|B":2,"IPM|C":2,"IPM|D":2,"MBC|A":1,"MBC|B":1,"MFS|A":1,"MFS|B":1,"RMKT|A":2,"RMKT|B":2,"SBM|A":3,"SBM|B":3,"SDM|A":2,"TQM|A":2,"TQM|B":2};
+function lecturesDone(key, meetings){
+  var total=LEC_BASE[key]||0;
+  var FROM=new Date(2026,5,29), now=new Date();        // steady schedule from 29 Jun
   var HOL={'2026-08-15':1,'2026-09-04':1,'2026-09-15':1};
   var DOW={Sunday:0,Monday:1,Tuesday:2,Wednesday:3,Thursday:4,Friday:5,Saturday:6};
-  var p2=function(n){return (n<10?'0':'')+n;}, total=0;
-  meetings.forEach(function(m){
+  var p2=function(n){return (n<10?'0':'')+n;};
+  (meetings||[]).forEach(function(m){
     var wd=DOW[m.day]; if(wd==null) return;
     var mins=toMin(m.start);
-    var d=new Date(TS.getFullYear(),TS.getMonth(),TS.getDate());
+    var d=new Date(FROM.getFullYear(),FROM.getMonth(),FROM.getDate());
     d.setDate(d.getDate()+((wd-d.getDay()+7)%7));
     while(true){
       var occ=new Date(d.getFullYear(),d.getMonth(),d.getDate(),Math.floor(mins/60),mins%60,0,0);
@@ -1298,7 +1305,7 @@ function render(){
   html+=`<details class="dir"><summary>Electives, faculty &amp; rooms</summary><div class="dir-list">`;
   electives.slice().sort((a,b)=>a.abbr.localeCompare(b.abbr)).forEach(e=>{
     const when=((useNext?e.meetingsNext:e.meetings)||[]).map(m=>`${m.day.slice(0,3)} ${m.start}`).join(", ");
-    const _done=lecturesDone(e.meetings||[]); const _pct=Math.round(_done/30*100);
+    const _done=lecturesDone(ckey(e.abbr,e.division), e.meetings||[]); const _pct=Math.round(_done/30*100);
     html+=`<div class="di ${slug(e.area)}">
         <div class="di-h"><span class="tag">${PERSON}${esc(e.abbr)}(${esc(e.division||'-')})</span><span class="di-nm">${esc(e.name)}</span></div>
         <div class="di-r">${esc(e.faculty||'—')}${e.email?` · <a href="mailto:${esc(e.email)}">${esc(e.email)}</a>`:''}</div>
@@ -1495,8 +1502,21 @@ showView();
     var st=roll&&DATA.students[roll]; if(!st) return false;
     var secs=st.s.map(function(id){return DATA.sections[id];}).filter(Boolean);
     var toMin=function(t){var m=String(t).match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);if(!m)return 0;var h=(+m[1])%12;if(/pm/i.test(m[3]||''))h+=12;return h*60+(+m[2]);};
+    var _wm=new Date(WK_MON.getFullYear(),WK_MON.getMonth(),WK_MON.getDate());
+    var _we=new Date(WK_END.getFullYear(),WK_END.getMonth(),WK_END.getDate());
+    var inWk=function(ds){ if(!ds) return false; try{var d=new Date(ds+'T00:00:00'); return d>=_wm&&d<=_we;}catch(e){return false;} };
+    var myBy={}; secs.forEach(function(e){ myBy[ckey(e.abbr,e.division)]=e; });
+    var myChanges=(DATA.changes||[]).filter(function(c){ return myBy[ckey(c.abbr,c.division)] && (inWk(c.old_date)||inWk(c.new_date)); });
+    var changeMap={}, roomMap={}, movedIn=[];
+    myChanges.forEach(function(c){
+      if(isRoomChange(c)){ if(c.new_day) roomMap[c.new_day+'|'+ckey(c.abbr,c.division)]=c; return; }
+      var el=myBy[ckey(c.abbr,c.division)], ses=sessByHM(c.new_hhmm);
+      if(el&&ses&&c.new_day&&!isTBA(c)&&c.type!=='Cancelled') movedIn.push({sec:el,start:ses.start,day:c.new_day});
+      if(c.old_day) changeMap[c.old_day+'|'+ckey(c.abbr,c.division)]=c;
+    });
     var byDay={};
-    secs.forEach(function(e){(e.meetings||[]).forEach(function(m){ (byDay[m.day]=byDay[m.day]||[]).push({start:m.start,name:(cleanSub(e.name)||e.abbr),room:e.room||''}); });});
+    secs.forEach(function(e){(e.meetings||[]).forEach(function(m){ (byDay[m.day]=byDay[m.day]||[]).push({sec:e,start:m.start,name:(cleanSub(e.name)||e.abbr),room:e.room||''}); });});
+    movedIn.forEach(function(mi){ var e=mi.sec; (byDay[mi.day]=byDay[mi.day]||[]).push({sec:e,start:mi.start,name:(cleanSub(e.name)||e.abbr),room:e.room||'',movedIn:true}); });
     var base=new Date(TODAY.getFullYear(),TODAY.getMonth(),TODAY.getDate());
     if(shareDay==='tomorrow') base.setDate(base.getDate()+1);
     var dayName=base.toLocaleDateString('en-US',{weekday:'long'});
@@ -1505,13 +1525,18 @@ showView();
     $id('scRange').textContent=base.toLocaleDateString('en-US',{weekday:'long',day:'numeric',month:'short'})+' '+base.getFullYear();
     var list=(byDay[dayName]||[]).sort(function(a,b){return toMin(a.start)-toMin(b.start);});
     // only show classes if this real date actually falls inside the displayed week
-    // (matches the home page: a future week's "Saturday" must not show up as today)
-    var _wm=new Date(WK_MON.getFullYear(),WK_MON.getMonth(),WK_MON.getDate());
-    var _we=new Date(WK_END.getFullYear(),WK_END.getMonth(),WK_END.getDate());
     if(base.getTime()<_wm.getTime() || base.getTime()>_we.getTime()) list=[];
+    // overlay postpone / room-change so the card matches the grid
+    list.forEach(function(c){
+      var k=dayName+'|'+ckey(c.sec.abbr,c.sec.division), cc=changeMap[k];
+      if(cc){ c.postponed=true; c.ppLabel=isTBA(cc)?'postponed':'moved'; return; }
+      var rc=roomMap[k]; if(rc){ c.room=rc.new_room||c.room; if(rc.old_room&&rc.new_room&&rc.new_room!==rc.old_room) c.oldRoom=rc.old_room; }
+    });
     var colorOf={}, ci=0, rows='';
     if(list.length){ list.forEach(function(c){ if(!colorOf[c.name]){colorOf[c.name]=PAL[ci%PAL.length];ci++;}
-      rows+='<div class="sc-row"><span class="sc-dot" style="background:'+colorOf[c.name]+'"></span><span class="sc-t">'+esc(prettyTime(c.start))+'</span><span class="sc-nm">'+esc(c.name)+'</span>'+(c.room?'<span class="sc-rm">'+esc(c.room)+'</span>':'')+'</div>';
+      var right=c.postponed ? '<span class="sc-pp">'+esc(c.ppLabel||'postponed')+'</span>'
+        : ((c.room?'<span class="sc-rm">'+esc(c.room)+'</span>':'')+(c.oldRoom?'<span class="sc-was">was '+esc(c.oldRoom)+'</span>':''));
+      rows+='<div class="sc-row'+(c.postponed?' pp':'')+'"><span class="sc-dot" style="background:'+colorOf[c.name]+'"></span><span class="sc-t">'+esc(prettyTime(c.start))+'</span><span class="sc-nm">'+esc(c.name)+'</span>'+right+'</div>';
     }); } else { rows='<div class="sc-free">No classes \u2014 free day \uD83C\uDF89</div>'; }
     $id('scDays').innerHTML='<div class="sc-day"><div class="sc-rows">'+rows+'</div></div>'; return true;
   }
