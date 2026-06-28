@@ -129,17 +129,8 @@ html[data-theme="light"]{
 html,body{margin:0}
 body{font-family:"Inter",system-ui,sans-serif;color:var(--ink);background:var(--bg);
   -webkit-font-smoothing:antialiased;line-height:1.5;min-height:100vh}
-body::before{content:"";position:fixed;inset:0;z-index:-2;
-  background:
-    radial-gradient(82% 62% at 105% 100%, rgba(255,140,76,.40), transparent 60%),
-    radial-gradient(66% 54% at 101% 66%, rgba(255,98,158,.30), transparent 62%),
-    radial-gradient(70% 55% at 50% -8%, rgba(126,86,206,.22), transparent 60%),
-    #131019}
-html[data-theme="light"] body::before{
-  background:
-    radial-gradient(85% 60% at 50% -8%, rgba(255,219,150,.50), transparent 60%),
-    radial-gradient(70% 55% at 100% 6%, rgba(255,198,158,.34), transparent 62%),
-    linear-gradient(168deg, #fdebc8 0%, #fdf0d6 42%, #fef5e4 100%)}
+body::before{content:"";position:fixed;inset:0;z-index:-2;background:#0a0a0e}
+html[data-theme="light"] body::before{background:#fdf3e6}
 /* === live mesh background (animated orbs over the static gradient) === */
 .mesh-bg{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none}
 .mesh-track{position:absolute;width:46vmax;height:46vmax;will-change:transform}
