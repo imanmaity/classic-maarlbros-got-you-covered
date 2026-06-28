@@ -190,6 +190,21 @@ def parse_change(text, edate=None):
     if old_date is None and rel_date:
         old_date = rel_date
         if new_date is None and not times: new_date = rel_date
+    # Postponements/cancellations can list several INDEPENDENT dates, e.g.
+    #   "sessions scheduled on 29.06, 01.07 & 03.07 are postponed".
+    # Each date is its own postponed session, not a from->to shift, so emit one
+    # change per (section, date). Genuine shifts ("rescheduled to 03.07") are
+    # excluded so they keep the old->new behaviour below.
+    if ctype in ('Postponed', 'Cancelled') and len(dates) >= 2 \
+       and not re.search(r'reschedul|shift|moved\s+to|will\s+(?:now\s+)?be\s+held|held\s+on\b', low):
+        out = []
+        for ab, dv in secs:
+            for ds in dates:
+                out.append({"abbr": ab.upper(), "division": dv.upper(), "type": ctype,
+                            "old_date": ds, "old_day": day(ds),
+                            "new_date": None, "new_day": None,
+                            "new_hhmm": None, "tba": True, "raw": raw})
+        return out
     for i, (ab, dv) in enumerate(secs):
         if not times:                 hhmm = None
         elif len(times) == len(secs): hhmm = times[i]            # "respectively" -> per division

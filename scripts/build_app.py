@@ -24,7 +24,7 @@ MANIFEST_JSON = '{\n  "name": "My Week \\u00b7 IMNU Term IV",\n  "short_name": "
 REQUEST_EMAIL = "25MBA420@nirmauni.ac.in"
 REQUEST_FORM_URL = ""
 INSTA_URL = "https://www.instagram.com/classicmaarlbro"   # footer brand links here
-APP_VERSION = "2.0"   # shown in the hero badge — bump when you ship notable changes
+APP_VERSION = "MBA v1.3"   # shown in the hero badge — bump when you ship notable changes
 
 # ---- Web-push notifications (daily "tomorrow's classes" digest) ----
 # VAPID public key (safe to publish). The matching private key lives only as the
@@ -683,7 +683,7 @@ html[data-theme="light"] .sc-card{--sci:#221a12;--scm:#6c5b46;--scline:rgba(120,
     </div>
 
     <header class="hero">
-      <span class="ver-badge"><b>v__VER__</b><span>Updated __BUILTD__</span></span>
+      <span class="ver-badge"><b>__VER__</b><span>Updated __BUILTD__</span></span>
       <span class="month" id="month"></span>
       <span class="year" id="year"></span>
       <div class="subweek" id="subweek"></div>
