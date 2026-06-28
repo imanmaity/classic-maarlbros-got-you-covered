@@ -104,7 +104,7 @@ TEMPLATE = r"""<!DOCTYPE html>
   --exam:#f06a90; --exam-bg:rgba(52,24,36,.6);
   --chg:#b07bff; --chg-bg:rgba(42,33,64,.7);
   --pp:#ff5566; --pp-bg:rgba(58,29,29,.7);
-  --rm:#1fe0ea; --rm-bg:rgba(16,46,52,.7); --rm-ink:#04181c; --cell-ink:#ffffff;
+  --rm:#1fe0ea; --rm-bg:rgba(16,46,52,.7); --rm-ink:#04181c; --cell-ink:#1a140d;
   --radius:18px;
 }
 html[data-theme="light"]{
@@ -123,7 +123,7 @@ html[data-theme="light"]{
   --exam:#b02458; --exam-bg:rgba(251,224,234,.85);
   --chg:#7c3aed; --chg-bg:rgba(239,231,253,.9);
   --pp:#e0182a; --pp-bg:rgba(251,227,227,.9);
-  --rm:#0a8fa8; --rm-bg:rgba(214,243,247,.92); --rm-ink:#ffffff; --cell-ink:#1a140d;
+  --rm:#0a8fa8; --rm-bg:rgba(214,243,247,.92); --rm-ink:#ffffff; --cell-ink:#ffffff;
 }
 *{box-sizing:border-box}
 html,body{margin:0}
@@ -662,7 +662,7 @@ html[data-theme="light"] #view-books .bk-intro,html[data-theme="light"] #view-no
 .lt-row.done{opacity:.5}
 .lt-row.now{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 9%,var(--card2))}
 .lt-time{flex:none;width:58px;font-size:11.5px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums;line-height:1.2}
-.lt-body{min-width:0;flex:1}
+.lt-body{min-width:0;flex:1;display:flex;flex-direction:column}
 .lt-nm{font-size:13.5px;font-weight:800;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lt-rm{margin-top:1px;font-size:11.5px;color:var(--muted);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lt-state{flex:none;display:flex;align-items:center;gap:4px;font-size:11px;font-weight:800;color:var(--accent);white-space:nowrap}
