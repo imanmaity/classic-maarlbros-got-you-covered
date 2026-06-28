@@ -195,8 +195,13 @@ def parse_change(text, edate=None):
     # Each date is its own postponed session, not a from->to shift, so emit one
     # change per (section, date). Genuine shifts ("rescheduled to 03.07") are
     # excluded so they keep the old->new behaviour below.
-    if ctype in ('Postponed', 'Cancelled') and len(dates) >= 2 \
-       and not re.search(r'reschedul|shift|moved\s+to|will\s+(?:now\s+)?be\s+held|held\s+on\b', low):
+    # A multi-date postponement ("on 29.06, 01.07 & 03.07 are postponed") means each
+    # date is its own postponed session. But a notice that names a TARGET date
+    # ("postponed to 24.06", "rescheduled to ...") is a real from->to shift and must
+    # keep the old->new behaviour below.
+    _has_target = bool(re.search(r'\bto\s+\d{1,2}[./-]\d{1,2}[./-]\d{2,4}', low)) or \
+                  bool(re.search(r'reschedul|shift|moved\s+to|will\s+(?:now\s+)?be\s+held|held\s+on\b', low))
+    if ctype in ('Postponed', 'Cancelled') and len(dates) >= 2 and not _has_target:
         out = []
         for ab, dv in secs:
             for ds in dates:
