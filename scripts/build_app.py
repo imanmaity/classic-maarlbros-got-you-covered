@@ -476,6 +476,10 @@ button.go:hover{filter:brightness(1.06)} button.go:active{transform:translateY(1
 .di-r{font-size:12.5px;color:var(--muted);margin-top:4px;word-break:break-word;display:flex;align-items:center;flex-wrap:wrap}
 .di-r a{color:var(--fin);text-decoration:none}
 .di-r.meets{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--faint)}
+.di-prog{display:flex;align-items:center;gap:9px;margin-top:8px}
+.di-pl{font-family:"JetBrains Mono",monospace;font-size:11px;font-weight:700;color:var(--c,var(--gen));white-space:nowrap}
+.di-bar{flex:1;height:6px;border-radius:99px;background:var(--cb,var(--gen-bg));overflow:hidden}
+.di-bar i{display:block;height:100%;border-radius:99px;background:var(--c,var(--gen));transition:width .4s ease}
 .tag{display:inline-flex;align-items:center;font-family:"JetBrains Mono",monospace;font-weight:700;font-size:11px;
   color:var(--c,var(--gen));background:var(--cb,var(--gen-bg));padding:2px 7px;border-radius:6px;white-space:nowrap}
 
@@ -1023,6 +1027,27 @@ function renderUpdates(){ const w=$("updList"); if(!w) return;
 function prettyTime(t){ const m=String(t).match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i); return m?((+m[1])+":"+m[2]+" "+m[3].toUpperCase()):t; }
 // shared schedule helpers (single source of truth)
 const toMin=hhmm=>{const m=String(hhmm).match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i); if(!m)return 0; let h=(+m[1])%12; if(/pm/i.test(m[3]||""))h+=12; return h*60+(+m[2]);};
+function lecturesDone(meetings){
+  if(!meetings||!meetings.length) return 0;
+  var TS=new Date(2026,5,18), now=new Date();          // term start: 18 Jun 2026
+  var HOL={'2026-08-15':1,'2026-09-04':1,'2026-09-15':1};
+  var DOW={Sunday:0,Monday:1,Tuesday:2,Wednesday:3,Thursday:4,Friday:5,Saturday:6};
+  var p2=function(n){return (n<10?'0':'')+n;}, total=0;
+  meetings.forEach(function(m){
+    var wd=DOW[m.day]; if(wd==null) return;
+    var mins=toMin(m.start);
+    var d=new Date(TS.getFullYear(),TS.getMonth(),TS.getDate());
+    d.setDate(d.getDate()+((wd-d.getDay()+7)%7));
+    while(true){
+      var occ=new Date(d.getFullYear(),d.getMonth(),d.getDate(),Math.floor(mins/60),mins%60,0,0);
+      if(occ>now) break;
+      var iso=d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());
+      if(!HOL[iso]) total++;
+      d.setDate(d.getDate()+7);
+    }
+  });
+  return Math.min(30,total);
+}
 const canon=a=>{const u=String(a||"").toUpperCase(); return u==="I&PM"?"I&PM":u.replace(/&/g,"");};
 const ckey=(a,d)=>canon(a)+"|"+(d||"");
 const normHM=s=>{const m=String(s||"").match(/(\d{1,2})[:.](\d{2})/); return m?parseInt(m[1])+":"+m[2]:"";};
@@ -1273,11 +1298,13 @@ function render(){
   html+=`<details class="dir"><summary>Electives, faculty &amp; rooms</summary><div class="dir-list">`;
   electives.slice().sort((a,b)=>a.abbr.localeCompare(b.abbr)).forEach(e=>{
     const when=((useNext?e.meetingsNext:e.meetings)||[]).map(m=>`${m.day.slice(0,3)} ${m.start}`).join(", ");
+    const _done=lecturesDone(e.meetings||[]); const _pct=Math.round(_done/30*100);
     html+=`<div class="di ${slug(e.area)}">
         <div class="di-h"><span class="tag">${PERSON}${esc(e.abbr)}(${esc(e.division||'-')})</span><span class="di-nm">${esc(e.name)}</span></div>
         <div class="di-r">${esc(e.faculty||'—')}${e.email?` · <a href="mailto:${esc(e.email)}">${esc(e.email)}</a>`:''}</div>
         <div class="di-r">${ROOM}Room ${esc(e.room||'TBA')}</div>
         ${when?`<div class="di-r meets">${esc(when)}</div>`:`<div class="di-r meets">Not scheduled ${useNext?'next':'this'} week</div>`}
+        <div class="di-prog"><span class="di-pl">${esc(e.abbr)} : ${_done}/30</span><span class="di-bar"><i style="width:${_pct}%"></i></span></div>
       </div>`;
   });
   html+=`</div></details>`;
