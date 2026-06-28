@@ -24,7 +24,7 @@ MANIFEST_JSON = '{\n  "name": "My Week \\u00b7 IMNU Term IV",\n  "short_name": "
 REQUEST_EMAIL = "25MBA420@nirmauni.ac.in"
 REQUEST_FORM_URL = ""
 INSTA_URL = "https://www.instagram.com/classicmaarlbro"   # footer brand links here
-APP_VERSION = "MBA v1.3"   # shown in the hero badge — bump when you ship notable changes
+APP_VERSION = "MBA v1.4"   # shown in the hero badge — bump when you ship notable changes
 
 # ---- Web-push notifications (daily "tomorrow's classes" digest) ----
 # VAPID public key (safe to publish). The matching private key lives only as the
@@ -643,6 +643,10 @@ html[data-theme="light"] #view-books .bk-intro,html[data-theme="light"] #view-no
 #view-notes .bk-intro{background:#ff5e9a}
 #view-updates .bk-intro{background:#f5b13d}
 #view-books .bk-intro b,#view-notes .bk-intro b,#view-updates .bk-intro b{color:#0b0c0a !important}
+#view-pyqs .bk-intro{margin:2px 0 18px;padding:15px 18px;border-radius:18px;font-size:14px;line-height:1.5;color:#0b0c0a;background:#b070ff;box-shadow:0 10px 26px rgba(0,0,0,.3)}
+html[data-theme="light"] #view-pyqs .bk-intro{box-shadow:0 7px 18px rgba(150,110,50,.16)}
+.pyq-back{display:inline-block;text-decoration:none;font-weight:700;font-size:13px;color:var(--accent)}
+.beta{display:inline-block;vertical-align:middle;margin-left:7px;font-weight:800;font-size:10px;line-height:1;letter-spacing:.07em;padding:3px 6px;border-radius:6px;border:1.5px solid currentColor;opacity:.72}
 /* live today section */
 .livetoday{margin-top:16px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:15px 16px 13px;backdrop-filter:blur(8px);position:relative;overflow:hidden}
 .livetoday::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(120% 80% at 100% 0%,var(--accent-soft),transparent 60%)}
@@ -784,9 +788,9 @@ html[data-theme="light"] .sc-card{--sci:#221a12;--scm:#6c5b46;--scline:rgba(120,
       <span class="dbody"><span class="dsub">Notes &amp; resources shared by your batch</span><span class="dopen">Open Notes →</span></span>
     </button>
 
-    <button class="dcard amber" type="button" data-id="pq" data-soon="1" id="pyqcard">
-      <span class="dhead"><span class="dic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2.5h7l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1z"/><path d="M13 2.5V8h5"/><path d="M8.5 13h7M8.5 16.5h5"/></svg></span><span class="dtitle">PYQs</span><span class="dchev">›</span></span>
-      <span class="dbody"><span class="dsub">Previous year question papers — exam prep in one place</span><span class="dsoon">Coming soon</span></span>
+    <button class="dcard amber" type="button" data-id="pq" data-go="#pyqs" id="pyqcard">
+      <span class="dhead"><span class="dic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2.5h7l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1z"/><path d="M13 2.5V8h5"/><path d="M8.5 13h7M8.5 16.5h5"/></svg></span><span class="dtitle">PYQs <span class="beta">BETA</span></span><span class="dchev">›</span></span>
+      <span class="dbody"><span class="dsub">Previous year question papers — exam prep in one place</span><span class="dopen">Open PYQs →</span></span>
     </button>
 
     </div>
@@ -933,6 +937,16 @@ html[data-theme="light"] .sc-card{--sci:#221a12;--scm:#6c5b46;--scline:rgba(120,
       <div class="err" id="noteErr"></div>
       <div class="ok" id="noteOk"></div>
     </div>
+  </section>
+
+  <section id="view-pyqs" class="view" hidden>
+    <div class="topbar">
+      <a class="iconbtn" href="#" aria-label="Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></a>
+      <span class="tt-title">PYQs <span class="beta">BETA</span></span>
+      <button class="iconbtn js-theme" aria-label="Switch theme"></button>
+    </div>
+    <p class="bk-intro">Previous year question papers, by semester. Pick a semester to browse the years.</p>
+    <div id="pyqWrap"></div>
   </section>
 
   <section id="view-books" class="view" hidden>
@@ -1207,9 +1221,9 @@ function homeStats(st){ const g=$("glance"); var _ncx=$("livetoday"); if(!st){ g
   }
   g.hidden=false;}
 // routing: Home <-> Timetable
-function showView(){const h=location.hash, tt=h==="#timetable", bk=h==="#books", up=h==="#updates", nt=h==="#notes";
-  $("view-home").hidden=tt||bk||up||nt; $("view-tt").hidden=!tt; $("view-books").hidden=!bk; $("view-updates").hidden=!up; $("view-notes").hidden=!nt;
-  if(tt) enterTT(); else if(bk) enterBooks(); else if(up) renderUpdates(); else if(nt) enterNotes(); else refreshHomeCard();
+function showView(){const h=location.hash, tt=h==="#timetable", bk=h==="#books", up=h==="#updates", nt=h==="#notes", pq=h==="#pyqs";
+  $("view-home").hidden=tt||bk||up||nt||pq; $("view-tt").hidden=!tt; $("view-books").hidden=!bk; $("view-updates").hidden=!up; $("view-notes").hidden=!nt; $("view-pyqs").hidden=!pq;
+  if(tt) enterTT(); else if(bk) enterBooks(); else if(up) renderUpdates(); else if(nt) enterNotes(); else if(pq) enterPyqs(); else refreshHomeCard();
   window.scrollTo(0,0);}
 function enterBooks(){ const r=getRoll(), st=r&&DATA.students[r];
   if(st && $("q_who") && !$("q_who").value) $("q_who").value=st.n+" · "+r; }
@@ -1255,6 +1269,55 @@ async function submitNote(){
 function enterTT(){ const r=getRoll();
   if(r && DATA.students[r]){ $("roll").value=r; doLookup(); }
   else { $("weeklabel").hidden=true; $("result").classList.remove("show"); $("result").innerHTML=""; setTimeout(()=>$("roll").focus(),60); }}
+// ---- PYQs ----
+var PYQ_DATA = __PYQDATA__;
+var PYQ_ORDER = ["Marketing","Finance","Operations","Data Analytics"];
+var PYQ_LABEL = {IV:"Semester IV", V:"Semester V", VI:"Semester VI"};
+var pyqSem=null, pyqYear=null;
+function enterPyqs(){ pyqSem=null; pyqYear=null; pyqRender(); }
+function pyqRender(){
+  var w=$("pyqWrap"); if(!w) return;
+  if(!pyqSem){
+    var h='<div class="reslist">';
+    ["IV","V","VI"].forEach(function(id){
+      var s=PYQ_DATA[id]||{}, yrs=s.years?Object.keys(s.years):[];
+      if(s.on && yrs.length) h+='<a href="#pyqs" class="rescard" data-sem="'+id+'"><span class="res-t">'+PYQ_LABEL[id]+'</span><span class="res-s">'+yrs.length+' year'+(yrs.length===1?'':'s')+' of papers</span></a>';
+      else h+='<div class="rescard" style="opacity:.5;cursor:default"><span class="res-t">'+PYQ_LABEL[id]+'</span><span class="res-s">Coming soon</span></div>';
+    });
+    w.innerHTML=h+'</div>'; return;
+  }
+  var sem=PYQ_DATA[pyqSem]||{}, years=sem.years||{};
+  if(!pyqYear){
+    var ys=Object.keys(years).sort().reverse();
+    var h='<a href="#pyqs" class="pyq-back" data-back="sem">\u2039 All semesters</a>';
+    h+='<h3 class="bk-h" style="margin-top:14px">'+PYQ_LABEL[pyqSem]+'</h3><div class="reslist">';
+    if(!ys.length) h+='<div class="rescard" style="opacity:.6;cursor:default"><span class="res-t">No papers yet</span></div>';
+    ys.forEach(function(y){
+      var n=0, g=years[y]||{}; Object.keys(g).forEach(function(k){ n+=(g[k]||[]).length; });
+      h+='<a href="#pyqs" class="rescard" data-year="'+y+'"><span class="res-t">'+y+'</span><span class="res-s">'+n+' paper'+(n===1?'':'s')+'</span></a>';
+    });
+    w.innerHTML=h+'</div>'; return;
+  }
+  var g=years[pyqYear]||{};
+  var h='<a href="#pyqs" class="pyq-back" data-back="year">\u2039 '+PYQ_LABEL[pyqSem]+'</a>';
+  h+='<h3 class="bk-h" style="margin-top:14px">'+PYQ_LABEL[pyqSem]+' \u00b7 '+pyqYear+'</h3>';
+  var order=PYQ_ORDER.concat(Object.keys(g).filter(function(k){return PYQ_ORDER.indexOf(k)<0;})), any=false;
+  order.forEach(function(maj){
+    var arr=g[maj]||[]; if(!arr.length) return; any=true;
+    h+='<h4 class="notes-grp">'+esc(maj)+'</h4><div class="reslist">';
+    arr.forEach(function(p){ h+='<a class="rescard" href="'+encodeURI(p.f)+'" target="_blank" rel="noopener"><span class="res-t">'+esc(p.t)+'</span><span class="res-s">'+esc(p.c)+'</span></a>'; });
+    h+='</div>';
+  });
+  if(!any) h+='<p class="bk-note">No papers in this year yet.</p>';
+  w.innerHTML=h;
+}
+(function(){ var w=$("pyqWrap"); if(!w) return;
+  w.addEventListener("click",function(e){
+    var a=e.target.closest("[data-sem]"); if(a){ e.preventDefault(); pyqSem=a.getAttribute("data-sem"); pyqYear=null; pyqRender(); return; }
+    var y=e.target.closest("[data-year]"); if(y){ e.preventDefault(); pyqYear=y.getAttribute("data-year"); pyqRender(); return; }
+    var b=e.target.closest("[data-back]"); if(b){ e.preventDefault(); if(b.getAttribute("data-back")==="sem"){pyqSem=null;pyqYear=null;} else {pyqYear=null;} pyqRender(); return; }
+  });
+})();
 window.addEventListener("hashchange",showView);
 
 const AREA_SLUG={"Finance":"finance","Marketing":"marketing","DnA":"dna","OB":"ob","OM":"om","E & S":"es"};
@@ -1915,7 +1978,42 @@ import datetime as _bdt
 _bnow = _bdt.datetime.now(_bdt.timezone(_bdt.timedelta(hours=5, minutes=30)))
 _BUILT = _bnow.strftime("%-d %b, %-I:%M %p")   # footer: date + time
 _BUILT_D = _bnow.strftime("%-d %b")            # hero badge: date only
-open(OUT_PATH, "w", encoding="utf-8").write(TEMPLATE.replace("__REQEMAIL__", REQUEST_EMAIL).replace("__REQFORM__", REQUEST_FORM_URL).replace("__SHAREDSECTION__", SHARED_HTML).replace("__INSTA__", INSTA_URL).replace("__VAPID__", VAPID_PUBLIC_KEY).replace("__NOTIFYEP__", NOTIFY_ENDPOINT).replace("__NOTESEP__", NOTES_ENDPOINT).replace("__NOTIFYON__", "true" if NOTIFY_ENABLED else "false").replace("__VER__", APP_VERSION).replace("__BUILTD__", _BUILT_D).replace("__BUILT__", _BUILT).replace("__DATA__", data))
+# ---- PYQs: scan Term IV/<year>/*.pdf, sort by course code, publish + manifest ----
+import os, re, json, shutil
+_PYQ_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PYQ_SRC = {"IV": os.path.join(_PYQ_ROOT, "Term IV")}   # semester -> folder of <year> subfolders (add "V"/"VI" later)
+PYQ_OUT = "pyqs"                                        # published subfolder (clean URLs); leave as-is
+PYQ_MAJOR = {"MM": "Marketing", "EF": "Finance", "OQ": "Operations", "IM": "Data Analytics"}
+
+def build_pyq(outdir):
+    out = {"IV": {"on": False}, "V": {"on": False}, "VI": {"on": False}}
+    for sem, src in PYQ_SRC.items():
+        years = {}
+        try:
+            if src and os.path.isdir(src):
+                for year in sorted(os.listdir(src)):
+                    ydir = os.path.join(src, year)
+                    if not os.path.isdir(ydir): continue
+                    buckets = {}
+                    for fn in sorted(os.listdir(ydir)):
+                        if not fn.lower().endswith(".pdf"): continue
+                        parts = re.split(r"\s+", fn[:-4], maxsplit=1)
+                        code = parts[0]; title = parts[1].strip() if len(parts) > 1 else code
+                        m = re.search(r"(MM|EF|OQ|IM)\d{1,3}$", code)
+                        maj = PYQ_MAJOR.get(m.group(1)) if m else next((v for k, v in PYQ_MAJOR.items() if k in code), None)
+                        maj = maj or "Other"
+                        dst = os.path.join(outdir, PYQ_OUT, sem, year); os.makedirs(dst, exist_ok=True)
+                        shutil.copy2(os.path.join(ydir, fn), os.path.join(dst, fn))
+                        buckets.setdefault(maj, []).append({"c": code, "t": title, "f": PYQ_OUT + "/" + sem + "/" + year + "/" + fn})
+                    if buckets: years[year] = buckets
+        except Exception as e:
+            print("PYQ scan skipped for", sem, ":", e)
+        if years: out[sem] = {"on": True, "years": years}
+    return out
+
+pyq_json = json.dumps(build_pyq(os.path.dirname(os.path.abspath(OUT_PATH)) or "."), ensure_ascii=False)
+
+open(OUT_PATH, "w", encoding="utf-8").write(TEMPLATE.replace("__REQEMAIL__", REQUEST_EMAIL).replace("__REQFORM__", REQUEST_FORM_URL).replace("__SHAREDSECTION__", SHARED_HTML).replace("__INSTA__", INSTA_URL).replace("__VAPID__", VAPID_PUBLIC_KEY).replace("__NOTIFYEP__", NOTIFY_ENDPOINT).replace("__NOTESEP__", NOTES_ENDPOINT).replace("__NOTIFYON__", "true" if NOTIFY_ENABLED else "false").replace("__VER__", APP_VERSION).replace("__BUILTD__", _BUILT_D).replace("__BUILT__", _BUILT).replace("__PYQDATA__", pyq_json).replace("__DATA__", data))
 print(f"Wrote {OUT_PATH}")
 
 # Publish the build's stats next to index.html so the NEXT run can fetch it as the
