@@ -140,6 +140,35 @@ html[data-theme="light"] body::before{
     radial-gradient(85% 60% at 50% -8%, rgba(255,219,150,.50), transparent 60%),
     radial-gradient(70% 55% at 100% 6%, rgba(255,198,158,.34), transparent 62%),
     linear-gradient(168deg, #fdebc8 0%, #fdf0d6 42%, #fef5e4 100%)}
+/* === live mesh background (animated orbs over the static gradient) === */
+.mesh-bg{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none}
+.mesh-track{position:absolute;width:46vmax;height:46vmax;will-change:transform}
+.mesh-orb{width:100%;height:100%;border-radius:50%;
+  filter:blur(90px);mix-blend-mode:screen;opacity:.7;will-change:transform;
+  animation:mesh-breathe 7s ease-in-out infinite alternate}
+html[data-theme="light"] .mesh-orb{mix-blend-mode:normal;opacity:.55;filter:blur(80px)}
+@keyframes mesh-breathe{from{transform:scale(.94)}to{transform:scale(1.12)}}
+.mesh-orb.c1{background:radial-gradient(circle,#7d4fff,transparent 70%)}
+.mesh-orb.c2{background:radial-gradient(circle,#3f7bff,transparent 70%)}
+.mesh-orb.c3{background:radial-gradient(circle,#ff4f93,transparent 70%)}
+.mesh-orb.c4{background:radial-gradient(circle,#ff8a4c,transparent 70%)}
+.mesh-orb.c5{background:radial-gradient(circle,#b15bff,transparent 70%)}
+html[data-theme="light"] .mesh-orb.c1{background:radial-gradient(circle,#c9b6ff,transparent 70%)}
+html[data-theme="light"] .mesh-orb.c2{background:radial-gradient(circle,#a9caff,transparent 70%)}
+html[data-theme="light"] .mesh-orb.c3{background:radial-gradient(circle,#ffc2d8,transparent 70%)}
+html[data-theme="light"] .mesh-orb.c4{background:radial-gradient(circle,#ffd9b0,transparent 70%)}
+html[data-theme="light"] .mesh-orb.c5{background:radial-gradient(circle,#d9c4ff,transparent 70%)}
+.mesh-track.t1{top:-8%;left:-6%;  animation:mesh-d1 26s ease-in-out infinite alternate}
+.mesh-track.t2{top:38%;left:48%;  animation:mesh-d2 31s ease-in-out infinite alternate}
+.mesh-track.t3{top:46%;left:-10%; animation:mesh-d3 23s ease-in-out infinite alternate}
+.mesh-track.t4{top:-12%;left:44%; animation:mesh-d4 29s ease-in-out infinite alternate}
+.mesh-track.t5{top:30%;left:18%;  animation:mesh-d5 35s ease-in-out infinite alternate}
+@keyframes mesh-d1{from{transform:translate(0,0)}to{transform:translate(26vw,18vh)}}
+@keyframes mesh-d2{from{transform:translate(0,0)}to{transform:translate(-30vw,-14vh)}}
+@keyframes mesh-d3{from{transform:translate(0,0)}to{transform:translate(34vw,-20vh)}}
+@keyframes mesh-d4{from{transform:translate(0,0)}to{transform:translate(-22vw,28vh)}}
+@keyframes mesh-d5{from{transform:translate(-10vw,0)}to{transform:translate(24vw,-12vh)}}
+@media (prefers-reduced-motion:reduce){ .mesh-track,.mesh-orb{animation:none} }
 .wrap{max-width:640px;margin:0 auto;padding:26px 16px 72px}
 
 /* frosted icon button — app bar + topbars */
@@ -469,6 +498,9 @@ button.go:hover{filter:brightness(1.06)} button.go:active{transform:translateY(1
 .dir summary::-webkit-details-marker{display:none}
 .dir summary::after{content:"+";font-size:18px;color:var(--faint)} .dir[open] summary::after{content:"–"}
 .dir summary:hover{color:var(--accent)}
+.dir summary .dir-sum{display:flex;flex-direction:column;gap:3px;min-width:0}
+.dir-new{font-size:10.5px;font-weight:800;letter-spacing:.03em;text-transform:none;color:#fff}
+html[data-theme="light"] .dir-new{color:var(--accent)}
 .dir-list{padding:0 16px 6px}
 .di{padding:12px 0;border-top:1px solid var(--line)}
 .di-h{display:flex;align-items:center;gap:9px}
@@ -673,6 +705,13 @@ html[data-theme="light"] .sc-card{--sci:#221a12;--scm:#6c5b46;--scline:rgba(120,
 <script>try{var t=localStorage.getItem("imnu-theme")||((window.matchMedia&&matchMedia("(prefers-color-scheme: light)").matches)?"light":"dark");document.documentElement.setAttribute("data-theme",t);}catch(e){document.documentElement.setAttribute("data-theme","dark");}</script>
 </head>
 <body>
+<div class="mesh-bg" aria-hidden="true">
+  <div class="mesh-track t1"><div class="mesh-orb c1"></div></div>
+  <div class="mesh-track t2"><div class="mesh-orb c2"></div></div>
+  <div class="mesh-track t3"><div class="mesh-orb c3"></div></div>
+  <div class="mesh-track t4"><div class="mesh-orb c4"></div></div>
+  <div class="mesh-track t5"><div class="mesh-orb c5"></div></div>
+</div>
 <div id="loader"><div class="inner"><div class="orb"></div><div class="lbl">My Week</div></div></div>
 <div class="wrap">
   <section id="view-home" class="view">
@@ -1302,7 +1341,7 @@ function render(){
     html+=`<div class="belowcal">${below}</div>`;
   }
 
-  html+=`<details class="dir"><summary>Electives, faculty &amp; rooms</summary><div class="dir-list">`;
+  html+=`<details class="dir"><summary><span class="dir-sum"><span>Electives, faculty &amp; rooms</span><span class="dir-new">Track Your Class</span></span></summary><div class="dir-list">`;
   electives.slice().sort((a,b)=>a.abbr.localeCompare(b.abbr)).forEach(e=>{
     const when=((useNext?e.meetingsNext:e.meetings)||[]).map(m=>`${m.day.slice(0,3)} ${m.start}`).join(", ");
     const _done=lecturesDone(ckey(e.abbr,e.division), e.meetings||[]); const _pct=Math.round(_done/30*100);
