@@ -492,6 +492,36 @@ button.go:hover{filter:brightness(1.06)} button.go:active{transform:translateY(1
 .dir summary .dir-sum{display:flex;flex-direction:column;gap:3px;min-width:0}
 .dir-new{font-size:10.5px;font-weight:800;letter-spacing:.03em;text-transform:none;color:#fff}
 html[data-theme="light"] .dir-new{color:var(--accent)}
+/* === attendance tracker === */
+:root{--att-green:#46c98b;--att-amber:#ffb43d;--att-red:#ff5e6c}
+html[data-theme="light"]{--att-green:#1f9d68;--att-amber:#cf8a16;--att-red:#d23b4a}
+.dcard.red{background:#ff5a5f}
+.dbadge{display:inline-block;background:rgba(255,255,255,.92);font-weight:800;font-size:12.5px;padding:4px 10px;border-radius:9px;line-height:1.1}
+.dcard:not(.active) .dbadge{font-size:12px}
+.att-wrap{max-width:560px;margin:0 auto;padding:14px 16px 54px}
+.att-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:4px 0 2px}
+.att-ov{font-family:"JetBrains Mono",monospace;font-weight:700;font-size:30px;line-height:1}
+.att-ovk{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700}
+.att-legend{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--muted);font-weight:600}
+.att-legend span{display:flex;align-items:center;gap:6px}
+.att-legend i{width:9px;height:9px;border-radius:50%;display:inline-block}
+.att-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 15px;margin-top:11px;backdrop-filter:blur(8px)}
+.att-r{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.att-t{font-size:14.5px;font-weight:800;line-height:1.25}
+.att-f{display:block;font-size:12px;color:var(--muted);font-weight:600;margin-top:2px}
+.att-p{font-family:"JetBrains Mono",monospace;font-weight:700;font-size:19px;text-align:right;white-space:nowrap;line-height:1.1}
+.att-p small{display:block;font-size:10px;color:var(--muted);font-weight:600;letter-spacing:.03em}
+.att-bar{height:7px;border-radius:5px;background:rgba(125,125,125,.22);margin:11px 0 9px;overflow:hidden}
+.att-bar i{display:block;height:100%;border-radius:5px;transition:width .25s ease}
+.att-proj{font-size:12.5px;font-weight:600;display:flex;gap:7px;align-items:flex-start;color:var(--ink)}
+.att-dot{flex:none;margin-top:5px;width:7px;height:7px;border-radius:50%}
+.att-btns{display:flex;gap:8px;margin-top:12px}
+.att-btns button{font:inherit;font-weight:800;font-size:13px;cursor:pointer;border-radius:11px;padding:9px 0;flex:1;border:1px solid var(--line);background:transparent;color:var(--ink)}
+.att-btns .att-ub{flex:0 0 auto;padding:9px 13px;color:var(--muted)}
+.att-pb{background:color-mix(in srgb,var(--att-green) 22%,transparent);border-color:color-mix(in srgb,var(--att-green) 45%,transparent)}
+.att-ab{background:color-mix(in srgb,var(--att-red) 20%,transparent);border-color:color-mix(in srgb,var(--att-red) 42%,transparent)}
+.att-empty{text-align:center;padding:34px 16px;color:var(--muted)}
+.att-cta{display:inline-block;margin-top:10px;color:var(--accent);font-weight:700;text-decoration:none}
 .dir-list{padding:0 16px 6px}
 .di{padding:12px 0;border-top:1px solid var(--line)}
 .di-h{display:flex;align-items:center;gap:9px}
@@ -740,6 +770,11 @@ html[data-theme="light"] .sc-card{--sci:#221a12;--scm:#6c5b46;--scline:rgba(120,
       <span class="dbody"><span class="dsub" id="ttsub">Look up your weekly classes by roll number</span><span class="dchip" id="ttchip" hidden></span><span class="dopen">Open Timetable →</span></span>
     </button>
 
+    <button class="dcard red" type="button" data-id="at" data-go="#attendance" id="attcard">
+      <span class="dhead"><span class="dic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg></span><span class="dtitle">Attendance</span><span class="dbadge" id="attHd" hidden></span><span class="dchev">›</span></span>
+      <span class="dbody"><span class="dsub">Mark each class as you go · 85% safe · 80% floor</span><span class="dopen">Open Attendance →</span></span>
+    </button>
+
     <button class="dcard coral" type="button" data-id="bk" data-go="#books" id="bkcard">
       <span class="dhead"><span class="dic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6.6C10.5 5.4 8.3 4.9 5.6 5.1c-.9.05-1.6.8-1.6 1.7v10.7c0 .95.85 1.7 1.8 1.6 2.4-.2 4.5.3 6.2 1.4 1.7-1.1 3.8-1.6 6.2-1.4.95.08 1.8-.65 1.8-1.6V6.8c0-.9-.7-1.65-1.6-1.7-2.7-.2-4.9.3-6.4 1.5z"/><path d="M12 6.6v12.3"/></svg></span><span class="dtitle">Request E-books</span><span class="dchev">›</span></span>
       <span class="dbody"><span class="dsub">Don't Buy Books !! Find it free, or request a copy</span><span class="dopen">Open E-books →</span></span>
@@ -857,6 +892,15 @@ html[data-theme="light"] .sc-card{--sci:#221a12;--scm:#6c5b46;--scline:rgba(120,
       </div>
     </div>
   </div>
+
+  <section id="view-att" class="view" hidden>
+    <div class="topbar">
+      <a class="iconbtn" href="#" aria-label="Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></a>
+      <span class="tt-title">Attendance</span>
+      <button class="iconbtn js-theme" aria-label="Switch theme"></button>
+    </div>
+    <div class="att-wrap" id="attBody"></div>
+  </section>
 
   <section id="view-updates" class="view" hidden>
     <div class="topbar">
@@ -1693,6 +1737,84 @@ showView();
   };
 
   if(document.getElementById('livetoday')){ window.ltPaint(); setInterval(window.ltPaint,1000); }
+})();
+</script>
+<script>
+/* === attendance tracker (mark-as-you-go) === */
+(function(){
+  var TOTAL=30, SAFE=85, FLOOR=80;
+  var NEED_SAFE=Math.ceil(SAFE/100*TOTAL), NEED_FLOOR=Math.ceil(FLOOR/100*TOTAL);
+  function $(id){return document.getElementById(id);}
+  function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+  function rollNow(){try{return (typeof getRoll==="function"?getRoll():localStorage.getItem("imnu-roll"))||"";}catch(e){return "";}}
+  function keyOf(e){try{return (typeof ckey==="function")?ckey(e.abbr,e.division):(String(e.abbr||"").toLowerCase()+"|"+(e.division||""));}catch(_){return String(e.abbr||"")+"|"+(e.division||"");}}
+  function myElectives(roll){try{var st=DATA.students[roll];return (st&&st.s||[]).map(function(id){return Object.assign({id:id},DATA.sections[id]);});}catch(e){return [];}}
+  function load(roll){try{return JSON.parse(localStorage.getItem("imnu-att-"+roll)||"{}")||{};}catch(e){return {};}}
+  function save(roll,o){try{localStorage.setItem("imnu-att-"+roll,JSON.stringify(o));}catch(e){}}
+  var COL={g:"var(--att-green)",a:"var(--att-amber)",r:"var(--att-red)"};
+  function pctColor(p){return p>=SAFE?COL.g:p>=FLOOR?COL.a:COL.r;}
+  function badgeColor(p){return p>=SAFE?"#138a5c":p>=FLOOR?"#b07a10":"#c62f43";}
+  function proj(p,a){
+    var held=p+a, rem=TOTAL-held;
+    var sS=rem-Math.max(0,NEED_SAFE-p), sF=rem-Math.max(0,NEED_FLOOR-p);
+    if(p>=NEED_SAFE) return {t:"g",m:"Locked above 85% \u2014 you can skip all "+rem+" remaining."};
+    if(sS>=0) return {t:"g",m:sS===0?("Attend every one of the "+rem+" left to hold 85%."):("Skip up to <b>"+sS+"</b> more and you stay \u226585%.")};
+    if(p>=NEED_FLOOR) return {t:"a",m:"85% out of reach \u2014 but you\u2019re safe above the 80% floor."};
+    if(sF>=0) return {t:"a",m:sF===0?("Attend <b>all "+rem+"</b> remaining to stay above 80%."):("85% gone. Skip max <b>"+sF+"</b> more to stay \u226580%.")};
+    return {t:"r",m:"Below 80% even if you attend all "+rem+" left \u2014 <b>debar risk</b>."};
+  }
+  function stats(roll){
+    var els=myElectives(roll), store=load(roll), tp=0,th=0,risk=0,marked=false;
+    els.forEach(function(e){var s=store[keyOf(e)]||{p:0,a:0};var h=s.p+s.a;if(h>0)marked=true;tp+=s.p;th+=h;if(h>0&&(s.p/h*100)<SAFE)risk++;});
+    return {els:els,store:store,pct:th?Math.round(tp/th*1000)/10:null,risk:risk,marked:marked};
+  }
+  function paintAttSummary(){
+    var hd=$("attHd"); if(!hd) return;
+    var roll=rollNow();
+    if(!roll){ hd.hidden=true; return; }
+    var s=stats(roll);
+    hd.hidden=false;
+    if(!s.marked){ hd.textContent="New"; hd.style.color="#0b0c0a"; return; }
+    hd.textContent=s.pct+"%"; hd.style.color=badgeColor(s.pct);
+  }
+  function enterAtt(){
+    var body=$("attBody"); if(!body) return;
+    var roll=rollNow();
+    if(!roll){ body.innerHTML='<div class="att-empty"><p>Select your roll first to track attendance.</p><a class="att-cta" href="#timetable">Go to Timetable \u2192</a></div>'; return; }
+    var s=stats(roll);
+    var head='<div class="att-head"><div><div class="att-ov" style="color:'+(s.marked?pctColor(s.pct):"var(--accent)")+'">'+(s.marked?s.pct+"%":"\u2014")+'</div><div class="att-ovk">overall</div></div>'
+      +'<div class="att-legend"><span><i style="background:var(--att-green)"></i>\u226585 safe</span><span><i style="background:var(--att-amber)"></i>80\u201385 floor</span><span><i style="background:var(--att-red)"></i>&lt;80 risk</span></div></div>';
+    var rows=s.els.slice().sort(function(a,b){return String(a.abbr||"").localeCompare(String(b.abbr||""));}).map(function(e){
+      var k=keyOf(e), m=s.store[k]||{p:0,a:0}, held=m.p+m.a, pct=held?Math.round(m.p/held*1000)/10:0, col=held?pctColor(pct):"var(--att-green)", pr=proj(m.p,m.a);
+      return '<div class="att-card"><div class="att-r"><div class="att-t">'+esc(e.name||e.abbr)+'<span class="att-f">'+esc(e.faculty||"")+'</span></div>'
+        +'<div class="att-p" style="color:'+col+'">'+(held?pct+"%":"\u2014")+'<small>'+m.p+"/"+held+' held</small></div></div>'
+        +'<div class="att-bar"><i style="width:'+(held?Math.min(100,pct):0)+'%;background:'+col+'"></i></div>'
+        +'<div class="att-proj"><span class="att-dot" style="background:'+COL[pr.t]+'"></span><span>'+pr.m+'</span></div>'
+        +'<div class="att-btns"><button class="att-pb" data-k="'+esc(k)+'" data-m="p">Present</button>'
+        +'<button class="att-ab" data-k="'+esc(k)+'" data-m="a">Absent</button>'
+        +'<button class="att-ub" data-k="'+esc(k)+'" data-m="u">Undo</button></div></div>';
+    }).join("");
+    body.innerHTML=head+rows;
+  }
+  function mark(k,mode){
+    var roll=rollNow(); if(!roll) return;
+    var o=load(roll), c=o[k]||{p:0,a:0};
+    if(mode==="p")c.p++; else if(mode==="a")c.a++; else if(mode==="u"){if(c.a>0)c.a--;else if(c.p>0)c.p--;}
+    o[k]=c; save(roll,o); enterAtt(); paintAttSummary();
+  }
+  function syncView(){
+    var att=$("view-att"); if(!att) return;
+    if(location.hash==="#attendance"){var h=$("view-home"); if(h)h.hidden=true; att.hidden=false; enterAtt(); window.scrollTo(0,0);}
+    else att.hidden=true;
+  }
+  function init(){
+    var b=$("attBody"); if(b)b.addEventListener("click",function(e){var btn=e.target.closest("button[data-m]"); if(btn)mark(btn.getAttribute("data-k"),btn.getAttribute("data-m"));});
+    if(typeof refreshHomeCard==="function"){var _r=refreshHomeCard; window.refreshHomeCard=function(){var x=_r.apply(this,arguments); try{paintAttSummary();}catch(_){} return x;};}
+    window.addEventListener("hashchange",syncView);
+    syncView(); paintAttSummary();
+  }
+  if(document.readyState!=="loading") init(); else document.addEventListener("DOMContentLoaded",init);
+  window.paintAttSummary=paintAttSummary;
 })();
 </script>
 </body>
