@@ -505,20 +505,19 @@ html[data-theme="light"]{--att-green:#1f9d68;--att-amber:#cf8a16;--att-red:#d23b
 .att-legend{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--muted);font-weight:600}
 .att-legend span{display:flex;align-items:center;gap:6px}
 .att-legend i{width:9px;height:9px;border-radius:50%;display:inline-block}
+.att-disc{font-size:12.5px;color:var(--muted);font-weight:600;line-height:1.45;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 13px;margin:12px 0 2px;backdrop-filter:blur(8px)}
+.att-disc b{color:var(--ink)}
 .att-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 15px;margin-top:11px;backdrop-filter:blur(8px)}
 .att-r{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
 .att-t{font-size:14.5px;font-weight:800;line-height:1.25}
 .att-f{display:block;font-size:12px;color:var(--muted);font-weight:600;margin-top:2px}
 .att-p{font-family:"JetBrains Mono",monospace;font-weight:700;font-size:19px;text-align:right;white-space:nowrap;line-height:1.1}
 .att-p small{display:block;font-size:10px;color:var(--muted);font-weight:600;letter-spacing:.03em}
-.att-bar{height:7px;border-radius:5px;background:rgba(125,125,125,.22);margin:11px 0 9px;overflow:hidden}
+.att-bar{height:7px;border-radius:5px;background:rgba(125,125,125,.22);margin:11px 0 0;overflow:hidden}
 .att-bar i{display:block;height:100%;border-radius:5px;transition:width .25s ease}
-.att-proj{font-size:12.5px;font-weight:600;display:flex;gap:7px;align-items:flex-start;color:var(--ink)}
-.att-dot{flex:none;margin-top:5px;width:7px;height:7px;border-radius:50%}
-.att-btns{display:flex;gap:8px;margin-top:12px}
-.att-btns button{font:inherit;font-weight:800;font-size:13px;cursor:pointer;border-radius:11px;padding:9px 0;flex:1;border:1px solid var(--line);background:transparent;color:var(--ink)}
-.att-btns .att-ub{flex:0 0 auto;padding:9px 13px;color:var(--muted)}
-.att-pb{background:color-mix(in srgb,var(--att-green) 22%,transparent);border-color:color-mix(in srgb,var(--att-green) 45%,transparent)}
+.att-btns{display:flex;gap:8px;margin-top:13px}
+.att-btns button{font:inherit;font-weight:800;font-size:13px;cursor:pointer;border-radius:11px;padding:10px 0;flex:1;border:1px solid var(--line);background:transparent;color:var(--ink)}
+.att-btns .att-ub{flex:0 0 auto;padding:10px 15px;color:var(--muted)}
 .att-ab{background:color-mix(in srgb,var(--att-red) 20%,transparent);border-color:color-mix(in srgb,var(--att-red) 42%,transparent)}
 .att-empty{text-align:center;padding:34px 16px;color:var(--muted)}
 .att-cta{display:inline-block;margin-top:10px;color:var(--accent);font-weight:700;text-decoration:none}
@@ -772,7 +771,7 @@ html[data-theme="light"] .sc-card{--sci:#221a12;--scm:#6c5b46;--scline:rgba(120,
 
     <button class="dcard red" type="button" data-id="at" data-go="#attendance" id="attcard">
       <span class="dhead"><span class="dic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg></span><span class="dtitle">Attendance</span><span class="dbadge" id="attHd" hidden></span><span class="dchev">›</span></span>
-      <span class="dbody"><span class="dsub">Mark each class as you go · 85% safe · 80% floor</span><span class="dopen">Open Attendance →</span></span>
+      <span class="dbody"><span class="dsub">Mark only the classes you miss · out of 30 per course</span><span class="dopen">Open Attendance →</span></span>
     </button>
 
     <button class="dcard coral" type="button" data-id="bk" data-go="#books" id="bkcard">
@@ -1740,67 +1739,58 @@ showView();
 })();
 </script>
 <script>
-/* === attendance tracker (mark-as-you-go) === */
+/* === attendance tracker (absence-only, out of 30) === */
 (function(){
   var TOTAL=30, SAFE=85, FLOOR=80;
   var NEED_SAFE=Math.ceil(SAFE/100*TOTAL), NEED_FLOOR=Math.ceil(FLOOR/100*TOTAL);
+  var MISS_SAFE=TOTAL-NEED_SAFE, MISS_FLOOR=TOTAL-NEED_FLOOR;
   function $(id){return document.getElementById(id);}
   function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
   function rollNow(){try{return (typeof getRoll==="function"?getRoll():localStorage.getItem("imnu-roll"))||"";}catch(e){return "";}}
   function keyOf(e){try{return (typeof ckey==="function")?ckey(e.abbr,e.division):(String(e.abbr||"").toLowerCase()+"|"+(e.division||""));}catch(_){return String(e.abbr||"")+"|"+(e.division||"");}}
   function myElectives(roll){try{var st=DATA.students[roll];return (st&&st.s||[]).map(function(id){return Object.assign({id:id},DATA.sections[id]);});}catch(e){return [];}}
-  function load(roll){try{return JSON.parse(localStorage.getItem("imnu-att-"+roll)||"{}")||{};}catch(e){return {};}}
+  function load(roll){try{var raw=JSON.parse(localStorage.getItem("imnu-att-"+roll)||"{}")||{};var o={};for(var k in raw){var v=raw[k];o[k]=(typeof v==="number")?v:((v&&v.a)||0);}return o;}catch(e){return {};}}
   function save(roll,o){try{localStorage.setItem("imnu-att-"+roll,JSON.stringify(o));}catch(e){}}
+  function pct(miss){return (TOTAL-miss)/TOTAL*100;}
+  function r1(x){return Math.round(x*10)/10;}
   var COL={g:"var(--att-green)",a:"var(--att-amber)",r:"var(--att-red)"};
   function pctColor(p){return p>=SAFE?COL.g:p>=FLOOR?COL.a:COL.r;}
   function badgeColor(p){return p>=SAFE?"#138a5c":p>=FLOOR?"#b07a10":"#c62f43";}
-  function proj(p,a){
-    var held=p+a, rem=TOTAL-held;
-    var sS=rem-Math.max(0,NEED_SAFE-p), sF=rem-Math.max(0,NEED_FLOOR-p);
-    if(p>=NEED_SAFE) return {t:"g",m:"Locked above 85% \u2014 you can skip all "+rem+" remaining."};
-    if(sS>=0) return {t:"g",m:sS===0?("Attend every one of the "+rem+" left to hold 85%."):("Skip up to <b>"+sS+"</b> more and you stay \u226585%.")};
-    if(p>=NEED_FLOOR) return {t:"a",m:"85% out of reach \u2014 but you\u2019re safe above the 80% floor."};
-    if(sF>=0) return {t:"a",m:sF===0?("Attend <b>all "+rem+"</b> remaining to stay above 80%."):("85% gone. Skip max <b>"+sF+"</b> more to stay \u226580%.")};
-    return {t:"r",m:"Below 80% even if you attend all "+rem+" left \u2014 <b>debar risk</b>."};
-  }
   function stats(roll){
-    var els=myElectives(roll), store=load(roll), tp=0,th=0,risk=0,marked=false;
-    els.forEach(function(e){var s=store[keyOf(e)]||{p:0,a:0};var h=s.p+s.a;if(h>0)marked=true;tp+=s.p;th+=h;if(h>0&&(s.p/h*100)<SAFE)risk++;});
-    return {els:els,store:store,pct:th?Math.round(tp/th*1000)/10:null,risk:risk,marked:marked};
+    var els=myElectives(roll), store=load(roll), totMiss=0, n=els.length, risk=0;
+    els.forEach(function(e){var m=store[keyOf(e)]||0; totMiss+=m; if(pct(m)<SAFE)risk++;});
+    return {els:els,store:store,ov:n?r1((TOTAL*n-totMiss)/(TOTAL*n)*100):null,risk:risk,n:n};
   }
   function paintAttSummary(){
     var hd=$("attHd"); if(!hd) return;
     var roll=rollNow();
     if(!roll){ hd.hidden=true; return; }
-    var s=stats(roll);
-    hd.hidden=false;
-    if(!s.marked){ hd.textContent="New"; hd.style.color="#0b0c0a"; return; }
-    hd.textContent=s.pct+"%"; hd.style.color=badgeColor(s.pct);
+    var s=stats(roll); hd.hidden=false;
+    hd.textContent=s.ov+"%"; hd.style.color=badgeColor(s.ov);
   }
   function enterAtt(){
     var body=$("attBody"); if(!body) return;
     var roll=rollNow();
     if(!roll){ body.innerHTML='<div class="att-empty"><p>Select your roll first to track attendance.</p><a class="att-cta" href="#timetable">Go to Timetable \u2192</a></div>'; return; }
     var s=stats(roll);
-    var head='<div class="att-head"><div><div class="att-ov" style="color:'+(s.marked?pctColor(s.pct):"var(--accent)")+'">'+(s.marked?s.pct+"%":"\u2014")+'</div><div class="att-ovk">overall</div></div>'
-      +'<div class="att-legend"><span><i style="background:var(--att-green)"></i>\u226585 safe</span><span><i style="background:var(--att-amber)"></i>80\u201385 floor</span><span><i style="background:var(--att-red)"></i>&lt;80 risk</span></div></div>';
+    var head='<div class="att-head"><div><div class="att-ov" style="color:'+pctColor(s.ov)+'">'+s.ov+'%</div><div class="att-ovk">overall</div></div>'
+      +'<div class="att-legend"><span><i style="background:var(--att-green)"></i>\u226585 safe</span><span><i style="background:var(--att-amber)"></i>80\u201385 floor</span><span><i style="background:var(--att-red)"></i>&lt;80 risk</span></div></div>'
+      +'<div class="att-disc">Each course has <b>'+TOTAL+'</b> lectures \u2014 you can miss up to <b>'+MISS_SAFE+'</b> and stay \u226585%, or <b>'+MISS_FLOOR+'</b> to stay above the 80% floor.</div>';
     var rows=s.els.slice().sort(function(a,b){return String(a.abbr||"").localeCompare(String(b.abbr||""));}).map(function(e){
-      var k=keyOf(e), m=s.store[k]||{p:0,a:0}, held=m.p+m.a, pct=held?Math.round(m.p/held*1000)/10:0, col=held?pctColor(pct):"var(--att-green)", pr=proj(m.p,m.a);
+      var k=keyOf(e), miss=s.store[k]||0, p=r1(pct(miss)), col=pctColor(p);
       return '<div class="att-card"><div class="att-r"><div class="att-t">'+esc(e.name||e.abbr)+'<span class="att-f">'+esc(e.faculty||"")+'</span></div>'
-        +'<div class="att-p" style="color:'+col+'">'+(held?pct+"%":"\u2014")+'<small>'+m.p+"/"+held+' held</small></div></div>'
-        +'<div class="att-bar"><i style="width:'+(held?Math.min(100,pct):0)+'%;background:'+col+'"></i></div>'
-        +'<div class="att-proj"><span class="att-dot" style="background:'+COL[pr.t]+'"></span><span>'+pr.m+'</span></div>'
-        +'<div class="att-btns"><button class="att-pb" data-k="'+esc(k)+'" data-m="p">Present</button>'
-        +'<button class="att-ab" data-k="'+esc(k)+'" data-m="a">Absent</button>'
+        +'<div class="att-p" style="color:'+col+'">'+p+'%<small>'+miss+' missed \u00b7 of '+TOTAL+'</small></div></div>'
+        +'<div class="att-bar"><i style="width:'+Math.max(0,Math.min(100,p))+'%;background:'+col+'"></i></div>'
+        +'<div class="att-btns"><button class="att-ab" data-k="'+esc(k)+'" data-m="a">Mark absent</button>'
         +'<button class="att-ub" data-k="'+esc(k)+'" data-m="u">Undo</button></div></div>';
     }).join("");
     body.innerHTML=head+rows;
   }
   function mark(k,mode){
     var roll=rollNow(); if(!roll) return;
-    var o=load(roll), c=o[k]||{p:0,a:0};
-    if(mode==="p")c.p++; else if(mode==="a")c.a++; else if(mode==="u"){if(c.a>0)c.a--;else if(c.p>0)c.p--;}
-    o[k]=c; save(roll,o); enterAtt(); paintAttSummary();
+    var o=load(roll), miss=o[k]||0;
+    if(mode==="a")miss++; else if(mode==="u")miss=Math.max(0,miss-1);
+    o[k]=miss; save(roll,o); enterAtt(); paintAttSummary();
   }
   function syncView(){
     var att=$("view-att"); if(!att) return;
