@@ -689,6 +689,10 @@ html[data-theme="light"] #view-pyqs .bk-intro{box-shadow:0 7px 18px rgba(150,110
 .wn-d{font-size:12.5px;color:var(--muted);line-height:1.45;margin-top:3px}
 .wn-date{font-size:11px;color:var(--faint);margin-top:4px}
 .wn-got{width:100%;height:46px;border-radius:14px}
+/* ---- "never tap here" gag on the version badge ---- */
+.ver-tease{position:absolute;top:1px;right:92px;z-index:3;display:flex;align-items:flex-end;gap:1px;color:#ff2e54;transform:rotate(-4deg);transform-origin:right center;pointer-events:none;user-select:none}
+.vt-say{font-family:"Caveat",cursive;font-weight:700;font-size:18px;line-height:.9;white-space:nowrap}
+.vt-arr{width:32px;height:30px;flex:none;margin:0 0 -3px 2px}
 /* live today section */
 .livetoday{margin-top:16px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:15px 16px 13px;backdrop-filter:blur(8px);position:relative;overflow:hidden}
 .livetoday::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(120% 80% at 100% 0%,var(--accent-soft),transparent 60%)}
@@ -788,6 +792,7 @@ html[data-theme="light"] .sc-card{--sci:#221a12;--scm:#6c5b46;--scline:rgba(120,
     </div>
 
     <header class="hero">
+      <span class="ver-tease" aria-hidden="true"><span class="vt-say">never tap here</span><svg class="vt-arr" viewBox="0 0 52 34" fill="none" stroke="currentColor" stroke-width="3.1" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9C18 6 36 12 47 24"/><path d="M47 24l-13-1M46 24l-3-12"/></svg></span>
       <span class="ver-badge" id="verBadge" role="button" tabindex="0"><b>__VER__</b><span>Updated __BUILTD__</span></span>
       <span class="month" id="month"></span>
       <span class="year" id="year"></span>
