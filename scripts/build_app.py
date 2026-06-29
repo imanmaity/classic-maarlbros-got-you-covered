@@ -26,6 +26,14 @@ REQUEST_FORM_URL = ""
 INSTA_URL = "https://www.instagram.com/classicmaarlbro"   # footer brand links here
 APP_VERSION = "MBA v1.4"   # shown in the hero badge — bump when you ship notable changes
 
+# ---- "What's New" pop-up: add an entry at the TOP and bump WHATSNEW_ID each time you ship ----
+WHATS_NEW = [
+    {"tag": "New", "title": "New books added",    "desc": "Fresh titles on the Shared Shelf — open Books to grab them.", "date": "29 Jun 2026"},
+    {"tag": "New", "title": "PYQs are here",       "desc": "Previous-year question papers, sorted by major. Semester IV first.", "date": "29 Jun 2026"},
+    {"tag": "New", "title": "Attendance tracker",  "desc": "Mark the classes you miss and watch your % update live.", "date": ""},
+]
+WHATSNEW_ID = "2026-06-29"   # bump this (e.g. to today's date) whenever you add an entry
+
 # ---- Web-push notifications (daily "tomorrow's classes" digest) ----
 # VAPID public key (safe to publish). The matching private key lives only as the
 # GitHub secret VAPID_PRIVATE, used by the sender job — never commit the private key.
@@ -647,6 +655,40 @@ html[data-theme="light"] #view-books .bk-intro,html[data-theme="light"] #view-no
 html[data-theme="light"] #view-pyqs .bk-intro{box-shadow:0 7px 18px rgba(150,110,50,.16)}
 .pyq-back{display:inline-block;text-decoration:none;font-weight:700;font-size:13px;color:var(--accent)}
 .beta{display:inline-block;vertical-align:middle;margin-left:7px;font-weight:800;font-size:10px;line-height:1;letter-spacing:.07em;padding:3px 6px;border-radius:6px;border:1.5px solid currentColor;opacity:.72}
+/* ---- Books accordion (coral, matches the section) ---- */
+.accs{--bkc:#ff7f5e;--bkc-soft:rgba(255,127,94,.15);--bkc-faint:rgba(255,127,94,.07);margin-top:16px;display:flex;flex-direction:column;gap:12px}
+.acc{border:1px solid var(--line);border-radius:18px;background:var(--card);backdrop-filter:blur(8px);overflow:hidden;transition:border-color .25s}
+.acc.open{border-color:rgba(255,127,94,.30)}
+.acc-h{width:100%;background:none;border:0;display:flex;align-items:center;gap:13px;padding:15px 16px;cursor:pointer;color:var(--ink);text-align:left;font-family:"Bricolage Grotesque",sans-serif;transition:background .2s}
+.acc.open .acc-h{background:var(--bkc-faint)}
+.acc-ic{width:36px;height:36px;flex:none;display:grid;place-items:center;border-radius:11px;background:var(--bkc-soft);color:var(--bkc)}
+.acc-ic svg{width:19px;height:19px}
+.acc-tt{flex:1;min-width:0}
+.acc-t{font-weight:800;font-size:15.5px;line-height:1.25}
+.acc-sub{display:block;font-family:"Inter",sans-serif;font-weight:500;font-size:12px;color:var(--faint);margin-top:2px}
+.acc-cnt{display:inline-block;margin-left:8px;font-family:"Inter",sans-serif;font-weight:700;font-size:11.5px;color:var(--bkc);background:var(--bkc-soft);padding:2px 8px;border-radius:999px;vertical-align:middle}
+.acc-chev{width:20px;height:20px;flex:none;opacity:.5;transition:transform .28s ease}
+.acc.open .acc-chev{transform:rotate(180deg);opacity:.85}
+.acc-p{display:grid;grid-template-rows:0fr;transition:grid-template-rows .3s ease}
+.acc.open .acc-p{grid-template-rows:1fr}
+.acc-in{overflow:hidden;min-height:0}
+.acc-pad{padding:0 13px 14px}
+.acc-pad .reslist{margin-top:2px}
+.acc-pad .bk-note{margin-top:0;margin-bottom:10px}
+/* ---- What's New ---- */
+.ver-badge{cursor:pointer}
+.wn-list{display:flex;flex-direction:column;gap:14px;margin-bottom:16px;max-height:58vh;overflow:auto}
+.wn-item{display:flex;gap:12px;align-items:flex-start}
+.wn-dot{margin-top:6px;width:9px;height:9px;border-radius:50%;flex:none;background:var(--accent)}
+.wn-bd{flex:1;min-width:0}
+.wn-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.wn-t{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:14.5px;color:var(--ink)}
+.wn-tag{font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;padding:2px 7px;border-radius:999px}
+.wn-tag.new{color:#1a1208;background:var(--accent)}
+.wn-tag.improved{color:var(--ink);background:var(--card2);border:1px solid var(--line)}
+.wn-d{font-size:12.5px;color:var(--muted);line-height:1.45;margin-top:3px}
+.wn-date{font-size:11px;color:var(--faint);margin-top:4px}
+.wn-got{width:100%;height:46px;border-radius:14px}
 /* live today section */
 .livetoday{margin-top:16px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:15px 16px 13px;backdrop-filter:blur(8px);position:relative;overflow:hidden}
 .livetoday::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(120% 80% at 100% 0%,var(--accent-soft),transparent 60%)}
@@ -746,7 +788,7 @@ html[data-theme="light"] .sc-card{--sci:#221a12;--scm:#6c5b46;--scline:rgba(120,
     </div>
 
     <header class="hero">
-      <span class="ver-badge"><b>__VER__</b><span>Updated __BUILTD__</span></span>
+      <span class="ver-badge" id="verBadge" role="button" tabindex="0"><b>__VER__</b><span>Updated __BUILTD__</span></span>
       <span class="month" id="month"></span>
       <span class="year" id="year"></span>
       <div class="subweek" id="subweek"></div>
@@ -957,17 +999,42 @@ html[data-theme="light"] .sc-card{--sci:#221a12;--scm:#6c5b46;--scline:rgba(120,
     </div>
     <p class="bk-intro">Most MBA texts are available <b>free and legally</b> — start here. If you still can't find it, request a copy and we'll point you to a legitimate one.</p>
 
-    <h3 class="bk-h">Find it free first</h3>
-    <div class="reslist">
+    <div class="accs">
+      <div class="acc" id="accFree">
+        <button class="acc-h" type="button" aria-expanded="false">
+          <span class="acc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.2-4.2"/></svg></span>
+          <span class="acc-tt"><span class="acc-t">Find It Free First<span class="acc-cnt">6</span></span><span class="acc-sub">Free, legal sources — start here</span></span>
+          <svg class="acc-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="acc-p"><div class="acc-in"><div class="acc-pad">
+          <div class="reslist">
       <a class="rescard" href="https://mancomlibrary.nirmauni.ac.in/resources/electronic-resources/" target="_blank" rel="noopener"><span class="res-t">Nirma Management Library — e-books</span><span class="res-s">~59,000 e-books, free for students, on &amp; off campus via remote login</span></a>
       <a class="rescard" href="https://www.ndl.gov.in/" target="_blank" rel="noopener"><span class="res-t">National Digital Library of India</span><span class="res-s">Govt. of India — millions of free books and learning resources</span></a>
       <a class="rescard" href="https://nptel.ac.in/" target="_blank" rel="noopener"><span class="res-t">NPTEL</span><span class="res-s">Free video and web courses from the IITs and IISc</span></a>
       <a class="rescard" href="https://swayam.gov.in/" target="_blank" rel="noopener"><span class="res-t">SWAYAM</span><span class="res-s">Free government MOOCs with downloadable material</span></a>
       <a class="rescard" href="https://openstax.org/subjects" target="_blank" rel="noopener"><span class="res-t">OpenStax</span><span class="res-s">Free, peer-reviewed open textbooks — business, economics, statistics</span></a>
       <a class="rescard" href="https://www.doabooks.org/" target="_blank" rel="noopener"><span class="res-t">DOAB — Directory of Open Access Books</span><span class="res-s">Thousands of free, openly-licensed academic books</span></a>
-    </div>
+    
+          </div>
+        </div></div></div>
+      </div>
+      <div class="acc" id="accShelf">
+        <button class="acc-h" type="button" aria-expanded="false">
+          <span class="acc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v16M8 4v16M12 5l4-.6 3 14.4-4 .6zM4 20h8"/></svg></span>
+          <span class="acc-tt"><span class="acc-t">Shared Shelf__SHELFPILL__</span><span class="acc-sub">Batch uploads — download now</span></span>
+          <svg class="acc-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="acc-p"><div class="acc-in"><div class="acc-pad">
 __SHAREDSECTION__
-    <h3 class="bk-h">Can't find it? Request a copy</h3>
+        </div></div></div>
+      </div>
+      <div class="acc" id="accReq">
+        <button class="acc-h" type="button" aria-expanded="false">
+          <span class="acc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg></span>
+          <span class="acc-tt"><span class="acc-t">Can't Find It? Request A Copy</span><span class="acc-sub">We'll find you a legit copy</span></span>
+          <svg class="acc-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="acc-p"><div class="acc-in"><div class="acc-pad">
     <p class="bk-note">Tell us the book — we'll point you to a legitimate copy: a library edition, an open version, or a classmate who can lend it.</p>
     <div class="reqform" id="reqInline">
       <label>Book title<input id="q_title" type="text" placeholder="e.g. Marketing Management" autocomplete="off"></label>
@@ -981,9 +1048,23 @@ __SHAREDSECTION__
       <div class="ok" id="reqOk"></div>
     </div>
     <a class="go formbtn" id="reqFormBtn" hidden target="_blank" rel="noopener">Open the request form &rsaquo;</a>
+        </div></div></div>
+      </div>
+    </div>
 
     <footer>Books are shared only in legitimate ways — library access, open editions, or peer lending.</footer>
   </section>
+
+  <div class="modal-bg" id="wnModal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="wnTitle">
+      <div class="modal-head">
+        <h3 id="wnTitle">What's New</h3>
+        <button class="modal-x" id="wnClose" aria-label="Close">&times;</button>
+      </div>
+      <div class="wn-list" id="wnList"></div>
+      <button class="go wn-got" id="wnGot">Got it</button>
+    </div>
+  </div>
 
   <div class="modal-bg" id="fbModal" hidden>
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="fbTitle">
@@ -1318,6 +1399,8 @@ function pyqRender(){
     var b=e.target.closest("[data-back]"); if(b){ e.preventDefault(); if(b.getAttribute("data-back")==="sem"){pyqSem=null;pyqYear=null;} else {pyqYear=null;} pyqRender(); return; }
   });
 })();
+// books accordion toggle
+document.addEventListener("click",function(e){ var hh=e.target.closest(".acc-h"); if(!hh) return; var ac=hh.closest(".acc"); var op=ac.classList.toggle("open"); hh.setAttribute("aria-expanded", op?"true":"false"); });
 window.addEventListener("hashchange",showView);
 
 const AREA_SLUG={"Finance":"finance","Marketing":"marketing","DnA":"dna","OB":"ob","OM":"om","E & S":"es"};
@@ -1625,6 +1708,28 @@ setupBooks();
     ok.classList.add("show");
   });
 })();
+// What's New pop-up
+(function(){
+  var DATA_WN = __WHATSNEW__;
+  var WN_ID = "__WHATSNEW_ID__";
+  var m=$("wnModal"); if(!m||!DATA_WN||!DATA_WN.length) return;
+  $("wnList").innerHTML = DATA_WN.map(function(e){
+    var tag = e.tag ? '<span class="wn-tag '+(String(e.tag).toLowerCase()==="improved"?"improved":"new")+'">'+esc(e.tag)+'</span>' : '';
+    var date = e.date ? '<div class="wn-date">'+esc(e.date)+'</div>' : '';
+    return '<div class="wn-item"><span class="wn-dot"></span><div class="wn-bd"><div class="wn-top">'+tag+'<span class="wn-t">'+esc(e.title)+'</span></div><div class="wn-d">'+esc(e.desc||'')+'</div>'+date+'</div></div>';
+  }).join('');
+  var open=function(){ m.hidden=false; };
+  var close=function(){ m.hidden=true; try{localStorage.setItem("imnu-wn",WN_ID);}catch(e){} };
+  var seen=""; try{seen=localStorage.getItem("imnu-wn")||"";}catch(e){}
+  if(seen!==WN_ID) setTimeout(open,700);
+  var x=$("wnClose"), g=$("wnGot");
+  if(x) x.addEventListener("click",close);
+  if(g) g.addEventListener("click",close);
+  m.addEventListener("click",function(e){ if(e.target===m) close(); });
+  document.addEventListener("keydown",function(e){ if(e.key==="Escape"&&!m.hidden) close(); });
+  var vb=$("verBadge"); if(vb){ vb.addEventListener("click",open); vb.addEventListener("keydown",function(e){ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); open(); } }); }
+})();
+
 showView();
 </script>
 <script>
@@ -1968,11 +2073,11 @@ if shelf:
         _auth = '<span class="res-s">%s</span>'  % _esc(bk["author"]) if bk.get("author") else ""
         _cards += ('<a class="rescard shbook" href="%s" target="_blank" rel="noopener">'
                    '<span class="res-t">%s</span>%s%s%s</a>') % (_esc(bk["link"]), _esc(bk["title"]), _auth, _subj, _tag)
-    SHARED_HTML = ('\n    <h3 class="bk-h">Books In Stock</h3>'
-                   '\n    <p class="bk-note">Books available to download right now. Tap to open.</p>'
-                   '\n    <div class="reslist">%s</div>') % _cards
+    SHARED_HTML = ('\n          <p class="bk-note">Books available to download right now. Tap to open.</p>'
+                   '\n          <div class="reslist">%s</div>') % _cards
 else:
-    SHARED_HTML = ""
+    SHARED_HTML = '\n          <p class="bk-note">No shared books yet \u2014 check back soon.</p>'
+SHELF_PILL = ('<span class="acc-cnt">%d</span>' % len(shelf)) if shelf else ""
 
 import datetime as _bdt
 _bnow = _bdt.datetime.now(_bdt.timezone(_bdt.timedelta(hours=5, minutes=30)))
@@ -2013,7 +2118,7 @@ def build_pyq(outdir):
 
 pyq_json = json.dumps(build_pyq(os.path.dirname(os.path.abspath(OUT_PATH)) or "."), ensure_ascii=False)
 
-open(OUT_PATH, "w", encoding="utf-8").write(TEMPLATE.replace("__REQEMAIL__", REQUEST_EMAIL).replace("__REQFORM__", REQUEST_FORM_URL).replace("__SHAREDSECTION__", SHARED_HTML).replace("__INSTA__", INSTA_URL).replace("__VAPID__", VAPID_PUBLIC_KEY).replace("__NOTIFYEP__", NOTIFY_ENDPOINT).replace("__NOTESEP__", NOTES_ENDPOINT).replace("__NOTIFYON__", "true" if NOTIFY_ENABLED else "false").replace("__VER__", APP_VERSION).replace("__BUILTD__", _BUILT_D).replace("__BUILT__", _BUILT).replace("__PYQDATA__", pyq_json).replace("__DATA__", data))
+open(OUT_PATH, "w", encoding="utf-8").write(TEMPLATE.replace("__REQEMAIL__", REQUEST_EMAIL).replace("__REQFORM__", REQUEST_FORM_URL).replace("__SHAREDSECTION__", SHARED_HTML).replace("__SHELFPILL__", SHELF_PILL).replace("__INSTA__", INSTA_URL).replace("__VAPID__", VAPID_PUBLIC_KEY).replace("__NOTIFYEP__", NOTIFY_ENDPOINT).replace("__NOTESEP__", NOTES_ENDPOINT).replace("__NOTIFYON__", "true" if NOTIFY_ENABLED else "false").replace("__VER__", APP_VERSION).replace("__BUILTD__", _BUILT_D).replace("__BUILT__", _BUILT).replace("__WHATSNEW__", json.dumps(WHATS_NEW, ensure_ascii=False)).replace("__WHATSNEW_ID__", WHATSNEW_ID).replace("__PYQDATA__", pyq_json).replace("__DATA__", data))
 print(f"Wrote {OUT_PATH}")
 
 # Publish the build's stats next to index.html so the NEXT run can fetch it as the
