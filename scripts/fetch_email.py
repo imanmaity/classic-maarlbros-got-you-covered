@@ -119,6 +119,12 @@ def parse_change(text, edate=None):
     for ab, dvgroup in re.findall(r'([A-Za-z&]{2,6})\(\s*([A-Za-z][A-Za-z&,\s]*?)\s*\)', text):
         for dv in re.findall(r'[A-Za-z]', dvgroup):
             secs.append((ab, dv))
+    if not secs:
+        # Subject named without a (division) in parens, e.g. "PML session ... is postponed".
+        # Treat the bare uppercase code as the whole class (no division -> keys to the same cell).
+        for _ab in re.findall(r'\b([A-Z][A-Z&]{1,5})\s+(?:sessions?|classes?|lectures?|scheduled)\b', text):
+            if (_ab, "") not in secs:
+                secs.append((_ab, ""))
     if not secs: return []
     raw_dates = re.findall(r'(\d{1,2})[./-](\d{1,2})[./-](\d{2,4})', text)
     dates = [f"{int(('20'+y) if len(y)==2 else y):04d}-{int(m):02d}-{int(d):02d}" for d, m, y in raw_dates]
