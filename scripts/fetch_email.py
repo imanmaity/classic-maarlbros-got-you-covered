@@ -74,6 +74,38 @@ def _name_dates(fn):
             except ValueError: pass
     return out
 
+def _looks_like_schedule(raw):
+    """Is `raw` actually the master timetable, or some other .xlsx the office
+    happened to attach? Returns True only if the workbook carries BOTH a
+    Course-Detail catalog (course codes in column B) AND a weekly grid sheet
+    with dated rows -- i.e. exactly what build_dataset needs to parse a real
+    timetable. Mirrors build_dataset's own sheet detection, so 'valid here'
+    means 'parses to non-zero there'. Returns False for a blank/wrong sheet,
+    and None only if openpyxl is unavailable to check (caller then accepts)."""
+    try:
+        from openpyxl import load_workbook
+        import io
+    except Exception:
+        return None
+    try:
+        wb = load_workbook(io.BytesIO(raw), read_only=True, data_only=True)
+        sheets = {s: [list(r) for r in wb[s].iter_rows(values_only=True)]
+                  for s in wb.sheetnames}
+        wb.close()
+    except Exception:
+        return False
+    cd = next((s for s in sheets if "course detail" in s.lower()),
+              next(iter(sheets), None))
+    cd_rows = sheets.get(cd, [])
+    has_codes = any(
+        len(r) > 1 and isinstance(r[1], str) and "total" not in r[1].lower()
+        and re.search(r"[A-Za-z]", r[1]) and re.search(r"\d", r[1])
+        for r in cd_rows[1:])
+    has_grid = any(
+        any(len(r) > 0 and isinstance(r[0], datetime.datetime) for r in rows[2:])
+        for s, rows in sheets.items() if s != cd)
+    return bool(has_codes and has_grid)
+
 # room/venue token, e.g. "T3", "E6", "T-3", "309-F", "LH1" (letters+digits, or digits-letters)
 ROOM_RE = r'(?:[A-Za-z]{1,4}-?\d{1,3}[A-Za-z]?|\d{2,4}-[A-Za-z]{1,3})'
 _WEEKDAYS = {"monday":0,"tuesday":1,"wednesday":2,"thursday":3,"friday":4,"saturday":5,"sunday":6}
@@ -318,7 +350,7 @@ crit = (["FROM", SENDER] if SENDER else []) + ["SINCE", since_s]
 typ, data = M.search(None, *crit)
 ids = data[0].split()
 if not ids:
-    M.logout(); sys.exit(f"No emails from {SENDER or 'anyone'} since {since_s} — not publishing.")
+    M.logout(); sys.exit(f"No emails from {SENDER or 'anyone'} since {since_s} â not publishing.")
 
 skipped = []   # reasons, for a clear log if nothing usable is found
 for num in reversed(ids):                 # newest first
@@ -339,12 +371,23 @@ for num in reversed(ids):                 # newest first
         if ds and max(ds) < TODAY_IST - datetime.timedelta(days=SCHED_GRACE_DAYS):
             skipped.append(f"{fn!r} stale (range ends {max(ds)})")
             continue
+        raw = part.get_payload(decode=True)
+        ok = _looks_like_schedule(raw)    # is this really the timetable, not a stray .xlsx?
+        if ok is False:
+            skipped.append(f"{fn!r} not a valid timetable (no course-detail/grid)")
+            continue
         os.makedirs(os.path.dirname(OUT) or ".", exist_ok=True)
-        open(OUT, "wb").write(part.get_payload(decode=True))
+        open(OUT, "wb").write(raw)
         rng = f", covers {min(ds)}..{max(ds)}" if ds else ""
-        print(f"Saved {fn!r} (from {_addr_of(msg)}, subject {subj!r}{rng}) -> {OUT}")
+        warn = "" if ok else "  [WARN: openpyxl unavailable, accepted unchecked]"
+        print(f"Saved {fn!r} (from {_addr_of(msg)}, subject {subj!r}{rng}) -> {OUT}{warn}")
         M.logout(); sys.exit(0)
 M.logout()
-sys.exit("No fresh .xlsx schedule from the expected sender — not publishing (keeping the last good one). "
+# Nothing valid arrived by mail. If a known-good schedule is already committed
+# to the repo, keep publishing with it rather than freezing the site for a week.
+if os.path.exists(OUT) and os.path.getsize(OUT) > 0:
+    print(f"No fresh valid timetable by email; keeping the committed {OUT}."
+          + (" Skipped: " + "; ".join(skipped[:6]) if skipped else ""))
+    sys.exit(0)
+sys.exit("No fresh .xlsx schedule from the expected sender and no committed fallback â not publishing. "
          + ("Skipped: " + "; ".join(skipped[:6]) if skipped else ""))
-        
