@@ -347,3 +347,4 @@ for num in reversed(ids):                 # newest first
 M.logout()
 sys.exit("No fresh .xlsx schedule from the expected sender — not publishing (keeping the last good one). "
          + ("Skipped: " + "; ".join(skipped[:6]) if skipped else ""))
+        
