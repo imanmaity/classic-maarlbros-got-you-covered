@@ -1261,13 +1261,15 @@ function homeStats(st){ const g=$("glance"); var _ncx=$("livetoday"); if(!st){ g
   const meetings=[];
   secs.forEach(e=>(e.meetings||[]).forEach(m=>meetings.push({sec:e,day:m.day,start:m.start})));
   const changeMap=new Map();
+  // DATA.changes is newest-email-first; keep the FIRST match for a cell so a later
+  // correction ("typographical error") wins over the notice it supersedes.
   myChanges.forEach(c=>{ if(isRoomChange(c)) return; const el=elBy[ckey(c.abbr,c.division)], ses=sessByHM(c.new_hhmm);
     if(el&&ses&&c.new_day&&!isTBA(c)&&c.type!=="Cancelled") meetings.push({sec:el,day:c.new_day,start:ses.start,changed:"in"});
-    if(c.old_day) changeMap.set(c.old_day+"|"+ckey(c.abbr,c.division), c); });
+    if(c.old_day){ const _k=c.old_day+"|"+ckey(c.abbr,c.division); if(!changeMap.has(_k)) changeMap.set(_k, c); } });
   meetings.forEach(m=>{ if(m.changed) return; if(changeMap.get(m.day+"|"+ckey(m.sec.abbr,m.sec.division))) m.changed="out"; });
   // attach room-change notices to meetings (same matching the timetable uses)
   const roomMap=new Map();
-  myChanges.forEach(c=>{ if(isRoomChange(c)&&c.new_day) roomMap.set(c.new_day+"|"+ckey(c.abbr,c.division), c); });
+  myChanges.forEach(c=>{ if(isRoomChange(c)&&c.new_day){ const _k=c.new_day+"|"+ckey(c.abbr,c.division); if(!roomMap.has(_k)) roomMap.set(_k, c); } });
   meetings.forEach(m=>{ const rc=roomMap.get(m.day+"|"+ckey(m.sec.abbr,m.sec.division)); if(rc) m.roomChg=rc; });
   const nm=m=>cleanSub(m.sec.name)||m.sec.abbr;
   // anchor today/tomorrow/next to REAL dates: the schedule's meetings belong to
@@ -1464,10 +1466,10 @@ function render(){
   const elBy={}; electives.forEach(e=>{elBy[ckey(e.abbr,e.division)]=e;});
   const changeMap=new Map(), roomMap=new Map();
   myChanges.forEach(c=>{
-    if(isRoomChange(c)){ if(c.new_day) roomMap.set(c.new_day+'|'+ckey(c.abbr,c.division), c); return; }
+    if(isRoomChange(c)){ if(c.new_day){ const _k=c.new_day+'|'+ckey(c.abbr,c.division); if(!roomMap.has(_k)) roomMap.set(_k, c); } return; }
     const el=elBy[ckey(c.abbr,c.division)], ses=sessByHM(c.new_hhmm);
     if(el&&ses&&c.new_day&&!isTBA(c)&&c.type!=='Cancelled') meetings.push({sec:el,day:c.new_day,session:ses.name,start:ses.start,end:ses.end,changed:'in'});
-    if(c.old_day) changeMap.set(c.old_day+'|'+ckey(c.abbr,c.division), c); });
+    if(c.old_day){ const _k2=c.old_day+'|'+ckey(c.abbr,c.division); if(!changeMap.has(_k2)) changeMap.set(_k2, c); } });
   meetings.forEach(m=>{ if(m.changed) return;
     const c=changeMap.get(m.day+'|'+ckey(m.sec.abbr,m.sec.division));
     if(c){ m.changed='out'; m.tba=isTBA(c); return; }
