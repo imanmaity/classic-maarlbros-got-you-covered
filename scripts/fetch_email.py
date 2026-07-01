@@ -132,21 +132,24 @@ def _divs(group):
 # or named with a postpone/cancel verb, e.g. "PML is postponed". The code is
 # matched case-SENSITIVELY (uppercase only) so words like "is"/"are" can't slip
 # in; only the verbs are case-insensitive. A stop-list drops common non-courses.
-_BARE_STOP = {"MBA", "IMBA", "BTECH", "IIM", "PDF", "FYI", "TBA", "AM", "PM",
-              "LH", "NOTE", "ALL", "AND", "FOR", "THE", "ARE", "IS"}
-_BARE_CUE  = re.compile(r'\b([A-Z][A-Z&]{1,5})\b\s+(?i:sessions?|classes?|lectures?|scheduled)\b')
-_BARE_VERB = re.compile(r'(?i:postpon\w*|prepon\w*|reschedul\w*|cancel\w*|not\s+be\s+held)')
 def _bare_codes(text):
+    """Bare codes with no "(division)" -- named as a class ("PML session ...")
+    or inside a postpone/cancel sentence ("BI(A) and PML are postponed").
+    Self-contained (no module-level constants) so selftest can extract it with
+    parse_change. Codes are matched case-SENSITIVELY (uppercase only) so words
+    like "is"/"are" can't slip in; a stop-list drops common non-course words."""
+    stop = {"MBA", "IMBA", "BTECH", "IIM", "PDF", "FYI", "TBA", "AM", "PM",
+            "LH", "NOTE", "ALL", "AND", "FOR", "THE", "ARE", "IS"}
     out = []
-    def add(A):
-        A = A.upper()
-        if A not in _BARE_STOP and A not in out:
-            out.append(A)
-    for ab in _BARE_CUE.findall(text):           # "PML session", "PML scheduled"
-        add(ab)
+    def add(a):
+        a = a.upper()
+        if a not in stop and a not in out:
+            out.append(a)
+    for ab in re.findall(r'\b([A-Z][A-Z&]{1,5})\b\s+(?i:sessions?|classes?|lectures?|scheduled)\b', text):
+        add(ab)                                   # "PML session", "PML scheduled"
     for sent in re.split(r'[.\n]', text):         # any sentence with a postpone/cancel verb
-        if _BARE_VERB.search(sent):               #   -> take every bare code it names
-            for ab in re.findall(r'\b([A-Z][A-Z&]{1,5})\b', sent):
+        if re.search(r'(?i:postpon\w*|prepon\w*|reschedul\w*|cancel\w*|not\s+be\s+held)', sent):
+            for ab in re.findall(r'\b([A-Z][A-Z&]{1,5})\b', sent):   # -> take every code it names
                 add(ab)
     return out
 
