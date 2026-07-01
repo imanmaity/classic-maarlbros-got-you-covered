@@ -147,7 +147,7 @@ def _bare_codes(text):
             out.append(a)
     for ab in re.findall(r'\b([A-Z][A-Z&]{1,5})\b\s+(?i:sessions?|classes?|lectures?|scheduled)\b', text):
         add(ab)                                   # "PML session", "PML scheduled"
-    for sent in re.split(r'[.\n]', text):         # any sentence with a postpone/cancel verb
+    for sent in re.split(r'\n|(?<!\d)\.(?!\d)', text):   # sentence split that keeps dates (05.01.2026) whole
         if re.search(r'(?i:postpon\w*|prepon\w*|reschedul\w*|cancel\w*|not\s+be\s+held)', sent):
             for ab in re.findall(r'\b([A-Z][A-Z&]{1,5})\b', sent):   # -> take every code it names
                 add(ab)
@@ -201,7 +201,12 @@ def parse_change(text, edate=None):
             secs.append((_ab, ""))
     if not secs: return []
     raw_dates = re.findall(r'(\d{1,2})[./-](\d{1,2})[./-](\d{2,4})', text)
-    dates = [f"{int(('20'+y) if len(y)==2 else y):04d}-{int(m):02d}-{int(d):02d}" for d, m, y in raw_dates]
+    def _yr(y):
+        # a schedule notice's date is always near the send date, so a year far
+        # from the email's is a typo -- e.g. "01.07.2016" in a 2026 mail -> 2026.
+        v = int(('20' + y) if len(y) == 2 else y)
+        return edate.year if abs(v - edate.year) > 1 else v
+    dates = [f"{_yr(y):04d}-{int(m):02d}-{int(d):02d}" for d, m, y in raw_dates]
     # time ranges, capturing a trailing AM/PM if present (e.g. "02:40-03:40 & 03:50-04:50PM")
     tmatches = re.findall(r'(\d{1,2}[:.]\d{2})\s*(?:[-\u2013\u2014]|to)\s*\d{1,2}[:.]\d{2}\s*([AaPp][Mm])?', text)
     starts = [s.replace('.', ':') for s, _ in tmatches]
@@ -318,9 +323,12 @@ try:
         try: _edate = parsedate_to_datetime(msg.get("Date")).date()
         except Exception: _edate = datetime.date.today()
         for c in parse_change(body_text(msg), _edate):
-            # dedup by the actual change (subject + division + dates + time + room), NOT by the shared
-            # message text -- otherwise a single mail naming two divisions keeps only one of them
-            key = (c["abbr"], c["division"], c["old_date"], c["new_date"], c["new_hhmm"], c["type"], c.get("new_room"))
+            # dedup by the actual change (subject + division + dates + time + type), NOT by the shared
+            # message text -- otherwise a single mail naming two divisions keeps only one of them.
+            # new_room is deliberately excluded: mail is scanned newest-first, so if a later
+            # "typographical error" correction moves the same cell to a different room, the newer
+            # one is kept and the superseded room is dropped.
+            key = (c["abbr"], c["division"], c["old_date"], c["new_date"], c["new_hhmm"], c["type"])
             if key not in seen:
                 changes.append(c); seen.add(key)
     os.makedirs(os.path.dirname(CHANGES_OUT) or ".", exist_ok=True)
