@@ -179,6 +179,22 @@ def _detect_rooms(t):
         if m: orr = _room_norm(m.group(1))
     return nr, orr
 
+def _room_events(t):
+    """[(pos, new_room, old_room)] for every venue mention in the text, in order,
+    so each section can bind to the room named AFTER it -- robust to however the
+    office formats the numbered points."""
+    ev = []
+    for m in re.finditer(r'\b(' + ROOM_RE + r')\s+to\s+(' + ROOM_RE + r')\b', t, re.I):  # "from E6 to T3"
+        ev.append((m.start(), _room_norm(m.group(2)), _room_norm(m.group(1))))
+    for m in re.finditer(r'\b(' + ROOM_RE + r')\s+class\s*-?\s*room\b', t, re.I):          # "T3 classroom"
+        ev.append((m.start(), _room_norm(m.group(1)), None))
+    for m in re.finditer(r'(?:held|conducted|shifted|moved|take\s*place|venue|class\s*-?\s*room|classroom|room|hall)\b'
+                         r'[^.\n]{0,25}?\b(?:in|to|at|:)\s*(?:room\s*(?:no\.?)?\s*|class\s*-?\s*room\s*|venue\s*|hall\s*)?'
+                         r'(' + ROOM_RE + r')\b', t, re.I):                                 # "held in / shifted to T3"
+        ev.append((m.start(), _room_norm(m.group(1)), None))
+    ev.sort(key=lambda e: e[0])
+    return ev
+
 def _clauses(t):
     """Split a notice into venue clauses on numbered markers ("1)", "2)") and
     sentence enders, so each subject group pairs with the room in its own clause."""
@@ -258,12 +274,17 @@ def parse_change(text, edate=None):
         #   "1) IPM(A),FSA(C) ... E2 Classroom.  2) CB(A),CB(B) ... E1 classroom."
         # Pair each section with the room mentioned in ITS clause; fall back to the
         # global room only if a section's clause names no venue of its own.
+        # Bind each section to the FIRST venue named AFTER it in the text, so a
+        # mis-formatted numbered list can't dump a section onto the global (first)
+        # room. E.g. "1) CB(A) ... E2.  2) CB(B) ... T4" -> CB(A)=E2, CB(B)=T4,
+        # because T4 is the next venue after CB(B) and E2 sits before it.
+        rev = _room_events(text)
         seg_room = {}
-        for seg in _clauses(text):
-            snr, sorr = _detect_rooms(seg)
-            if snr is None: continue
-            for ab, dv in _secs_in(seg):
-                seg_room[(ab.upper(), dv.upper())] = (snr, sorr or old_room)
+        for sm in re.finditer(r'([A-Za-z&]{2,6})\(\s*([A-Za-z][A-Za-z&,\s]*?)\s*\)', text):
+            after = next((e for e in rev if e[0] >= sm.start()), None)
+            if after:
+                for dv in _divs(sm.group(2)):
+                    seg_room.setdefault((sm.group(1).upper(), dv.upper()), (after[1], after[2] or old_room))
         for ab, dv in secs:
             nr, orr = seg_room.get((ab.upper(), dv.upper()), (new_room, old_room))
             out.append({"abbr": ab.upper(), "division": dv.upper(), "type": "Room Change",
@@ -333,7 +354,7 @@ try:
                 changes.append(c); seen.add(key)
     os.makedirs(os.path.dirname(CHANGES_OUT) or ".", exist_ok=True)
     json.dump(changes, open(CHANGES_OUT, "w", encoding="utf-8"), ensure_ascii=False)
-    print(f"Parsed {len(changes)} change notice(s) -> {CHANGES_OUT}")
+    print(f"[fetch_email v2026-07-01: nearest-room + year-snap] Parsed {len(changes)} change notice(s) -> {CHANGES_OUT}")
 except Exception as e:
     print("Change-notice fetch skipped:", e)
 
