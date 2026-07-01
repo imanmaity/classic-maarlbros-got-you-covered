@@ -1234,6 +1234,22 @@ const normHM=s=>{const m=String(s||"").match(/(\d{1,2})[:.](\d{2})/); return m?p
 const sessByHM=hm=>(DATA.sessions||[]).find(s=>normHM(s.start)===normHM(hm));
 const isTBA=c=>!!(c.tba || !sessByHM(c.new_hhmm));
 const isRoomChange=c=>(c.type==="Room Change")&&!!c.new_room;
+// #4: a notice with no division ("all divisions", or a bare-code postpone like
+// "PML postponed") should land on EVERY division of that course, not just an
+// undivided cell. Expand once here, using the real divisions in the schedule,
+// so the grid overlay matches — not only the notice banner. Genuinely undivided
+// classes (one section, no division) and unknown courses are left untouched.
+(function(){ try{
+  const all=DATA.sections?(Array.isArray(DATA.sections)?DATA.sections:Object.values(DATA.sections)):[];
+  const divsBy={}; all.forEach(s=>{ if(!s||!s.abbr) return; const k=canon(s.abbr); (divsBy[k]=divsBy[k]||new Set()).add(s.division||""); });
+  const out=[]; (DATA.changes||[]).forEach(c=>{
+    if(c && (c.division===""||c.division==null)){
+      const ds=divsBy[canon(c.abbr)];
+      if(ds && !(ds.size===1 && ds.has(""))){ ds.forEach(dv=>out.push(Object.assign({},c,{division:dv}))); return; }
+    }
+    out.push(c);
+  }); DATA.changes=out;
+}catch(e){} })();
 function homeStats(st){ const g=$("glance"); var _ncx=$("livetoday"); if(!st){ g.hidden=true; if(_ncx)_ncx.hidden=true; return; }
   const dayName=TODAY.toLocaleDateString("en-US",{weekday:"long"});
   const secs=st.s.map(id=>DATA.sections[id]).filter(Boolean);
@@ -2013,6 +2029,31 @@ for _s in (_D.get("sections") or {}).values():
     _ABBR2[_ab.upper()] = (_ab, "a-" + _AREA_SLUG.get(_s.get("area",""), "gen"))
     _nm = str(_s.get("name","")).split("*")[0].split("(")[0].strip()
     if _nm: _NAME2[_normsub(_nm)] = _ab.upper()
+
+# Visibility (#2): flag any change notice whose (abbr, division) maps to no
+# section, so a mistyped/unknown course is caught here instead of silently
+# vanishing from the grid. Mirrors the app's canon() and the division-"" =
+# whole-course rule. Diagnostic only; never alters output or fails the build.
+def _canon_ab(a):
+    _u = str(a or "").upper()
+    return "I&PM" if _u == "I&PM" else _u.replace("&", "")
+_sched_keys, _sched_abbrs = set(), set()
+for _s in (_D.get("sections") or {}).values():
+    _ab = _canon_ab(_s.get("abbr", ""))
+    if not _ab: continue
+    _sched_abbrs.add(_ab)
+    _sched_keys.add((_ab, str(_s.get("division", "") or "")))
+_unmatched = []
+for _c in (_D.get("changes") or []):
+    _ab, _dv = _canon_ab(_c.get("abbr", "")), str(_c.get("division", "") or "")
+    if not ((_ab, _dv) in _sched_keys or (_dv == "" and _ab in _sched_abbrs)):
+        _unmatched.append(f"{_c.get('abbr','?')}({_c.get('division','') or '-'})")
+_nc = len(_D.get("changes") or [])
+if _unmatched:
+    print(f"[changes] {len(_unmatched)} of {_nc} notice(s) match no section (won't show on grid): "
+          + "; ".join(_unmatched[:12]))
+elif _nc:
+    print(f"[changes] all {_nc} notice(s) map to a section.")
 
 def _resolve_subj(code, title):
     """code = bracket tag from filename (may be ''); fall back to title match."""

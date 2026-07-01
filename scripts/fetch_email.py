@@ -111,11 +111,50 @@ ROOM_RE = r'(?:[A-Za-z]{1,4}-?\d{1,3}[A-Za-z]?|\d{2,4}-[A-Za-z]{1,3})'
 _WEEKDAYS = {"monday":0,"tuesday":1,"wednesday":2,"thursday":3,"friday":4,"saturday":5,"sunday":6}
 def _room_norm(s): return re.sub(r'\s+', '', str(s)).upper()
 
+# #1: which notices to parse. Keep the configurable phrase, but also let
+# postpone / reschedule / cancel / venue notices through even when their
+# subject never says "change in class".
+_CHANGE_SUBJECT_RE = re.compile(
+    r'postpon|prepon|reschedul|cancel|class\s*-?\s*room|classroom|\bvenue\b|\broom\b|'
+    r'change\s+in\s+(?:class|schedule|time|timing|venue)', re.I)
+
+# #4: pull division letters out of a parenthesised group sensibly.
+#   "A & B" -> [A, B] ; "A" -> [A] ; "All"/"both" -> [""] (whole course) ;
+#   noise like "MBA students" / "B.Tech" -> []  (no stray single letters;
+#   the period/letter guards stop the "B" in "B.Tech" being read as a division).
+def _divs(group):
+    g = (group or "").strip()
+    if re.search(r'\b(?:all|both|entire|every|each)\b', g, re.I):
+        return [""]
+    return [d.upper() for d in re.findall(r'(?<![A-Za-z.])([A-Ha-h])(?![A-Za-z.])', g)]
+
+# #5: bare codes (no "(division)") named as a class, e.g. "PML session ...",
+# or named with a postpone/cancel verb, e.g. "PML is postponed". The code is
+# matched case-SENSITIVELY (uppercase only) so words like "is"/"are" can't slip
+# in; only the verbs are case-insensitive. A stop-list drops common non-courses.
+_BARE_STOP = {"MBA", "IMBA", "BTECH", "IIM", "PDF", "FYI", "TBA", "AM", "PM",
+              "LH", "NOTE", "ALL", "AND", "FOR", "THE", "ARE", "IS"}
+_BARE_CUE  = re.compile(r'\b([A-Z][A-Z&]{1,5})\b\s+(?i:sessions?|classes?|lectures?|scheduled)\b')
+_BARE_VERB = re.compile(r'(?i:postpon\w*|prepon\w*|reschedul\w*|cancel\w*|not\s+be\s+held)')
+def _bare_codes(text):
+    out = []
+    def add(A):
+        A = A.upper()
+        if A not in _BARE_STOP and A not in out:
+            out.append(A)
+    for ab in _BARE_CUE.findall(text):           # "PML session", "PML scheduled"
+        add(ab)
+    for sent in re.split(r'[.\n]', text):         # any sentence with a postpone/cancel verb
+        if _BARE_VERB.search(sent):               #   -> take every bare code it names
+            for ab in re.findall(r'\b([A-Z][A-Z&]{1,5})\b', sent):
+                add(ab)
+    return out
+
 def _secs_in(t):
     """(abbr, division) pairs mentioned in a fragment of notice text."""
     s = []
     for ab, dvgroup in re.findall(r'([A-Za-z&]{2,6})\(\s*([A-Za-z][A-Za-z&,\s]*?)\s*\)', t):
-        for dv in re.findall(r'[A-Za-z]', dvgroup):
+        for dv in _divs(dvgroup):
             s.append((ab, dv))
     return s
 
@@ -149,14 +188,14 @@ def parse_change(text, edate=None):
     # sections like "SBM(A)", "SBM(A & B)", "SDM(A), SDM(B)" -> one (abbr, division) per division
     secs = []
     for ab, dvgroup in re.findall(r'([A-Za-z&]{2,6})\(\s*([A-Za-z][A-Za-z&,\s]*?)\s*\)', text):
-        for dv in re.findall(r'[A-Za-z]', dvgroup):
+        for dv in _divs(dvgroup):
             secs.append((ab, dv))
-    if not secs:
-        # Subject named without a (division) in parens, e.g. "PML session ... is postponed".
-        # Treat the bare uppercase code as the whole class (no division -> keys to the same cell).
-        for _ab in re.findall(r'\b([A-Z][A-Z&]{1,5})\s+(?:sessions?|classes?|lectures?|scheduled)\b', text):
-            if (_ab, "") not in secs:
-                secs.append((_ab, ""))
+    # #5: also catch bare codes named with a postpone/cancel verb but no
+    # "(division)", e.g. "PML session is postponed" -- even alongside other
+    # parenthesised sections. Empty division -> whole class.
+    for _ab in _bare_codes(text):
+        if not any(a.upper() == _ab for a, _ in secs) and (_ab, "") not in secs:
+            secs.append((_ab, ""))
     if not secs: return []
     raw_dates = re.findall(r'(\d{1,2})[./-](\d{1,2})[./-](\d{2,4})', text)
     dates = [f"{int(('20'+y) if len(y)==2 else y):04d}-{int(m):02d}-{int(d):02d}" for d, m, y in raw_dates]
@@ -170,7 +209,7 @@ def parse_change(text, edate=None):
     times = [s + (m if m else (fill or "")) for s, m in zip(starts, meris)]
     low = text.lower()
     ctype = ('Preponed' if 'prepon' in low else 'Postponed' if 'postpon' in low
-             else 'Cancelled' if 'cancel' in low
+             else 'Cancelled' if ('cancel' in low or 'not be held' in low)
              else 'Rescheduled' if ('reschedul' in low or 'shift' in low) else 'Changed')
     old_date = dates[0] if dates else None
     new_date = dates[-1] if len(dates) >= 2 else None
@@ -270,7 +309,8 @@ try:
     for num in reversed(data[0].split()):
         typ, md = M.fetch(num, "(RFC822)")
         msg = email.message_from_bytes(md[0][1])
-        if CHANGE_SUBJECT.lower() not in decode(msg.get("Subject", "")).lower():
+        _subj = decode(msg.get("Subject", "")).lower()
+        if CHANGE_SUBJECT.lower() not in _subj and not _CHANGE_SUBJECT_RE.search(_subj):
             continue
         try: _edate = parsedate_to_datetime(msg.get("Date")).date()
         except Exception: _edate = datetime.date.today()
@@ -350,7 +390,7 @@ crit = (["FROM", SENDER] if SENDER else []) + ["SINCE", since_s]
 typ, data = M.search(None, *crit)
 ids = data[0].split()
 if not ids:
-    M.logout(); sys.exit(f"No emails from {SENDER or 'anyone'} since {since_s} â not publishing.")
+    M.logout(); sys.exit(f"No emails from {SENDER or 'anyone'} since {since_s} — not publishing.")
 
 skipped = []   # reasons, for a clear log if nothing usable is found
 for num in reversed(ids):                 # newest first
@@ -389,5 +429,5 @@ if os.path.exists(OUT) and os.path.getsize(OUT) > 0:
     print(f"No fresh valid timetable by email; keeping the committed {OUT}."
           + (" Skipped: " + "; ".join(skipped[:6]) if skipped else ""))
     sys.exit(0)
-sys.exit("No fresh .xlsx schedule from the expected sender and no committed fallback â not publishing. "
+sys.exit("No fresh .xlsx schedule from the expected sender and no committed fallback — not publishing. "
          + ("Skipped: " + "; ".join(skipped[:6]) if skipped else ""))
