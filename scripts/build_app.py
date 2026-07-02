@@ -1484,8 +1484,11 @@ function render(){
 
   let html=`<div class="who"><span class="name">${esc(st.n)}</span><span class="chip">${esc(roll)}</span><span class="meta">${electives.length} electives · ${esc(st.b)}</span></div>`;
 
-  if(myChanges.length){ const seen=new Set();
-    myChanges.forEach(c=>{const t=cleanNotice(c.raw); if(!t||seen.has(t))return; seen.add(t);
+  if(myChanges.length){ const seen=new Set(); const _todayISO=dateStr(TODAY);
+    myChanges.forEach(c=>{
+      const _d=c.new_date||c.old_date;            // a notice auto-expires once the day it applies to has passed:
+      if(_d && _d < _todayISO) return;            //   a 01.07 notice stops showing on 02.07 (24h cooldown)
+      const t=cleanNotice(c.raw); if(!t||seen.has(t))return; seen.add(t);
       html+=`<div class="notice${isRoomChange(c)?' room':isTBA(c)?' red':''}"><span class="ntag">${esc(c.type||'Changed')}</span><span class="ntxt">${esc(t)}</span></div>`;}); }
 
   const hasMoved=myChanges.some(c=>!isTBA(c)&&!isRoomChange(c)), hasPostponed=myChanges.some(c=>isTBA(c)&&!isRoomChange(c)), hasRoom=myChanges.some(isRoomChange);
