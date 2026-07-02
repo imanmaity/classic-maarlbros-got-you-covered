@@ -2,7 +2,9 @@ name: Weekly schedule update
 
 on:
   schedule:
-    - cron: "0,30 0-15 * * *"   # every 30 min, 05:30-21:00 IST (UTC 00:00-15:30)
+    # every 30 min, 06:00-17:00 IST, every day (GitHub cron is UTC; IST = UTC+5:30)
+    - cron: "30 0 * * *"        # 06:00 IST
+    - cron: "0,30 1-11 * * *"   # 06:30-17:00 IST
   workflow_dispatch:           # lets you run it manually from the Actions tab
     inputs:
       force_publish:
