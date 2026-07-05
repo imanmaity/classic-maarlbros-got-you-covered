@@ -216,7 +216,13 @@ def parse_change(text, edate=None):
         if not any(a.upper() == _ab for a, _ in secs) and (_ab, "") not in secs:
             secs.append((_ab, ""))
     if not secs: return []
-    raw_dates = re.findall(r'(\d{1,2})[./-](\d{1,2})[./-](\d{2,4})', text)
+    # Ignore dates that merely REFERENCE another circular ("as per schedule sent
+    # on 25.06.2026", "vide notice dated ..."), so a trailing note can't hijack the
+    # change date and mis-classify a room change as a reschedule.
+    _dtext = re.sub(r'(?:sent|dated|circulated|issued|shared|vide|'
+                    r'as\s+per\s+(?:the\s+)?(?:schedule|circular|notice|mail|email))'
+                    r'[^.\n]{0,20}?\d{1,2}[./-]\d{1,2}[./-]\d{2,4}', ' ', text, flags=re.I)
+    raw_dates = re.findall(r'(\d{1,2})[./-](\d{1,2})[./-](\d{2,4})', _dtext)
     def _yr(y):
         # a schedule notice's date is always near the send date, so a year far
         # from the email's is a typo -- e.g. "01.07.2016" in a 2026 mail -> 2026.
@@ -354,7 +360,7 @@ try:
                 changes.append(c); seen.add(key)
     os.makedirs(os.path.dirname(CHANGES_OUT) or ".", exist_ok=True)
     json.dump(changes, open(CHANGES_OUT, "w", encoding="utf-8"), ensure_ascii=False)
-    print(f"[fetch_email v2026-07-01: nearest-room + year-snap] Parsed {len(changes)} change notice(s) -> {CHANGES_OUT}")
+    print(f"[fetch_email v2026-07-05: nearest-room + year-snap + ref-date] Parsed {len(changes)} change notice(s) -> {CHANGES_OUT}")
 except Exception as e:
     print("Change-notice fetch skipped:", e)
 
