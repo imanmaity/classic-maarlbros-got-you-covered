@@ -1132,6 +1132,19 @@ function mondayOf(d){const x=new Date(d);x.setHours(0,0,0,0);const w=(x.getDay()
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 
 const TODAY=new Date();
+// Roll the view to the real current week. The build ships this-week + next-week
+// data; if the device's date has moved into next week (build ran last week, or
+// it's before today's first rebuild), promote next-week to "This Week" and drop
+// the finished week — so a passed week is never shown as current.
+(function(){ try{
+  const _bMon=mondayOf(new Date((DATA.meta.week_of||dateStr(TODAY))+"T00:00:00"));
+  const _tMon=mondayOf(TODAY);
+  if(Math.round((_tMon-_bMon)/6048e5)===1){
+    Object.values(DATA.sections||{}).forEach(s=>{ s.meetings=s.meetingsNext||[]; s.meetingsNext=[]; });
+    DATA.meta.week_of=DATA.meta.week_of_next||dateStr(_tMon);
+    DATA.meta.week_of_next=dateStr(new Date(_tMon.getTime()+6048e5));
+  }
+}catch(e){} })();
 const WK_MON=mondayOf(new Date((DATA.meta.week_of||dateStr(TODAY))+"T00:00:00"));
 const WK_END=new Date(WK_MON); WK_END.setDate(WK_MON.getDate()+6);
 const HAS_NEXT=Object.values(DATA.sections||{}).some(s=>(s.meetingsNext||[]).length>0);
