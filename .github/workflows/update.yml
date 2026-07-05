@@ -19,7 +19,7 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false   # let Pages deploys queue instead of cancelling (avoids "Deployment failed, try again later")
 
 jobs:
   build:
