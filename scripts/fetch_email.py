@@ -140,14 +140,20 @@ def _bare_codes(text):
     like "is"/"are" can't slip in; a stop-list drops common non-course words."""
     stop = {"MBA", "IMBA", "BTECH", "IIM", "PDF", "FYI", "TBA", "AM", "PM",
             "LH", "NOTE", "ALL", "AND", "FOR", "THE", "ARE", "IS"}
+    # Bare codes are never inside parentheses. Strip ALL parenthesised groups --
+    # division tags "(B)" AND student-qualifier noise "(MBA,B.Tech(CSE) & MBA(HRM)
+    # Students)" -- so we don't harvest CSE/HRM/etc. as if they were courses.
+    t = text
+    while re.search(r'\([^()]*\)', t):
+        t = re.sub(r'\([^()]*\)', ' ', t)
     out = []
     def add(a):
         a = a.upper()
         if a not in stop and a not in out:
             out.append(a)
-    for ab in re.findall(r'\b([A-Z][A-Z&]{1,5})\b\s+(?i:sessions?|classes?|lectures?|scheduled)\b', text):
+    for ab in re.findall(r'\b([A-Z][A-Z&]{1,5})\b\s+(?i:sessions?|classes?|lectures?|scheduled)\b', t):
         add(ab)                                   # "PML session", "PML scheduled"
-    for sent in re.split(r'\n|(?<!\d)\.(?!\d)', text):   # sentence split that keeps dates (05.01.2026) whole
+    for sent in re.split(r'\n|(?<!\d)\.(?!\d)', t):   # sentence split that keeps dates (05.01.2026) whole
         if re.search(r'(?i:postpon\w*|prepon\w*|reschedul\w*|cancel\w*|not\s+be\s+held)', sent):
             for ab in re.findall(r'\b([A-Z][A-Z&]{1,5})\b', sent):   # -> take every code it names
                 add(ab)
@@ -360,7 +366,7 @@ try:
                 changes.append(c); seen.add(key)
     os.makedirs(os.path.dirname(CHANGES_OUT) or ".", exist_ok=True)
     json.dump(changes, open(CHANGES_OUT, "w", encoding="utf-8"), ensure_ascii=False)
-    print(f"[fetch_email v2026-07-05: nearest-room + year-snap + ref-date] Parsed {len(changes)} change notice(s) -> {CHANGES_OUT}")
+    print(f"[fetch_email v2026-07-06: nearest-room + year-snap + ref-date + paren-strip] Parsed {len(changes)} change notice(s) -> {CHANGES_OUT}")
 except Exception as e:
     print("Change-notice fetch skipped:", e)
 
