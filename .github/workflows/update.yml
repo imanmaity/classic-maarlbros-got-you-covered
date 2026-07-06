@@ -12,14 +12,13 @@ on:
         type: boolean
         default: false
 
+# contents: write lets the job push the built site to the gh-pages branch.
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
-  group: pages
-  cancel-in-progress: false   # let Pages deploys queue instead of cancelling (avoids "Deployment failed, try again later")
+  group: gh-pages-publish
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -61,16 +60,19 @@ jobs:
             exit 1
           fi
 
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: site
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+      # --- Publish the built site by force-pushing it to the gh-pages branch.
+      #     This bypasses the actions/deploy-pages artifact path (the one hitting
+      #     "Deployment failed, try again later"). After the first successful run,
+      #     set Settings -> Pages -> Source -> "Deploy from a branch" -> gh-pages / (root). ---
+      - name: Publish to gh-pages branch
+        run: |
+          rm -rf /tmp/ghp && cp -r site /tmp/ghp
+          cd /tmp/ghp
+          touch .nojekyll                       # serve files as-is (no Jekyll processing)
+          git init -q -b gh-pages
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Deploy $(date -u +%Y-%m-%dT%H:%M:%SZ) [${GITHUB_SHA::7}]"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" gh-pages
+          echo "Pushed site/ to gh-pages."
