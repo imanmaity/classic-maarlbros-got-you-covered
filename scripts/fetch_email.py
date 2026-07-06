@@ -303,7 +303,7 @@ def parse_change(text, edate=None):
         act = next((e for e in _acts if e[0] >= p), None) if p is not None else None
         if act is None:                                   # bare code / nothing after -> global call
             act = (0, 'room', (new_room, old_room)) if is_room_change else (0, 'verb', ctype)
-        if act[1] == 'room' and act[2][0] is not None and not has_time_shift and not has_date_shift:
+        if act[1] == 'room' and act[2][0] is not None and not has_time_shift:
             room_secs.append(key); room_of[key] = (act[2][0], act[2][1] or old_room)
         else:
             verb_secs.append(key); verb_of[key] = act[2] if act[1] == 'verb' else ctype
@@ -374,7 +374,7 @@ try:
                 changes.append(c); seen.add(key)
     os.makedirs(os.path.dirname(CHANGES_OUT) or ".", exist_ok=True)
     json.dump(changes, open(CHANGES_OUT, "w", encoding="utf-8"), ensure_ascii=False)
-    print(f"[fetch_email v2026-07-06b: nearest-room + year-snap + ref-date + paren-strip + per-section-type] Parsed {len(changes)} change notice(s) -> {CHANGES_OUT}")
+    print(f"[fetch_email v2026-07-06c: per-section-type + quoted-date-guard] Parsed {len(changes)} change notice(s) -> {CHANGES_OUT}")
 except Exception as e:
     print("Change-notice fetch skipped:", e)
 
