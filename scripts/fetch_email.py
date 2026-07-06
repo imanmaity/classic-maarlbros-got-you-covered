@@ -278,65 +278,73 @@ def parse_change(text, edate=None):
         if mm: cut = min(cut, mm.start())
     raw = re.sub(r'\s+', ' ', text[:cut]).strip()[:400]
     out = []
-    if is_room_change:
-        d0 = old_date or new_date or rel_date or edate.isoformat()   # the day the relocated class meets
-        d_day = day(d0)
-        hhmm = times[0] if len(times) == 1 else None                 # optional; room change attaches by day
-        # A single notice can assign different rooms to different groups, e.g.
-        #   "1) IPM(A),FSA(C) ... E2 Classroom.  2) CB(A),CB(B) ... E1 classroom."
-        # Pair each section with the room mentioned in ITS clause; fall back to the
-        # global room only if a section's clause names no venue of its own.
-        # Bind each section to the FIRST venue named AFTER it in the text, so a
-        # mis-formatted numbered list can't dump a section onto the global (first)
-        # room. E.g. "1) CB(A) ... E2.  2) CB(B) ... T4" -> CB(A)=E2, CB(B)=T4,
-        # because T4 is the next venue after CB(B) and E2 sits before it.
-        rev = _room_events(text)
-        seg_room = {}
-        for sm in re.finditer(r'([A-Za-z&]{2,6})\(\s*([A-Za-z][A-Za-z&,\s]*?)\s*\)', text):
-            after = next((e for e in rev if e[0] >= sm.start()), None)
-            if after:
-                for dv in _divs(sm.group(2)):
-                    seg_room.setdefault((sm.group(1).upper(), dv.upper()), (after[1], after[2] or old_room))
-        for ab, dv in secs:
-            nr, orr = seg_room.get((ab.upper(), dv.upper()), (new_room, old_room))
-            out.append({"abbr": ab.upper(), "division": dv.upper(), "type": "Room Change",
+    # --- Per-section action: bind each section to whichever is named FIRST after
+    #     it -- a room ("... E1 classroom") or a postpone/cancel verb. This lets ONE
+    #     email mix room changes AND postponements, e.g.
+    #       "2) ERP(A),ERP(B) ... E1 classroom. 3) SBM(C) ... E3. SDM(B) & SDM(C) is postponed."
+    #     -> ERP/SBM are room changes; only SDM(B)/SDM(C) are postponed. ---
+    _acts = [(p, 'room', (nr, orr)) for p, nr, orr in _room_events(text)]
+    for m in re.finditer(r'(?i:postpon\w*|prepon\w*|reschedul\w*|cancel\w*|not\s+be\s+held)', text):
+        w = m.group(0).lower()
+        _acts.append((m.start(), 'verb',
+                      'Preponed' if 'prepon' in w else 'Postponed' if 'postpon' in w
+                      else 'Cancelled' if ('cancel' in w or 'not' in w) else 'Rescheduled'))
+    _acts.sort(key=lambda e: e[0])
+    _pos = {}
+    for sm in re.finditer(r'([A-Za-z&]{2,6})\(\s*([A-Za-z][A-Za-z&,\s]*?)\s*\)', text):
+        for dv in _divs(sm.group(2)):
+            _pos.setdefault((sm.group(1).upper(), dv.upper()), sm.start())
+    room_secs, room_of, verb_secs, verb_of = [], {}, [], {}
+    for ab, dv in secs:
+        key = (ab.upper(), dv.upper())
+        if key in room_of or key in verb_of:
+            continue
+        p = _pos.get(key)
+        act = next((e for e in _acts if e[0] >= p), None) if p is not None else None
+        if act is None:                                   # bare code / nothing after -> global call
+            act = (0, 'room', (new_room, old_room)) if is_room_change else (0, 'verb', ctype)
+        if act[1] == 'room' and act[2][0] is not None and not has_time_shift and not has_date_shift:
+            room_secs.append(key); room_of[key] = (act[2][0], act[2][1] or old_room)
+        else:
+            verb_secs.append(key); verb_of[key] = act[2] if act[1] == 'verb' else ctype
+    # room-change records (each section keeps the room named nearest after it)
+    if room_secs:
+        d0 = old_date or new_date or rel_date or edate.isoformat()
+        d_day = day(d0); hhmm = times[0] if len(times) == 1 else None
+        for key in room_secs:
+            nr, orr = room_of[key]
+            out.append({"abbr": key[0], "division": key[1], "type": "Room Change",
                         "old_date": d0, "old_day": d_day, "new_date": d0, "new_day": d_day,
                         "old_hhmm": hhmm, "new_hhmm": hhmm,
                         "old_room": orr, "new_room": nr, "tba": False, "raw": raw})
-        return out
-    # a dateless time/cancel change ("cancelled today") still gets a concrete day to render on
-    if old_date is None and rel_date:
-        old_date = rel_date
-        if new_date is None and not times: new_date = rel_date
-    # Postponements/cancellations can list several INDEPENDENT dates, e.g.
-    #   "sessions scheduled on 29.06, 01.07 & 03.07 are postponed".
-    # Each date is its own postponed session, not a from->to shift, so emit one
-    # change per (section, date). Genuine shifts ("rescheduled to 03.07") are
-    # excluded so they keep the old->new behaviour below.
-    # A multi-date postponement ("on 29.06, 01.07 & 03.07 are postponed") means each
-    # date is its own postponed session. But a notice that names a TARGET date
-    # ("postponed to 24.06", "rescheduled to ...") is a real from->to shift and must
-    # keep the old->new behaviour below.
-    _has_target = bool(re.search(r'\bto\s+\d{1,2}[./-]\d{1,2}[./-]\d{2,4}', low)) or \
-                  bool(re.search(r'reschedul|shift|moved\s+to|will\s+(?:now\s+)?be\s+held|held\s+on\b', low))
-    if ctype in ('Postponed', 'Cancelled') and len(dates) >= 2 and not _has_target:
-        out = []
-        for ab, dv in secs:
-            for ds in dates:
-                out.append({"abbr": ab.upper(), "division": dv.upper(), "type": ctype,
-                            "old_date": ds, "old_day": day(ds),
-                            "new_date": None, "new_day": None,
-                            "new_hhmm": None, "tba": True, "raw": raw})
-        return out
-    for i, (ab, dv) in enumerate(secs):
-        if not times:                 hhmm = None
-        elif len(times) == len(secs): hhmm = times[i]            # "respectively" -> per division
-        elif len(times) == 1:         hhmm = times[0]            # one time for all
-        else:                         hhmm = times[i] if i < len(times) else times[-1]
-        out.append({"abbr": ab.upper(), "division": dv.upper(), "type": ctype,
-                    "old_date": old_date, "old_day": day(old_date),
-                    "new_date": new_date, "new_day": day(new_date),
-                    "new_hhmm": hhmm, "tba": tba, "raw": raw})
+    # postpone / cancel / reschedule records (per-section type)
+    if verb_secs:
+        if old_date is None and rel_date:
+            old_date = rel_date
+            if new_date is None and not times: new_date = rel_date
+        # A multi-date postponement ("on 29.06, 01.07 & 03.07 are postponed") means each
+        # date is its own postponed session. But a notice that names a TARGET date
+        # ("postponed to 24.06", "rescheduled to ...") is a real from->to shift.
+        _has_target = bool(re.search(r'\bto\s+\d{1,2}[./-]\d{1,2}[./-]\d{2,4}', low)) or \
+                      bool(re.search(r'reschedul|shift|moved\s+to|will\s+(?:now\s+)?be\s+held|held\s+on\b', low))
+        _multi = (len(dates) >= 2 and not _has_target
+                  and all(verb_of[k] in ('Postponed', 'Cancelled') for k in verb_secs))
+        for i, key in enumerate(verb_secs):
+            vt = verb_of[key]
+            if _multi:
+                for ds in dates:
+                    out.append({"abbr": key[0], "division": key[1], "type": vt,
+                                "old_date": ds, "old_day": day(ds), "new_date": None, "new_day": None,
+                                "new_hhmm": None, "tba": True, "raw": raw})
+            else:
+                if not times:                      hhmm = None
+                elif len(times) == len(verb_secs): hhmm = times[i]
+                elif len(times) == 1:              hhmm = times[0]
+                else:                              hhmm = times[i] if i < len(times) else times[-1]
+                out.append({"abbr": key[0], "division": key[1], "type": vt,
+                            "old_date": old_date, "old_day": day(old_date),
+                            "new_date": new_date, "new_day": day(new_date),
+                            "new_hhmm": hhmm, "tba": tba, "raw": raw})
     return out
 
 M = imaplib.IMAP4_SSL(HOST); M.login(USER, PWD); M.select("INBOX")
@@ -366,7 +374,7 @@ try:
                 changes.append(c); seen.add(key)
     os.makedirs(os.path.dirname(CHANGES_OUT) or ".", exist_ok=True)
     json.dump(changes, open(CHANGES_OUT, "w", encoding="utf-8"), ensure_ascii=False)
-    print(f"[fetch_email v2026-07-06: nearest-room + year-snap + ref-date + paren-strip] Parsed {len(changes)} change notice(s) -> {CHANGES_OUT}")
+    print(f"[fetch_email v2026-07-06b: nearest-room + year-snap + ref-date + paren-strip + per-section-type] Parsed {len(changes)} change notice(s) -> {CHANGES_OUT}")
 except Exception as e:
     print("Change-notice fetch skipped:", e)
 
