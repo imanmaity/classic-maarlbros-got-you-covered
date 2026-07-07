@@ -229,6 +229,9 @@ def parse_change(text, edate=None):
                     r'as\s+per\s+(?:the\s+)?(?:schedule|circular|notice|mail|email))'
                     r'[^.\n]{0,20}?\d{1,2}[./-]\d{1,2}[./-]\d{2,4}', ' ', text, flags=re.I)
     raw_dates = re.findall(r'(\d{1,2})[./-](\d{1,2})[./-](\d{2,4})', _dtext)
+    # Drop impossible "dates" (month>12 / day>31) so a time range like
+    # "03.50-04:50" isn't mis-read as 03.50.04 -> a bogus month-50 date.
+    raw_dates = [(d, m, y) for d, m, y in raw_dates if 1 <= int(m) <= 12 and 1 <= int(d) <= 31]
     def _yr(y):
         # a schedule notice's date is always near the send date, so a year far
         # from the email's is a typo -- e.g. "01.07.2016" in a 2026 mail -> 2026.
@@ -374,7 +377,7 @@ try:
                 changes.append(c); seen.add(key)
     os.makedirs(os.path.dirname(CHANGES_OUT) or ".", exist_ok=True)
     json.dump(changes, open(CHANGES_OUT, "w", encoding="utf-8"), ensure_ascii=False)
-    print(f"[fetch_email v2026-07-06c: per-section-type + quoted-date-guard] Parsed {len(changes)} change notice(s) -> {CHANGES_OUT}")
+    print(f"[fetch_email v2026-07-06d: quoted-date-guard + valid-date-only] Parsed {len(changes)} change notice(s) -> {CHANGES_OUT}")
 except Exception as e:
     print("Change-notice fetch skipped:", e)
 
