@@ -1270,7 +1270,7 @@ function homeStats(st){ const g=$("glance"); var _ncx=$("livetoday"); if(!st){ g
   const inWk=ds=>{ if(!ds) return false; try{const d=new Date(ds+"T00:00:00"); return d>=WK_MON&&d<=WK_END;}catch(e){return false;} };
   const elBy={}; secs.forEach(e=>{ elBy[ckey(e.abbr,e.division)]=e; });
   const myKey=new Set(secs.map(e=>ckey(e.abbr,e.division)));
-  const myChanges=(DATA.changes||[]).filter(c=>myKey.has(ckey(c.abbr,c.division)) && (inWk(c.old_date)||inWk(c.new_date)));
+  const myChanges=(DATA.changes||[]).filter(c=>myKey.has(ckey(c.abbr,c.division)) && (inWk(c.old_date)||inWk(c.new_date)||(!c.old_date&&!c.new_date)));
   const meetings=[];
   secs.forEach(e=>(e.meetings||[]).forEach(m=>meetings.push({sec:e,day:m.day,start:m.start})));
   const changeMap=new Map();
@@ -1475,7 +1475,7 @@ function render(){
   electives.forEach(e=>((useNext?e.meetingsNext:e.meetings)||[]).forEach(m=>meetings.push(Object.assign({sec:e},m))));
 
   const myKey=new Set(electives.map(e=>ckey(e.abbr,e.division)));
-  const myChanges=(DATA.changes||[]).filter(c=>myKey.has(ckey(c.abbr,c.division)) && (inWk(c.old_date)||inWk(c.new_date)));
+  const myChanges=(DATA.changes||[]).filter(c=>myKey.has(ckey(c.abbr,c.division)) && (inWk(c.old_date)||inWk(c.new_date)||(!c.old_date&&!c.new_date)));
   const elBy={}; electives.forEach(e=>{elBy[ckey(e.abbr,e.division)]=e;});
   const changeMap=new Map(), roomMap=new Map();
   myChanges.forEach(c=>{
@@ -1786,7 +1786,7 @@ showView();
     var _we=new Date(WK_END.getFullYear(),WK_END.getMonth(),WK_END.getDate());
     var inWk=function(ds){ if(!ds) return false; try{var d=new Date(ds+'T00:00:00'); return d>=_wm&&d<=_we;}catch(e){return false;} };
     var myBy={}; secs.forEach(function(e){ myBy[ckey(e.abbr,e.division)]=e; });
-    var myChanges=(DATA.changes||[]).filter(function(c){ return myBy[ckey(c.abbr,c.division)] && (inWk(c.old_date)||inWk(c.new_date)); });
+    var myChanges=(DATA.changes||[]).filter(function(c){ return myBy[ckey(c.abbr,c.division)] && (inWk(c.old_date)||inWk(c.new_date)||(!c.old_date&&!c.new_date)); });
     var changeMap={}, roomMap={}, movedIn=[];
     myChanges.forEach(function(c){
       if(isRoomChange(c)){ if(c.new_day) roomMap[c.new_day+'|'+ckey(c.abbr,c.division)]=c; return; }
