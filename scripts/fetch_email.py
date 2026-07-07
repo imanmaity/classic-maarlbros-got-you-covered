@@ -329,6 +329,11 @@ def parse_change(text, edate=None):
         if old_date is None and rel_date:
             old_date = rel_date
             if new_date is None and not times: new_date = rel_date
+        # A same-day time move ("timing of RMKT(A) is changed to 03.50-04:50") keeps
+        # the day but shifts the slot -> new_date = old_date so the class re-appears
+        # at the new time instead of just vanishing from its old slot.
+        if new_date is None and times and old_date and ctype in ('Changed', 'Rescheduled'):
+            new_date = old_date
         # A multi-date postponement ("on 29.06, 01.07 & 03.07 are postponed") means each
         # date is its own postponed session. But a notice that names a TARGET date
         # ("postponed to 24.06", "rescheduled to ...") is a real from->to shift.
@@ -381,7 +386,7 @@ try:
                 changes.append(c); seen.add(key)
     os.makedirs(os.path.dirname(CHANGES_OUT) or ".", exist_ok=True)
     json.dump(changes, open(CHANGES_OUT, "w", encoding="utf-8"), ensure_ascii=False)
-    print(f"[fetch_email v2026-07-06e: valid-date-only + dateless-tomorrow] Parsed {len(changes)} change notice(s) -> {CHANGES_OUT}")
+    print(f"[fetch_email v2026-07-06f: dateless-tomorrow + time-move-insert] Parsed {len(changes)} change notice(s) -> {CHANGES_OUT}")
 except Exception as e:
     print("Change-notice fetch skipped:", e)
 
