@@ -266,6 +266,10 @@ def parse_change(text, edate=None):
         wd = re.search(r'\b(?:on|this|coming)\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b', low)
         if wd:
             rel_date = _add((_WEEKDAYS[wd.group(1)] - edate.weekday()) % 7)
+    # Office often omits the date on same-day notices -> if NOTHING names a date
+    # or day, assume it's for tomorrow (the day after the mail was sent).
+    if not dates and rel_date is None:
+        rel_date = _add(1)
     # ---- room / venue detection (only the classroom changes; day & time stay put) ----
     new_room, old_room = _detect_rooms(text)
     has_time_shift = bool(times)
@@ -377,7 +381,7 @@ try:
                 changes.append(c); seen.add(key)
     os.makedirs(os.path.dirname(CHANGES_OUT) or ".", exist_ok=True)
     json.dump(changes, open(CHANGES_OUT, "w", encoding="utf-8"), ensure_ascii=False)
-    print(f"[fetch_email v2026-07-06d: quoted-date-guard + valid-date-only] Parsed {len(changes)} change notice(s) -> {CHANGES_OUT}")
+    print(f"[fetch_email v2026-07-06e: valid-date-only + dateless-tomorrow] Parsed {len(changes)} change notice(s) -> {CHANGES_OUT}")
 except Exception as e:
     print("Change-notice fetch skipped:", e)
 
