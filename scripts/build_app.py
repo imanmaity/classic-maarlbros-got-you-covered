@@ -2014,6 +2014,24 @@ showView();
   window.paintAttSummary=paintAttSummary;
 })();
 </script>
+<script>
+/* Auto-refresh: the timetable data is baked into this page, so a cached copy can
+   go stale. Compare the live build id (fetched no-store) to this page's and reload
+   once if a newer build is out -- no more manual cache-clearing. */
+(function(){
+  var BID="__BUILDID__", busy=false;
+  function check(){
+    if(busy) return; busy=true;
+    fetch("build.txt?t="+Date.now(),{cache:"no-store"})
+      .then(function(r){ return r.ok?r.text():null; })
+      .then(function(v){ busy=false; if(v && v.trim() && v.trim()!==BID) location.reload(); })
+      .catch(function(){ busy=false; });
+  }
+  document.addEventListener("visibilitychange",function(){ if(!document.hidden) check(); });
+  window.addEventListener("focus", check);
+  setTimeout(check, 3000);
+})();
+</script>
 </body>
 </html>
 """
@@ -2147,6 +2165,7 @@ import datetime as _bdt
 _bnow = _bdt.datetime.now(_bdt.timezone(_bdt.timedelta(hours=5, minutes=30)))
 _BUILT = _bnow.strftime("%-d %b, %-I:%M %p")   # footer: date + time
 _BUILT_D = _bnow.strftime("%-d %b")            # hero badge: date only
+_BUILD_ID = _bnow.strftime("%Y%m%d%H%M%S")  # machine-readable build id for the auto-refresh check
 # ---- PYQs: scan Term IV/<year>/*.pdf, sort by course code, publish + manifest ----
 import os, re, json, shutil
 _PYQ_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -2182,7 +2201,7 @@ def build_pyq(outdir):
 
 pyq_json = json.dumps(build_pyq(os.path.dirname(os.path.abspath(OUT_PATH)) or "."), ensure_ascii=False)
 
-open(OUT_PATH, "w", encoding="utf-8").write(TEMPLATE.replace("__REQEMAIL__", REQUEST_EMAIL).replace("__REQFORM__", REQUEST_FORM_URL).replace("__SHAREDSECTION__", SHARED_HTML).replace("__SHELFPILL__", SHELF_PILL).replace("__INSTA__", INSTA_URL).replace("__VAPID__", VAPID_PUBLIC_KEY).replace("__NOTIFYEP__", NOTIFY_ENDPOINT).replace("__NOTESEP__", NOTES_ENDPOINT).replace("__NOTIFYON__", "true" if NOTIFY_ENABLED else "false").replace("__VER__", APP_VERSION).replace("__BUILTD__", _BUILT_D).replace("__BUILT__", _BUILT).replace("__WHATSNEW__", json.dumps(WHATS_NEW, ensure_ascii=False)).replace("__WHATSNEW_ID__", WHATSNEW_ID).replace("__PYQDATA__", pyq_json).replace("__DATA__", data))
+open(OUT_PATH, "w", encoding="utf-8").write(TEMPLATE.replace("__REQEMAIL__", REQUEST_EMAIL).replace("__REQFORM__", REQUEST_FORM_URL).replace("__SHAREDSECTION__", SHARED_HTML).replace("__SHELFPILL__", SHELF_PILL).replace("__INSTA__", INSTA_URL).replace("__VAPID__", VAPID_PUBLIC_KEY).replace("__NOTIFYEP__", NOTIFY_ENDPOINT).replace("__NOTESEP__", NOTES_ENDPOINT).replace("__NOTIFYON__", "true" if NOTIFY_ENABLED else "false").replace("__VER__", APP_VERSION).replace("__BUILTD__", _BUILT_D).replace("__BUILT__", _BUILT).replace("__WHATSNEW__", json.dumps(WHATS_NEW, ensure_ascii=False)).replace("__WHATSNEW_ID__", WHATSNEW_ID).replace("__PYQDATA__", pyq_json).replace("__BUILDID__", _BUILD_ID).replace("__DATA__", data))
 print(f"Wrote {OUT_PATH}")
 
 # Publish the build's stats next to index.html so the NEXT run can fetch it as the
@@ -2211,6 +2230,9 @@ with open(os.path.join(_OUTDIR, "manifest.webmanifest"), "w", encoding="utf-8") 
 # also publish the raw dataset so the reminder sender can read the same data the app shows
 with open(os.path.join(_OUTDIR, "schedule_data.json"), "w", encoding="utf-8") as _f:
     _f.write(data)
+# tiny build marker the page fetches (no-store) to auto-refresh when a new build ships
+with open(os.path.join(_OUTDIR, "build.txt"), "w", encoding="utf-8") as _f:
+    _f.write(_BUILD_ID)
 # ---- service worker: shows pushed digests + handles taps (scope = site root) ----
 SW_JS = """\
 self.addEventListener('install', e => self.skipWaiting());
