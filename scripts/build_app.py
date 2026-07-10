@@ -767,7 +767,7 @@ html[data-theme="light"] .sc-card{--sci:#221a12;--scm:#6c5b46;--scline:rgba(120,
 .sc-share{background:linear-gradient(95deg,#ffb43d,#ff7f5e,#ff5e9a);color:#1a1208}
 .sc-save{background:rgba(255,255,255,.1);color:var(--ink);border:1px solid var(--line)}
 .sc-x{position:absolute;top:12px;right:14px;width:30px;height:30px;border:none;border-radius:9px;background:rgba(0,0,0,.18);color:#fff;font-size:16px;cursor:pointer;display:grid;place-items:center;z-index:2}
-.wk-toggle{display:flex;gap:4px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:4px;margin:0 auto 16px;max-width:280px}
+.wk-toggle{display:flex;flex-wrap:wrap;justify-content:center;gap:4px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:4px;margin:0 auto 16px;max-width:min(460px,94vw)}
 .wk-seg{flex:1;border:none;background:transparent;color:var(--muted);font-weight:800;font-size:13px;padding:10px 8px;border-radius:10px;cursor:pointer;font-family:inherit;transition:background .18s,color .18s}
 .wk-seg.active{background:var(--accent);color:#1a1208}
 .wk-seg:active{transform:scale(.98)}
@@ -915,7 +915,7 @@ html[data-theme="light"] .sc-card{--sci:#221a12;--scm:#6c5b46;--scline:rgba(120,
       <div class="err" id="err"></div>
     </div>
     <div class="weeklabel" id="weeklabel" hidden></div>
-    <div class="wk-toggle" id="wkToggle" hidden><button class="wk-seg active" id="wkThis" type="button">This Week</button><button class="wk-seg" id="wkNext" type="button">Next Week</button></div>
+    <div class="wk-toggle" id="wkToggle" hidden></div>
     <div id="result"></div>
     <button class="sharebtn" id="shareDayBtn" hidden>↗ Share my day</button>
     <footer><span class="built">Updated __BUILT__ IST</span> · Tentative weekly schedule — confirm any room/time changes with the department.</footer>
@@ -1132,25 +1132,53 @@ function mondayOf(d){const x=new Date(d);x.setHours(0,0,0,0);const w=(x.getDay()
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 
 const TODAY=new Date();
-// Roll the view to the real current week. The build ships this-week + next-week
-// data; if the device's date has moved into next week (build ran last week, or
-// it's before today's first rebuild), promote next-week to "This Week" and drop
-// the finished week — so a passed week is never shown as current.
-(function(){ try{
-  const _bMon=mondayOf(new Date((DATA.meta.week_of||dateStr(TODAY))+"T00:00:00"));
-  const _tMon=mondayOf(TODAY);
-  if(Math.round((_tMon-_bMon)/6048e5)===1){
+// ---------- N-week model ----------
+// A build can ship several weeks: DATA.meta.weeks = ["<mon-iso>", ...] and each
+// section carries meetingsByWeek = { "<mon-iso>": [...] }. Older builds shipped
+// only meetings (+ optional meetingsNext) with meta.week_of; both are supported.
+const _MON=s=>mondayOf(new Date((s||dateStr(TODAY))+"T00:00:00"));
+const HAS_MBW=Object.values(DATA.sections||{}).some(s=>s&&s.meetingsByWeek);
+// legacy two-week builds: roll next->this once the device date crosses the week,
+// but ONLY when next week actually has classes (never blank the current week).
+if(!HAS_MBW){ try{
+  const _bMon=_MON(DATA.meta.week_of), _tMon=mondayOf(TODAY);
+  const _hasNext=Object.values(DATA.sections||{}).some(s=>(s.meetingsNext||[]).length>0);
+  if(_hasNext && Math.round((_tMon-_bMon)/6048e5)===1){
     Object.values(DATA.sections||{}).forEach(s=>{ s.meetings=s.meetingsNext||[]; s.meetingsNext=[]; });
     DATA.meta.week_of=DATA.meta.week_of_next||dateStr(_tMon);
     DATA.meta.week_of_next=dateStr(new Date(_tMon.getTime()+6048e5));
   }
-}catch(e){} })();
-const WK_MON=mondayOf(new Date((DATA.meta.week_of||dateStr(TODAY))+"T00:00:00"));
-const WK_END=new Date(WK_MON); WK_END.setDate(WK_MON.getDate()+6);
-const HAS_NEXT=Object.values(DATA.sections||{}).some(s=>(s.meetingsNext||[]).length>0);
-// how many classes a given student has in this-week (next=false) or next-week (next=true)
-function stMeetCount(st,next){ if(!st) return 0;
-  return (st.s||[]).reduce((n,id)=>{const s=DATA.sections[id]||{}; return n+((next?s.meetingsNext:s.meetings)||[]).length;},0); }
+}catch(e){} }
+// ordered list of week-Mondays the data carries (de-duped)
+const _RAWW=(function(){ const m=DATA.meta||{}, seen=new Set(), out=[];
+  const push=iso=>{ const k=dateStr(_MON(iso)); if(!seen.has(k)){ seen.add(k); out.push(k);} };
+  if(Array.isArray(m.weeks)&&m.weeks.length) m.weeks.forEach(push);
+  else { push(m.week_of); if(m.week_of_next) push(m.week_of_next); }
+  return out.sort(); })();
+// live weeks as {iso, mon, end}; for the new shape drop weeks whose Sunday has
+// passed (never empty — keep the last), so the current week always leads.
+const WEEKS=(function(){
+  const mk=iso=>{ const mon=_MON(iso), end=new Date(mon); end.setDate(mon.getDate()+6); return {iso,mon,end}; };
+  let isos=_RAWW.slice();
+  if(HAS_MBW){ const t=new Date(TODAY.getTime()); t.setHours(0,0,0,0);
+    const live=isos.filter(iso=>mk(iso).end>=t); isos=live.length?live:isos.slice(-1); }
+  if(!isos.length) isos=[dateStr(mondayOf(TODAY))];
+  return isos.map(mk); })();
+const WK_MON=WEEKS[0].mon, WK_END=WEEKS[0].end;
+const HAS_NEXT=WEEKS.length>1;
+// meetings for a section in week index wi (new shape: by ISO; old: positional)
+function secMeetings(sec, wi){ if(!sec) return [];
+  if(HAS_MBW) return ((sec.meetingsByWeek||{})[WEEKS[wi]?WEEKS[wi].iso:""])||[];
+  return (wi===1?sec.meetingsNext:sec.meetings)||[]; }
+// how many classes a student has in week index wi
+function stMeetCount(st, wi){ if(!st) return 0;
+  return (st.s||[]).reduce((n,id)=>n+secMeetings(DATA.sections[id], wi).length, 0); }
+// build the week pills into #wkToggle (one per live week; hidden if only one)
+function buildWkPills(){ const wt=$("wkToggle"); if(!wt) return;
+  if(WEEKS.length<=1){ wt.hidden=true; wt.innerHTML=""; return; }
+  wt.hidden=false;
+  wt.innerHTML=WEEKS.map((w,i)=>`<button class="wk-seg${i===ttWeek?' active':''}" type="button" data-wk="${i}">${i===0?'This Week':i===1?'Next Week':esc(fmt(w.mon))}</button>`).join("");
+  Array.prototype.forEach.call(wt.querySelectorAll("[data-wk]"),b=>b.addEventListener("click",()=>setWeek(+b.getAttribute("data-wk")))); }
 let currentRoll=null; let ttWeek=0;
 
 // home hero reflects the schedule's week
@@ -1272,7 +1300,7 @@ function homeStats(st){ const g=$("glance"); var _ncx=$("livetoday"); if(!st){ g
   const myKey=new Set(secs.map(e=>ckey(e.abbr,e.division)));
   const myChanges=(DATA.changes||[]).filter(c=>myKey.has(ckey(c.abbr,c.division)) && (inWk(c.old_date)||inWk(c.new_date)||(!c.old_date&&!c.new_date)));
   const meetings=[];
-  secs.forEach(e=>(e.meetings||[]).forEach(m=>meetings.push({sec:e,day:m.day,start:m.start})));
+  secs.forEach(e=>secMeetings(e,0).forEach(m=>meetings.push({sec:e,day:m.day,start:m.start})));
   const changeMap=new Map();
   // DATA.changes is newest-email-first; keep the FIRST match for a cell so a later
   // correction ("typographical error") wins over the notice it supersedes.
@@ -1296,7 +1324,7 @@ function homeStats(st){ const g=$("glance"); var _ncx=$("livetoday"); if(!st){ g
   const _realToday=new Date(TODAY.getTime()); _realToday.setHours(0,0,0,0);
   const _realTmr=_addDays(_realToday,1);
   meetings.forEach(m=>{ m._dt=_dtOf(m,WK_MON); });
-  const _nextWk=[]; secs.forEach(e=>(e.meetingsNext||[]).forEach(m=>_nextWk.push({sec:e,day:m.day,start:m.start,_dt:_dtOf(m,_addDays(WK_MON,7))})));
+  const _nextWk=[]; for(let _wi=1;_wi<WEEKS.length;_wi++){ const _wb=WEEKS[_wi].mon; secs.forEach(e=>secMeetings(e,_wi).forEach(m=>_nextWk.push({sec:e,day:m.day,start:m.start,_dt:_dtOf(m,_wb)}))); }
   const _allUp=meetings.filter(m=>m.changed!=="out").concat(_nextWk);
   const todayAll=meetings.filter(m=>_sameDay(m._dt,_realToday));
   const active=todayAll.filter(m=>m.changed!=="out").sort((a,b)=>toMin(a.start)-toMin(b.start));
@@ -1453,26 +1481,28 @@ function doLookup(){
   if(!DATA.students[roll]){ err.textContent="No student found for "+roll+". Check the roll number and try again."; err.classList.add("show"); $("weeklabel").hidden=true; return; }
   currentRoll=roll; putRoll(roll); closeAC(); var _sb=document.getElementById("shareDayBtn"); if(_sb)_sb.hidden=false;
   // decide which week to open on: if this week is empty for this student but next week has classes, open on next
-  var _st=DATA.students[roll], _nThis=stMeetCount(_st,false), _nNext=stMeetCount(_st,true);
-  ttWeek=(_nThis===0 && _nNext>0)?1:0;
-  var _wt=$("wkToggle"); if(_wt){ _wt.hidden=!(_nNext>0); var _wa=$("wkThis"),_wb=$("wkNext"); if(_wa)_wa.classList.toggle("active",ttWeek===0); if(_wb)_wb.classList.toggle("active",ttWeek===1); }
-  var _lm=ttWeek===1?new Date(WK_MON.getTime()+604800000):WK_MON, _le=ttWeek===1?new Date(WK_END.getTime()+604800000):WK_END;
-  $("weeklabel").textContent="Week of "+fmt(_lm)+" – "+fmt(_le); $("weeklabel").hidden=false;
+  var _st=DATA.students[roll];
+  // open on the current week if it has classes, else the first later week that does
+  ttWeek=0; for(var _wi=0;_wi<WEEKS.length;_wi++){ if(stMeetCount(_st,_wi)>0){ ttWeek=_wi; break; } }
+  buildWkPills();
+  var _W=WEEKS[ttWeek]||WEEKS[0];
+  $("weeklabel").textContent="Week of "+fmt(_W.mon)+" – "+fmt(_W.end); $("weeklabel").hidden=false;
   render();
 }
 
 const TCOL=40;
 function render(){
   const roll=currentRoll, st=DATA.students[roll]; if(!st) return;
-  const useNext=(ttWeek===1);
-  const mon=useNext?new Date(WK_MON.getTime()+604800000):WK_MON, wkEnd=useNext?new Date(WK_END.getTime()+604800000):WK_END;
+  const wi=Math.max(0,Math.min(WEEKS.length-1,ttWeek));
+  const _W=WEEKS[wi]||WEEKS[0], mon=_W.mon, wkEnd=_W.end;
+  const _wlabel=(wi===0?'this week':wi===1?'next week':'the week of '+fmt(mon));
   const dayDate={}; DATA.days.forEach((d,i)=>{const dt=new Date(mon);dt.setDate(mon.getDate()+i);dayDate[d]=dateStr(dt);});
   const todayDay=Object.keys(dayDate).find(d=>dayDate[d]===dateStr(TODAY))||null;
   const inWk=ds=>{ if(!ds) return false; try{const d=new Date(ds+"T00:00:00"); return d>=mon&&d<=wkEnd;}catch(e){return false;} };
   const weekEvents=(DATA.events||[]).filter(e=>inWk(e.date));
   const electives=st.s.map(id=>Object.assign({id},DATA.sections[id]));
   const meetings=[];
-  electives.forEach(e=>((useNext?e.meetingsNext:e.meetings)||[]).forEach(m=>meetings.push(Object.assign({sec:e},m))));
+  electives.forEach(e=>secMeetings(e,wi).forEach(m=>meetings.push(Object.assign({sec:e},m))));
 
   const myKey=new Set(electives.map(e=>ckey(e.abbr,e.division)));
   const myChanges=(DATA.changes||[]).filter(c=>myKey.has(ckey(c.abbr,c.division)) && (inWk(c.old_date)||inWk(c.new_date)||(!c.old_date&&!c.new_date)));
@@ -1519,11 +1549,11 @@ function render(){
   const usedSess=DATA.sessions.filter(s=>meetings.some(m=>m.session===s.name));
 
   if(!usedDays.length||!usedSess.length){
-    const otherHas=stMeetCount(st,!useNext)>0;
-    if(otherHas){
-      html+=`<div class="empty-week">No classes for you ${useNext?'next':'this'} week — <button class="ew-jump" type="button" onclick="setWeek(${useNext?0:1})">see ${useNext?'this':'next'} week ›</button></div>`;
+    let _oi=-1; for(let _k=0;_k<WEEKS.length;_k++){ if(_k!==wi && stMeetCount(st,_k)>0){ _oi=_k; break; } }
+    if(_oi>=0){ const _ol=(_oi===0?'this week':_oi===1?'next week':'week of '+fmt(WEEKS[_oi].mon));
+      html+=`<div class="empty-week">No classes for you ${_wlabel} — <button class="ew-jump" type="button" onclick="setWeek(${_oi})">see ${_ol} ›</button></div>`;
     } else {
-      html+=`<div class="empty-week">No classes scheduled for you ${useNext?'next':'this'} week.</div>`;
+      html+=`<div class="empty-week">No classes scheduled for you ${_wlabel}.</div>`;
     }
   } else {
     const cols=`${TCOL}px repeat(${usedDays.length},minmax(46px,1fr))`;
@@ -1554,7 +1584,7 @@ function render(){
     const evs=weekEvents.slice().sort((a,b)=>a.date<b.date?-1:1);
     const nClasses=meetings.filter(m=>m.changed!=='out').length;
     const nDays=new Set(meetings.filter(m=>m.changed!=='out').map(m=>m.day)).size;
-    let below=`<div class="note"><span><b>${nClasses} ${nClasses===1?'class':'classes'}</b> across <b>${nDays} ${nDays===1?'day':'days'}</b> ${useNext?'next':'this'} week</span></div>`;
+    let below=`<div class="note"><span><b>${nClasses} ${nClasses===1?'class':'classes'}</b> across <b>${nDays} ${nDays===1?'day':'days'}</b> ${_wlabel}</span></div>`;
     evs.forEach(e=>{ const n=fmtDM(e.date).split(' ')[0];
       below+=`<div class="chip2 ${e.type==='holiday'?'hol':'exam'}"><span class="num">${n}</span><span><span class="typ">${e.type==='holiday'?'Holiday':'Exam'}</span><span class="lab">${esc(e.name)}</span></span></div>`; });
     html+=`<div class="belowcal">${below}</div>`;
@@ -1562,13 +1592,13 @@ function render(){
 
   html+=`<details class="dir"><summary><span class="dir-sum"><span>Electives, faculty &amp; rooms</span><span class="dir-new">Track Your Class</span></span></summary><div class="dir-list">`;
   electives.slice().sort((a,b)=>a.abbr.localeCompare(b.abbr)).forEach(e=>{
-    const when=((useNext?e.meetingsNext:e.meetings)||[]).map(m=>`${m.day.slice(0,3)} ${m.start}`).join(", ");
+    const when=secMeetings(e,wi).map(m=>`${m.day.slice(0,3)} ${m.start}`).join(", ");
     const _done=lecturesDone(ckey(e.abbr,e.division), e.meetings||[]); const _pct=Math.round(_done/30*100);
     html+=`<div class="di ${slug(e.area)}">
         <div class="di-h"><span class="tag">${PERSON}${esc(e.abbr)}(${esc(e.division||'-')})</span><span class="di-nm">${esc(e.name)}</span></div>
         <div class="di-r">${esc(e.faculty||'—')}${e.email?` · <a href="mailto:${esc(e.email)}">${esc(e.email)}</a>`:''}</div>
         <div class="di-r">${ROOM}Room ${esc(e.room||'TBA')}</div>
-        ${when?`<div class="di-r meets">${esc(when)}</div>`:`<div class="di-r meets">Not scheduled ${useNext?'next':'this'} week</div>`}
+        ${when?`<div class="di-r meets">${esc(when)}</div>`:`<div class="di-r meets">Not scheduled ${_wlabel}</div>`}
         <div class="di-prog"><span class="di-pl">${esc(e.abbr)} : ${_done}/30</span><span class="di-bar"><i style="width:${_pct}%"></i></span></div>
       </div>`;
   });
@@ -1578,13 +1608,13 @@ function render(){
   $("result").classList.add("show");
 }
 
-function setWeek(w){ ttWeek=w?1:0;
-  var a=$("wkThis"),b=$("wkNext"); if(a)a.classList.toggle("active",ttWeek===0); if(b)b.classList.toggle("active",ttWeek===1);
-  var lm=ttWeek===1?new Date(WK_MON.getTime()+604800000):WK_MON, le=ttWeek===1?new Date(WK_END.getTime()+604800000):WK_END;
-  $("weeklabel").textContent="Week of "+fmt(lm)+" – "+fmt(le); render();
+function setWeek(w){ ttWeek=Math.max(0,Math.min(WEEKS.length-1,w|0));
+  var wt=$("wkToggle"); if(wt) Array.prototype.forEach.call(wt.querySelectorAll("[data-wk]"),function(b){ b.classList.toggle("active",+b.getAttribute("data-wk")===ttWeek); });
+  var W=WEEKS[ttWeek]||WEEKS[0];
+  $("weeklabel").textContent="Week of "+fmt(W.mon)+" – "+fmt(W.end); render();
 }
 $("btn").addEventListener("click",doLookup);
-{ var _a=$("wkThis"),_b=$("wkNext"); if(_a)_a.addEventListener("click",function(){setWeek(0);}); if(_b)_b.addEventListener("click",function(){setWeek(1);}); }
+// week pills bind their own click handlers in buildWkPills()
 
 // ---- name autocomplete on roll lookup ----
 const acdrop=$("acdrop"), allRolls=Object.keys(DATA.students);
@@ -1795,7 +1825,7 @@ showView();
       if(c.old_day) changeMap[c.old_day+'|'+ckey(c.abbr,c.division)]=c;
     });
     var byDay={};
-    secs.forEach(function(e){(e.meetings||[]).forEach(function(m){ (byDay[m.day]=byDay[m.day]||[]).push({sec:e,start:m.start,name:(cleanSub(e.name)||e.abbr),room:e.room||''}); });});
+    secs.forEach(function(e){secMeetings(e,0).forEach(function(m){ (byDay[m.day]=byDay[m.day]||[]).push({sec:e,start:m.start,name:(cleanSub(e.name)||e.abbr),room:e.room||''}); });});
     movedIn.forEach(function(mi){ var e=mi.sec; (byDay[mi.day]=byDay[mi.day]||[]).push({sec:e,start:mi.start,name:(cleanSub(e.name)||e.abbr),room:e.room||'',movedIn:true}); });
     var base=new Date(TODAY.getFullYear(),TODAY.getMonth(),TODAY.getDate());
     if(shareDay==='tomorrow') base.setDate(base.getDate()+1);
