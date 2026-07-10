@@ -175,10 +175,17 @@ def _build_master(cd_rows, grid_rows, source):
     note("INFO", f"Master catalog source: {source}.")
     return subjects, faculty, classrooms, division_map, alias_map, meetings, events
 
-def find_master(input_dir):
+def find_masters(input_dir):
+    """Every schedule/master workbook in the folder, largest first. The largest
+    supplies the catalog (subjects/faculty/rooms); all of them contribute their
+    weekly grids, so several weeks can coexist across separate files."""
     cands = [f for f in glob.glob(os.path.join(input_dir, "*.xlsx"))
              if any(k in os.path.basename(f).lower() for k in ("schedule", "course detail", "term"))]
-    return max(cands, key=os.path.getsize) if cands else None
+    return sorted(cands, key=os.path.getsize, reverse=True)
+
+def find_master(input_dir):
+    m = find_masters(input_dir)
+    return m[0] if m else None
 
 def _pick_grid_sheet(sheets, cd_name):
     """Find the weekly-timetable sheet robustly, independent of how the admin
@@ -194,20 +201,39 @@ def _pick_grid_sheet(sheets, cd_name):
             return s
     return next((s for s in sheets if s != cd_name and "schedule" in s.lower()), None)
 
+def _read_sheets(path):
+    wb = load_workbook(path, read_only=True, data_only=True)
+    sheets = {s: [list(r) for r in wb[s].iter_rows(values_only=True)] for s in wb.sheetnames}
+    wb.close()
+    cd = next((s for s in sheets if "course detail" in s.lower()), next(iter(sheets)))
+    gn = _pick_grid_sheet(sheets, cd)
+    return sheets[cd], (sheets.get(gn, []) if gn else [])
+
 def parse_master(input_dir):
-    path = find_master(input_dir)
-    if path:
-        wb = load_workbook(path, read_only=True, data_only=True)
-        sheets = {s: [list(r) for r in wb[s].iter_rows(values_only=True)] for s in wb.sheetnames}
-        wb.close()
-        cd = next((s for s in sheets if "course detail" in s.lower()), next(iter(sheets)))
-        cd_rows = sheets[cd]
-        gn = _pick_grid_sheet(sheets, cd)
-        grid_rows = sheets.get(gn, []) if gn else []
+    paths = find_masters(input_dir)
+    if paths:
+        cd_rows, grid_rows = _read_sheets(paths[0])           # largest = catalog + its own grid
         if not grid_rows:
-            note("WARN", f"{os.path.basename(path)}: no weekly-grid sheet could be recognized "
+            note("WARN", f"{os.path.basename(paths[0])}: no weekly-grid sheet could be recognized "
                          f"(looked for a 'Session-*' header). Timetable left empty.")
-        return _build_master(cd_rows, grid_rows, os.path.basename(path))
+        subj, fac, cls, dm, am, meetings, events = _build_master(cd_rows, grid_rows, os.path.basename(paths[0]))
+        # merge the grids of any additional schedule files so multiple weeks coexist —
+        # e.g. a recovered previous-week file dropped alongside the current one.
+        seen_m = {(m["abbr_norm"], m["division"], m["date"], m["session"]) for m in meetings}
+        seen_e = {(e["date"], e["type"], e["name"]) for e in events}
+        for p in paths[1:]:
+            _, g2 = _read_sheets(p)
+            if not g2: continue
+            *_, m2, e2 = _build_master(cd_rows, g2, os.path.basename(p))   # reuse catalog for a consistent alias map
+            add_m = add_e = 0
+            for m in m2:
+                k = (m["abbr_norm"], m["division"], m["date"], m["session"])
+                if k not in seen_m: seen_m.add(k); meetings.append(m); add_m += 1
+            for e in e2:
+                k = (e["date"], e["type"], e["name"])
+                if k not in seen_e: seen_e.add(k); events.append(e); add_e += 1
+            note("INFO", f"Merged extra schedule {os.path.basename(p)}: +{add_m} meetings, +{add_e} events.")
+        return subj, fac, cls, dm, am, meetings, events
     note("WARN", "Master schedule workbook not found in input folder; used the embedded "
                  "snapshot captured from your schedule file. Re-add that .xlsx to refresh "
                  "subjects, faculty emails, classrooms, and the weekly timetable.")
@@ -257,7 +283,8 @@ def build(input_dir, output_dir):
     csv_dir = os.path.join(output_dir, "csv"); os.makedirs(csv_dir, exist_ok=True)
     master_path = find_master(input_dir)
     subjects, faculty, classrooms, division_map, alias_map, meetings, events = parse_master(input_dir)
-    roster_files = sorted(f for f in glob.glob(os.path.join(input_dir, "*.xlsx")) if f != master_path)
+    _sched = set(find_masters(input_dir))
+    roster_files = sorted(f for f in glob.glob(os.path.join(input_dir, "*.xlsx")) if f not in _sched)
 
     students, name_variants, enrollments, sections = {}, {}, [], {}
     for rf in roster_files:

@@ -125,6 +125,65 @@ if os.path.exists(upd_path):
     except Exception as e:
         print("updates.json skipped:", e)
 
+def _safe_date(x):
+    try: return datetime.date.fromisoformat(x)
+    except Exception: return None
+
+# ---- carry forward weeks that are still live in the currently-published JSON ----
+# The build fully rebuilds from the latest master file; if that file skips a week
+# that was published last run (and hasn't finished yet), merge it back so a live
+# week is never silently lost. The published JSON is the only cross-run memory the
+# pipeline has. Fail-safe: if the fetch fails we just keep this build's own weeks.
+LIVE_URL = os.environ.get("LIVE_JSON_URL",
+    "https://raw.githubusercontent.com/imanmaity/classic-maarlbros-got-you-covered/gh-pages/schedule_data.json")
+def _fetch_live(url):
+    try:
+        import urllib.request
+        with urllib.request.urlopen(url, timeout=20) as r:
+            return json.loads(r.read().decode("utf-8"))
+    except Exception as e:
+        print("live-JSON merge skipped:", e); return None
+
+week_set = {m.isoformat() for m in WEEKS}          # weeks present in THIS build's file
+live = _fetch_live(LIVE_URL)
+if live:
+    live_by = {}                                    # (abbr,div) -> meetingsByWeek from live
+    for ls in (live.get("sections") or {}).values():
+        k = (str(ls.get("abbr", "")).upper(), str(ls.get("division") or "").upper())
+        live_by[k] = ls.get("meetingsByWeek") or {}
+    merged = 0
+    for s in sections.values():
+        k = (str(s["abbr"]).upper(), str(s.get("division") or "").upper())
+        for wk_iso, ms in (live_by.get(k) or {}).items():
+            wk = _safe_date(wk_iso)
+            if not wk or (wk + datetime.timedelta(days=6)) < today: continue  # already finished
+            if wk_iso in week_set:                                            # this build wins for its own weeks
+                if wk_iso not in s["meetingsByWeek"]: s["meetingsByWeek"][wk_iso] = ms
+                continue
+            s["meetingsByWeek"].setdefault(wk_iso, ms)                        # bring the missing live week back
+            week_set.add(wk_iso); merged += 1
+    if merged: print(f"Merged {merged} section-week(s) carried over from the live JSON.")
+
+# ---- always keep the CURRENT calendar week when a notice applies to it ----
+# so a change dated this week (e.g. a room change for tomorrow) still renders
+# even if the master file only covers upcoming weeks.
+cur_mon = monday_of(today); cur_iso = cur_mon.isoformat(); cw_end = cur_mon + datetime.timedelta(days=6)
+if cur_iso not in week_set and any(
+        (lambda d: d and cur_mon <= d <= cw_end)(_safe_date(c.get("new_date") or c.get("old_date")))
+        for c in changes):
+    for s in sections.values(): s["meetingsByWeek"].setdefault(cur_iso, [])
+    week_set.add(cur_iso)
+    print(f"Current week {cur_iso} kept for change notices (no master rows for it).")
+
+# ---- recompute ordered week list + back-compat fields after merging ----
+WEEKS = sorted(d for d in (_safe_date(w) for w in week_set) if d)
+WK_START = WEEKS[0]
+NEXT_START = WEEKS[1] if len(WEEKS) > 1 else WK_START + datetime.timedelta(days=7)
+for s in sections.values():
+    _mbw = s["meetingsByWeek"]
+    s["meetings"] = _mbw.get(WK_START.isoformat(), [])
+    s["meetingsNext"] = _mbw.get(NEXT_START.isoformat(), [])
+
 data = {"meta": {"institute": "Institute of Management, Nirma University",
                  "term": "MBA Term-IV",
                  "weeks": [m.isoformat() for m in WEEKS],
