@@ -111,6 +111,31 @@ ROOM_RE = r'(?:[A-Za-z]{1,4}-?\d{1,3}[A-Za-z]?|\d{2,4}-[A-Za-z]{1,3})'
 _WEEKDAYS = {"monday":0,"tuesday":1,"wednesday":2,"thursday":3,"friday":4,"saturday":5,"sunday":6}
 def _room_norm(s): return re.sub(r'\s+', '', str(s)).upper()
 
+# named / virtual venues that aren't code-like rooms ("Auditorium", "online", "MS Teams")
+def _venue_label(s):
+    s = str(s).strip().lower()
+    if 'zoom' in s:  return 'Zoom'
+    if 'webex' in s: return 'Webex'
+    if 'meet' in s:  return 'Google Meet'
+    if 'team' in s:  return 'MS Teams'
+    if re.search(r'online|virtual|classroom', s): return 'Online'
+    return re.sub(r'\s+', ' ', s).title()
+def _venue_events(t):
+    """[(pos, venue_label, None)] for named/virtual venues (auditorium, online, Teams...).
+    Self-contained (patterns are local) so selftest can extract it with parse_change."""
+    online = (r'(?:online|virtually|virtual\s+mode|ms\s*-?\s*teams|microsoft\s*teams|'
+              r'google\s*meet|g-?meet|zoom(?:\s*(?:call|meeting|link))?|webex|google\s*classroom)')
+    hall   = (r'(?:auditorium|amphitheat(?:re|er)|seminar\s*hall|conference\s*(?:room|hall)|'
+              r'board\s*room|(?:computer\s*)?lab(?:oratory)?|library)')
+    cue = (r'(?:held|conducted|conduct\w*|shifted|moved|take\s*place|takes?\s*place|'
+           r'venue|be\s+held|arranged)\b[^.\n]{0,25}?\b(?:in|to|at|via|on|through|:)\s*(?:the\s+|a\s+)?')
+    ev = []
+    for m in re.finditer(cue + r'(' + online + r'|' + hall + r')', t, re.I):
+        ev.append((m.start(), _venue_label(m.group(1)), None))
+    for m in re.finditer(r'\b(' + online + r')\b', t, re.I):   # standalone "... conducted online"
+        ev.append((m.start(), _venue_label(m.group(1)), None))
+    return ev
+
 # #1: which notices to parse. Keep the configurable phrase, but also let
 # postpone / reschedule / cancel / venue notices through even when their
 # subject never says "change in class".
@@ -183,6 +208,9 @@ def _detect_rooms(t):
     if orr is None:                                                              # "instead of E6"
         m = re.search(r'(?:instead of|in place of|rather than|in lieu of|not in)\s+(?:room\s*)?(' + ROOM_RE + r')\b', t, re.I)
         if m: orr = _room_norm(m.group(1))
+    if nr is None:                                                               # named / virtual venue
+        _vv = _venue_events(t)
+        if _vv: nr = _vv[0][1]
     return nr, orr
 
 def _room_events(t):
@@ -198,6 +226,7 @@ def _room_events(t):
                          r'[^.\n]{0,25}?\b(?:in|to|at|:)\s*(?:room\s*(?:no\.?)?\s*|class\s*-?\s*room\s*|venue\s*|hall\s*)?'
                          r'(' + ROOM_RE + r')\b', t, re.I):                                 # "held in / shifted to T3"
         ev.append((m.start(), _room_norm(m.group(1)), None))
+    ev.extend(_venue_events(t))                                                              # "... online", "Auditorium"
     ev.sort(key=lambda e: e[0])
     return ev
 
@@ -319,6 +348,9 @@ def parse_change(text, edate=None):
         if key in room_of or key in verb_of:
             continue
         p = _pos.get(key)
+        if p is None:                                     # bare code -> find where it is named,
+            mm = re.search(r'\b' + re.escape(ab.upper()) + r'\b', text)   # so it binds to the room
+            if mm: p = mm.start()                         # in its own clause, not the first one
         act = next((e for e in _acts if e[0] >= p), None) if p is not None else None
         if act is None:                                   # bare code / nothing after -> global call
             act = (0, 'room', (new_room, old_room)) if is_room_change else (0, 'verb', ctype)
@@ -398,7 +430,7 @@ try:
                 changes.append(c); seen.add(key)
     os.makedirs(os.path.dirname(CHANGES_OUT) or ".", exist_ok=True)
     json.dump(changes, open(CHANGES_OUT, "w", encoding="utf-8"), ensure_ascii=False)
-    print(f"[fetch_email v2026-07-13b: unwrap-(ABBR)(DIV) + strip-asterisks + hyphen-div + fwd-headers] Parsed {len(changes)} change notice(s) -> {CHANGES_OUT}")
+    print(f"[fetch_email v2026-07-13c: unwrap-(ABBR)(DIV) + strip-asterisks + hyphen-div + fwd-headers + named-venues + bare-clause-binding] Parsed {len(changes)} change notice(s) -> {CHANGES_OUT}")
 except Exception as e:
     print("Change-notice fetch skipped:", e)
 
