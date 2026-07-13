@@ -210,6 +210,18 @@ def _clauses(t):
 def parse_change(text, edate=None):
     # edate = the email's own date, so "today"/"tomorrow"/weekday resolve correctly
     edate = edate or datetime.date.today()
+    # Office typo guard: a code sometimes arrives wrapped in its own parens,
+    # e.g. "(CB)(B)" instead of "CB(B)" -> unwrap so the section still parses.
+    text = re.sub(r'\(\s*([A-Za-z][A-Za-z&]{1,5})\s*\)\s*(\(\s*[A-Za-z])', r'\1\2', text)
+    # WhatsApp/markdown emphasis leaks in as literal asterisks and glues onto
+    # tokens ("TQM(B*)", "*IB(...)*") -> blank them so sections/verbs still parse.
+    text = text.replace("*", " ")
+    # "TQM-A"/"SDM-B" hyphen form (no parens) -> "TQM(A)" so the division survives.
+    text = re.sub(r'\b([A-Z][A-Z&]{1,5})\s*-\s*([A-Ha-h])\b(?![A-Za-z0-9])', r'\1(\2)', text)
+    # forwarded-mail header block: drop the marker and any From:/Date:/To:/Cc:/
+    # Subject: lines so a forward's own header date can't hijack the notice.
+    text = re.sub(r'-{3,}\s*forwarded message\s*-{3,}', ' ', text, flags=re.I)
+    text = re.sub(r'(?im)^\s*(?:from|to|cc|bcc|date|sent|subject|reply-to)\s*:[^\n]*', ' ', text)
     # sections like "SBM(A)", "SBM(A & B)", "SDM(A), SDM(B)" -> one (abbr, division) per division
     secs = []
     for ab, dvgroup in re.findall(r'([A-Za-z&]{2,6})\(\s*([A-Za-z][A-Za-z&,\s]*?)\s*\)', text):
@@ -386,7 +398,7 @@ try:
                 changes.append(c); seen.add(key)
     os.makedirs(os.path.dirname(CHANGES_OUT) or ".", exist_ok=True)
     json.dump(changes, open(CHANGES_OUT, "w", encoding="utf-8"), ensure_ascii=False)
-    print(f"[fetch_email v2026-07-06f: dateless-tomorrow + time-move-insert] Parsed {len(changes)} change notice(s) -> {CHANGES_OUT}")
+    print(f"[fetch_email v2026-07-13b: unwrap-(ABBR)(DIV) + strip-asterisks + hyphen-div + fwd-headers] Parsed {len(changes)} change notice(s) -> {CHANGES_OUT}")
 except Exception as e:
     print("Change-notice fetch skipped:", e)
 
