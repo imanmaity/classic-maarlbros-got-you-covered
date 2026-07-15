@@ -24,15 +24,16 @@ MANIFEST_JSON = '{\n  "name": "My Week \\u00b7 IMNU Term IV",\n  "short_name": "
 REQUEST_EMAIL = "25MBA420@nirmauni.ac.in"
 REQUEST_FORM_URL = ""
 INSTA_URL = "https://www.instagram.com/classicmaarlbro"   # footer brand links here
-APP_VERSION = "MBA v1.4"   # shown in the hero badge — bump when you ship notable changes
+APP_VERSION = "MBA v1.6"   # shown in the hero badge — bump when you ship notable changes
 
 # ---- "What's New" pop-up: add an entry at the TOP and bump WHATSNEW_ID each time you ship ----
 WHATS_NEW = [
+    {"tag": "Fixed", "title": "Schedule corrected", "desc": "Wed 15 Jul: RMKT(B) now at 9:10 AM and CB(B) at 11:30 AM. Timetable re-synced.", "date": "15 Jul 2026"},
     {"tag": "New", "title": "New books added",    "desc": "Fresh titles on the Shared Shelf — open Books to grab them.", "date": "29 Jun 2026"},
     {"tag": "New", "title": "PYQs are here",       "desc": "Previous-year question papers, sorted by major. Semester IV first.", "date": "29 Jun 2026"},
     {"tag": "New", "title": "Attendance tracker",  "desc": "Mark the classes you miss and watch your % update live.", "date": ""},
 ]
-WHATSNEW_ID = "2026-06-29"   # bump this (e.g. to today's date) whenever you add an entry
+WHATSNEW_ID = "2026-07-15"   # bump this (e.g. to today's date) whenever you add an entry
 
 # ---- Web-push notifications (daily "tomorrow's classes" digest) ----
 # VAPID public key (safe to publish). The matching private key lives only as the
