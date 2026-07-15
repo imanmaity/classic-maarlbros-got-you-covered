@@ -43,8 +43,7 @@ jobs:
 
       - name: Build dataset
         env:
-          FORCE_PUBLISH: 1
-        run: python scripts/build_dataset.py --input rosters --output data
+          FORCE_PUBLISH: ${{ github.event.inputs.force_publish == 'true' && '1' || '' }}
         run: python scripts/build_dataset.py --input rosters --output data
       - name: Export JSON
         run: python scripts/export_json.py data/university.db data/schedule_data.json
