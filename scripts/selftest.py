@@ -65,6 +65,17 @@ def main():
     c = first("The CB(A) session will be conducted in classroom T5 today.")
     check("conducted in classroom T5", c and c["type"] == "Room Change" and c["new_room"] == "T5", c)
 
+    # bare all-digit room number (e.g. 215, 309) — must parse, not collapse to TBA
+    c = first("RMKT(B) session scheduled today will be held in 215 classroom.")
+    check("bare numeric room 215", c and c["type"] == "Room Change" and c["new_room"] == "215", c)
+
+    # "309 F" written with a space must canonicalize to 309-F (not drop the F, not eat the next word)
+    c = first("RMKT(B) session today will be held in 309 F classroom.")
+    check("space room 309 F -> 309-F", c and c["type"] == "Room Change" and c["new_room"] == "309-F", c)
+    # a plain number followed by an ordinary word must NOT become a room suffix
+    c = first("RMKT(B) session today will be held in 214 for the full batch.")
+    check("214 for -> 214 (no suffix)", c and c["type"] == "Room Change" and c["new_room"] == "214", c)
+
     c = first("RMKT(B) class on 25.06.2026 will be held in T4 instead of E6.")
     check("explicit date + instead-of old room",
           c and c["type"] == "Room Change" and c["new_room"] == "T4" and c["old_room"] == "E6"

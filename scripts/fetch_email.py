@@ -107,9 +107,12 @@ def _looks_like_schedule(raw):
     return bool(has_codes and has_grid)
 
 # room/venue token, e.g. "T3", "E6", "T-3", "309-F", "LH1" (letters+digits, or digits-letters)
-ROOM_RE = r'(?:[A-Za-z]{1,4}-?\d{1,3}[A-Za-z]?|\d{2,4}-[A-Za-z]{1,3})'
+ROOM_RE = r'(?:[A-Za-z]{1,4}-?\d{1,3}[A-Za-z]?|\d{2,4}-[A-Za-z]{1,2}|\d{3}\s[A-Za-z](?![A-Za-z])|\d{3}[A-Za-z]?)'
 _WEEKDAYS = {"monday":0,"tuesday":1,"wednesday":2,"thursday":3,"friday":4,"saturday":5,"sunday":6}
-def _room_norm(s): return re.sub(r'\s+', '', str(s)).upper()
+def _room_norm(s):
+    s = re.sub(r'\s+', '', str(s)).upper()                 # drop spaces, upper-case
+    s = re.sub(r'^(\d{2,4})([A-Z]{1,2})$', r'\1-\2', s)    # 309F / 309 F -> canonical 309-F
+    return s
 
 # named / virtual venues that aren't code-like rooms ("Auditorium", "online", "MS Teams")
 def _venue_label(s):
