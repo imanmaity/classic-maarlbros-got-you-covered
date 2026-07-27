@@ -242,12 +242,26 @@ def _clauses(t):
 def parse_change(text, edate=None):
     # edate = the email's own date, so "today"/"tomorrow"/weekday resolve correctly
     edate = edate or datetime.date.today()
+    # 1. Collapse accidental space between course code and paren: e.g. "SBM (C)" -> "SBM(C)"
+    text = re.sub(r'\b([A-Z][A-Z&]{1,5})\s+\(\s*([A-Za-z][A-Za-z&,\s]*?)\s*\)', r'\1(\2)', text)
+    # 2. Expand shorthand/orphan division groups: e.g. "BM(A), (B), (C)" -> "BM(A), BM(B), BM(C)"
+    #    and handle across periods/newlines like "TQM(B). (A)" -> "TQM(B). TQM(A)"
+    while True:
+        new_text = re.sub(
+            r'\b([A-Z][A-Z&]{1,5})\(\s*([A-Za-z][A-Za-z&,\s]*?)\s*\)((?:\s*[,.&]\s*|\s+(?:and|&)\s+|\s+)*)\(\s*([A-Ha-h])\s*\)',
+            r'\1(\2)\3\1(\4)',
+            text
+        )
+        if new_text == text:
+            break
+        text = new_text
     # Office typo guard: a code sometimes arrives wrapped in its own parens,
     # e.g. "(CB)(B)" instead of "CB(B)" -> unwrap so the section still parses.
     text = re.sub(r'\(\s*([A-Za-z][A-Za-z&]{1,5})\s*\)\s*(\(\s*[A-Za-z])', r'\1\2', text)
     # WhatsApp/markdown emphasis leaks in as literal asterisks and glues onto
     # tokens ("TQM(B*)", "*IB(...)*") -> blank them so sections/verbs still parse.
-    text = text.replace("*", " ")
+    # Also strip single quotes/apostrophes so Section C typos like "SDM('C)" parse cleanly.
+    text = text.replace("*", " ").replace("'", "")
     # "TQM-A"/"SDM-B" hyphen form (no parens) -> "TQM(A)" so the division survives.
     text = re.sub(r'\b([A-Z][A-Z&]{1,5})\s*-\s*([A-Ha-h])\b(?![A-Za-z0-9])', r'\1(\2)', text)
     # forwarded-mail header block: drop the marker and any From:/Date:/To:/Cc:/
@@ -394,7 +408,7 @@ def parse_change(text, edate=None):
                 for ds in dates:
                     out.append({"abbr": key[0], "division": key[1], "type": vt,
                                 "old_date": ds, "old_day": day(ds), "new_date": None, "new_day": None,
-                                "new_hhmm": None, "tba": True, "raw": raw})
+                                "new_hhmm": None, "old_room": old_room, "new_room": new_room, "tba": True, "raw": raw})
             else:
                 if not times:                      hhmm = None
                 elif len(times) == len(verb_secs): hhmm = times[i]
@@ -403,7 +417,7 @@ def parse_change(text, edate=None):
                 out.append({"abbr": key[0], "division": key[1], "type": vt,
                             "old_date": old_date, "old_day": day(old_date),
                             "new_date": new_date, "new_day": day(new_date),
-                            "new_hhmm": hhmm, "tba": tba, "raw": raw})
+                            "new_hhmm": hhmm, "old_room": old_room, "new_room": new_room, "tba": tba, "raw": raw})
     return out
 
 M = imaplib.IMAP4_SSL(HOST); M.login(USER, PWD); M.select("INBOX")
@@ -417,6 +431,8 @@ try:
     for num in reversed(data[0].split()):
         typ, md = M.fetch(num, "(RFC822)")
         msg = email.message_from_bytes(md[0][1])
+        if not _sender_ok(msg):               # exact-sender guard
+            continue
         _subj = decode(msg.get("Subject", "")).lower()
         if CHANGE_SUBJECT.lower() not in _subj and not _CHANGE_SUBJECT_RE.search(_subj):
             continue
@@ -467,6 +483,8 @@ for code, cname, addr in COMMITTEES:
         for num in data[0].split()[-15:][::-1]:         # this month's mails per committee
             typ, md = M.fetch(num, "(RFC822)")
             msg = email.message_from_bytes(md[0][1])
+            if _addr_of(msg) != addr.strip().lower():   # exact-sender guard
+                continue
             subj = re.sub(r"\s+", " ", decode(msg.get("Subject", ""))).strip()
             if not subj:
                 continue

@@ -106,6 +106,24 @@ def main():
     check("multi-venue: CB stays E1 (not the first room E2)",
           rm.get(("CB", "A")) == "E1" and rm.get(("CB", "B")) == "E1", rm)
 
+    # ---- shorthand / orphan division parsing (admin office formatting) ----
+    rr = parse_change("BM(A), (B), (C) Sessions will be held in the T1 classroom.", E)
+    check("shorthand: BM(A), (B), (C) -> 3 divisions", len(rr) == 3, len(rr))
+    check("shorthand: BM rooms all T1", all(c["new_room"] == "T1" for c in rr), rr)
+
+    rr = parse_change("I&PM(A), \nSBM(A), (B)\nSDM(B), (C) Sessions will be held in the E2 classroom.", E)
+    check("shorthand multiline: I&PM, SBM, SDM -> 5 divisions", len(rr) == 5, len(rr))
+    div_map = {(c["abbr"], c["division"]): c["new_room"] for c in rr}
+    check("shorthand multiline: all E2", div_map.get(("SBM", "B")) == "E2" and div_map.get(("SDM", "C")) == "E2", div_map)
+
+    rr = parse_change("I&PM(C), (B), \nSDM(A)\nTQM(B). (A) sessions will be held in the E1 classroom.", E)
+    div_map = {(c["abbr"], c["division"]): c["new_room"] for c in rr}
+    check("shorthand across period: TQM(B). (A) -> TQM(A) captured", div_map.get(("TQM", "A")) == "E1", div_map)
+
+    rr = parse_change("ERP(A), (B), \nSBM (C) Sessions will be held in the E3 classroom.", E)
+    div_map = {(c["abbr"], c["division"]): c["new_room"] for c in rr}
+    check("space before paren: SBM (C) -> SBM(C) captured", div_map.get(("SBM", "C")) == "E3", div_map)
+
     # ---- regressions: these must NOT become Room Changes ----
     c = first("Dear Students, The SBM(A) & SBM(B) session scheduled on 23.06.2026 is "
               "postponed to 24.06.2026 at 02:40-03:40 & 03:50-04:50PM respectively.")
