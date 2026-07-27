@@ -1,0 +1,40 @@
+# =====================================================================================
+#  MANUAL NOTICES  —  post a room change / "to be announced" the parser can't fetch.
+#
+#  Edit this file on GitHub (data/manual_notices.txt), commit, then go to
+#  Actions -> "Weekly schedule update" -> Run workflow.  That's it.
+#
+#  Lines starting with #  are comments (ignored).
+#  Separate multiple notices with a line that is exactly three dashes:  ---
+#  Dates are ISO:  YYYY-MM-DD   (e.g. 2026-07-16)
+#
+#  TWO WAYS TO WRITE A NOTICE
+#  --------------------------------------------------------------------------
+#  A) DIRECTIVE (guaranteed — use this if you want it to just work):
+#
+#       @room  ABBR DIV | NEWROOM | DATE | was OLDROOM      ("| was OLDROOM" optional)
+#       @tba   ABBR DIV | DATE
+#
+#     Examples:
+#       @room RMKT B | 215 | 2026-07-16 | was T4
+#       @room CB A | 309 F | 2026-07-17
+#       @tba  S&DM B | 2026-07-16
+#
+#  B) FREE TEXT (paste the department's sentence exactly as written):
+#
+#       RMKT(B) session scheduled today will be held in 215 classroom.
+#
+#     It is read by the SAME parser the emails use. If it doesn't show up
+#     after a build, the parser couldn't read that wording — switch to a
+#     DIRECTIVE above, which never depends on phrasing.
+#
+#  NOTES
+#   * ABBR and DIV must match the timetable's codes (RMKT, CB, ERP, S&DM ... / A B C)
+#     and DATE must be a day that section actually meets, or the cell won't attach
+#     (the banner note still shows either way).
+#   * A notice keeps showing on every build until you delete/comment its block.
+#     Past-dated notices drop out of the current-week view on their own, so it's
+#     safe to leave last week's here, but tidy up when you can.
+# =====================================================================================
+
+# ---- Add your notices below this line ----
