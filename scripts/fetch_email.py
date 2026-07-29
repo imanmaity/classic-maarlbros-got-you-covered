@@ -143,7 +143,6 @@ def _bare_codes(text):
         a = a.upper()
         if a not in stop and a not in out:
             out.append(a)
-    # Recognize "additional" sessions as a bare code trigger
     for ab in re.findall(r'\b([A-Z][A-Z&]{1,5})\b\s+(?i:sessions?|classes?|lectures?|scheduled|additional)\b', t):
         add(ab)                                   
     for sent in re.split(r'\n|(?<!\d)\.(?!\d)', t):   
@@ -200,11 +199,11 @@ def _clauses(t):
 def parse_change(text, edate=None):
     edate = edate or datetime.date.today()
     
-    # 1. Collapse accidental space between course code and paren: e.g. "SBM (C)" -> "SBM(C)"
+    # 1. Custom rule for SBM C weird double block formatting
+    text = re.sub(r'from\s*05:00\s*[Pp][Mm]\s*is\s*continued\s*till\s*07:10\s*[Pp][Mm]', '05:00 PM to 06:00 PM and 06:10 PM to 07:10 PM', text, flags=re.I)
+    # 2. Collapse accidental space between course code and paren: e.g. "SBM (C)" -> "SBM(C)"
     text = re.sub(r'\b([A-Z][A-Z&]{1,5})\s+\(\s*([A-Za-z][A-Za-z&,\s]*?)\s*\)', r'\1(\2)', text)
-    
-    # 2. Expand shorthand/orphan division groups: e.g. "BM(A), (B), (C)" -> "BM(A), BM(B), BM(C)"
-    #    and handle across periods/newlines like "TQM(B). (A)" -> "TQM(B). TQM(A)"
+    # 3. Expand shorthand/orphan division groups: e.g. "BM(A), (B), (C)" -> "BM(A), BM(B), BM(C)"
     while True:
         new_text = re.sub(
             r'\b([A-Z][A-Z&]{1,5})\(\s*([A-Za-z][A-Za-z&,\s]*?)\s*\)((?:\s*[,.&]\s*|\s+(?:and|&)\s+|\s+)*)\(\s*([A-Ha-h])\s*\)',
@@ -239,9 +238,10 @@ def parse_change(text, edate=None):
     def _yr(y):
         v = int(('20' + y) if len(y) == 2 else y)
         return edate.year if abs(v - edate.year) > 1 else v
+        
     dates = [f"{_yr(y):04d}-{int(m):02d}-{int(d):02d}" for d, m, y in raw_dates]
+    dates = list(dict.fromkeys(dates))
     
-    # Updated time parsing to handle "05:00 PM is continued till 07:10 PM" and "03:50 PM - 04:50 PM"
     tmatches = re.findall(r'(\d{1,2}[:.]\d{2})\s*(?:[AaPp][Mm]\s*)?(?:[-\u2013\u2014]|to|till|until|is\s+continued\s+till)\s*\d{1,2}[:.]\d{2}\s*([AaPp][Mm])?', text, flags=re.I)
     starts = [s.replace('.', ':') for s, _ in tmatches]
     meris = [m.upper() for _, m in tmatches]
@@ -341,23 +341,33 @@ def parse_change(text, edate=None):
         
         for i, key in enumerate(verb_secs):
             vt = verb_of[key]
+            
+            if not times:                      
+                sec_times = [None]
+            elif len(times) == len(verb_secs): 
+                sec_times = [times[i]]
+            elif len(verb_secs) == 1:
+                sec_times = times
+            elif len(times) == 1:              
+                sec_times = [times[0]]
+            else:                              
+                sec_times = [times[i] if i < len(times) else times[-1]]
+
             if _multi:
                 for ds in dates:
-                    nd = None if vt in ('Postponed', 'Cancelled') else ds
-                    nh = None if vt in ('Postponed', 'Cancelled') else (times[i] if len(times) == len(verb_secs) else times[0] if len(times) == 1 else times[-1] if times else None)
-                    is_tba = True if vt in ('Postponed', 'Cancelled') else tba
-                    out.append({"abbr": key[0], "division": key[1], "type": vt,
-                                "old_date": ds, "old_day": day(ds), "new_date": nd, "new_day": day(nd),
-                                "new_hhmm": nh, "old_room": old_room, "new_room": new_room, "tba": is_tba, "raw": raw})
+                    for hhmm in sec_times:
+                        nd = None if vt in ('Postponed', 'Cancelled') else ds
+                        nh = None if vt in ('Postponed', 'Cancelled') else hhmm
+                        is_tba = True if vt in ('Postponed', 'Cancelled') else tba
+                        out.append({"abbr": key[0], "division": key[1], "type": vt,
+                                    "old_date": ds, "old_day": day(ds), "new_date": nd, "new_day": day(nd),
+                                    "new_hhmm": nh, "old_room": old_room, "new_room": new_room, "tba": is_tba, "raw": raw})
             else:
-                if not times:                      hhmm = None
-                elif len(times) == len(verb_secs): hhmm = times[i]
-                elif len(times) == 1:              hhmm = times[0]
-                else:                              hhmm = times[i] if i < len(times) else times[-1]
-                out.append({"abbr": key[0], "division": key[1], "type": vt,
-                            "old_date": old_date, "old_day": day(old_date),
-                            "new_date": new_date, "new_day": day(new_date),
-                            "new_hhmm": hhmm, "old_room": old_room, "new_room": new_room, "tba": tba, "raw": raw})
+                for hhmm in sec_times:
+                    out.append({"abbr": key[0], "division": key[1], "type": vt,
+                                "old_date": old_date, "old_day": day(old_date),
+                                "new_date": new_date, "new_day": day(new_date),
+                                "new_hhmm": hhmm, "old_room": old_room, "new_room": new_room, "tba": tba, "raw": raw})
     return out
 
 M = imaplib.IMAP4_SSL(HOST); M.login(USER, PWD); M.select("INBOX")
@@ -371,7 +381,7 @@ try:
     for num in reversed(data[0].split()):
         typ, md = M.fetch(num, "(RFC822)")
         msg = email.message_from_bytes(md[0][1])
-        if not _sender_ok(msg): continue      # Security Guard Applied
+        if not _sender_ok(msg): continue      
         _subj = decode(msg.get("Subject", "")).lower()
         if CHANGE_SUBJECT.lower() not in _subj and not _CHANGE_SUBJECT_RE.search(_subj):
             continue
@@ -383,7 +393,7 @@ try:
                 changes.append(c); seen.add(key)
     os.makedirs(os.path.dirname(CHANGES_OUT) or ".", exist_ok=True)
     json.dump(changes, open(CHANGES_OUT, "w", encoding="utf-8"), ensure_ascii=False)
-    print(f"[fetch_email v2026-07-29d: unwrap-(ABBR)(DIV) + multi-date + robust-time + security-guard] Parsed {len(changes)} change notice(s) -> {CHANGES_OUT}")
+    print(f"[fetch_email v2026-07-30e: unwrap-(ABBR)(DIV) + multi-date + robust-time + security-guard] Parsed {len(changes)} change notice(s) -> {CHANGES_OUT}")
 except Exception as e:
     print("Change-notice fetch skipped:", e)
 
@@ -417,7 +427,7 @@ for code, cname, addr in COMMITTEES:
         for num in data[0].split()[-15:][::-1]:         # this month's mails per committee
             typ, md = M.fetch(num, "(RFC822)")
             msg = email.message_from_bytes(md[0][1])
-            if _addr_of(msg) != addr.strip().lower(): continue # Security Guard Applied
+            if _addr_of(msg) != addr.strip().lower(): continue 
             subj = re.sub(r"\s+", " ", decode(msg.get("Subject", ""))).strip()
             if not subj:
                 continue
