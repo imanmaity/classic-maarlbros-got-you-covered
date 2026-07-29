@@ -199,11 +199,8 @@ def _clauses(t):
 def parse_change(text, edate=None):
     edate = edate or datetime.date.today()
     
-    # 1. Custom rule for SBM C weird double block formatting
     text = re.sub(r'from\s*05:00\s*[Pp][Mm]\s*is\s*continued\s*till\s*07:10\s*[Pp][Mm]', '05:00 PM to 06:00 PM and 06:10 PM to 07:10 PM', text, flags=re.I)
-    # 2. Collapse accidental space between course code and paren: e.g. "SBM (C)" -> "SBM(C)"
     text = re.sub(r'\b([A-Z][A-Z&]{1,5})\s+\(\s*([A-Za-z][A-Za-z&,\s]*?)\s*\)', r'\1(\2)', text)
-    # 3. Expand shorthand/orphan division groups: e.g. "BM(A), (B), (C)" -> "BM(A), BM(B), BM(C)"
     while True:
         new_text = re.sub(
             r'\b([A-Z][A-Z&]{1,5})\(\s*([A-Za-z][A-Za-z&,\s]*?)\s*\)((?:\s*[,.&]\s*|\s+(?:and|&)\s+|\s+)*)\(\s*([A-Ha-h])\s*\)',
@@ -391,9 +388,35 @@ try:
             key = (c["abbr"], c["division"], c["old_date"], c["new_date"], c["new_hhmm"], c["type"])
             if key not in seen:
                 changes.append(c); seen.add(key)
+                
+    # --- START OF FORCED MANUAL OVERRIDE ---
+    forced_changes = [
+        # PML Postponements (July 29 & 31)
+        {"abbr": "PML", "division": "", "type": "Postponed", "old_date": "2026-07-29", "old_day": "Wednesday", "new_date": None, "new_day": None, "old_hhmm": None, "new_hhmm": None, "old_room": None, "new_room": None, "tba": True, "raw": "MANUAL OVERRIDE: PML Postponed"},
+        {"abbr": "PML", "division": "", "type": "Postponed", "old_date": "2026-07-31", "old_day": "Friday", "new_date": None, "new_day": None, "old_hhmm": None, "new_hhmm": None, "old_room": None, "new_room": None, "tba": True, "raw": "MANUAL OVERRIDE: PML Postponed"},
+
+        # SBM (C) in E3 (30.07.2026)
+        {"abbr": "SBM", "division": "C", "type": "Rescheduled", "old_date": "2026-07-30", "old_day": "Thursday", "new_date": "2026-07-30", "new_day": "Thursday", "old_hhmm": None, "new_hhmm": "05:00PM", "old_room": None, "new_room": "E3", "tba": False, "raw": "MANUAL OVERRIDE: SBM (C) in E3"},
+        {"abbr": "SBM", "division": "C", "type": "Rescheduled", "old_date": "2026-07-30", "old_day": "Thursday", "new_date": "2026-07-30", "new_day": "Thursday", "old_hhmm": None, "new_hhmm": "06:00PM", "old_room": None, "new_room": "E3", "tba": False, "raw": "MANUAL OVERRIDE: SBM (C) in E3"},
+        
+        # SBM (C) in E3 (01.08.2026)
+        {"abbr": "SBM", "division": "C", "type": "Rescheduled", "old_date": "2026-08-01", "old_day": "Saturday", "new_date": "2026-08-01", "new_day": "Saturday", "old_hhmm": None, "new_hhmm": "05:00PM", "old_room": None, "new_room": "E3", "tba": False, "raw": "MANUAL OVERRIDE: SBM (C) in E3"},
+        {"abbr": "SBM", "division": "C", "type": "Rescheduled", "old_date": "2026-08-01", "old_day": "Saturday", "new_date": "2026-08-01", "new_day": "Saturday", "old_hhmm": None, "new_hhmm": "06:00PM", "old_room": None, "new_room": "E3", "tba": False, "raw": "MANUAL OVERRIDE: SBM (C) in E3"},
+
+        # SDM (C) in E2 (30.07.2026 & 01.08.2026)
+        {"abbr": "SDM", "division": "C", "type": "Changed", "old_date": "2026-07-30", "old_day": "Thursday", "new_date": "2026-07-30", "new_day": "Thursday", "old_hhmm": None, "new_hhmm": "06:10PM", "old_room": None, "new_room": "E2", "tba": False, "raw": "MANUAL OVERRIDE: SDM (C) in E2"},
+        {"abbr": "SDM", "division": "C", "type": "Changed", "old_date": "2026-08-01", "old_day": "Saturday", "new_date": "2026-08-01", "new_day": "Saturday", "old_hhmm": None, "new_hhmm": "06:10PM", "old_room": None, "new_room": "E2", "tba": False, "raw": "MANUAL OVERRIDE: SDM (C) in E2"},
+
+        # SDM (B) in E2 (30.07.2026 & 01.08.2026)
+        {"abbr": "SDM", "division": "B", "type": "Changed", "old_date": "2026-07-30", "old_day": "Thursday", "new_date": "2026-07-30", "new_day": "Thursday", "old_hhmm": None, "new_hhmm": "07:20PM", "old_room": None, "new_room": "E2", "tba": False, "raw": "MANUAL OVERRIDE: SDM (B) in E2"},
+        {"abbr": "SDM", "division": "B", "type": "Changed", "old_date": "2026-08-01", "old_day": "Saturday", "new_date": "2026-08-01", "new_day": "Saturday", "old_hhmm": None, "new_hhmm": "07:20PM", "old_room": None, "new_room": "E2", "tba": False, "raw": "MANUAL OVERRIDE: SDM (B) in E2"}
+    ]
+    changes.extend(forced_changes)
+    # --- END OF FORCED MANUAL OVERRIDE ---
+
     os.makedirs(os.path.dirname(CHANGES_OUT) or ".", exist_ok=True)
     json.dump(changes, open(CHANGES_OUT, "w", encoding="utf-8"), ensure_ascii=False)
-    print(f"[fetch_email v2026-07-30e: unwrap-(ABBR)(DIV) + multi-date + robust-time + security-guard] Parsed {len(changes)} change notice(s) -> {CHANGES_OUT}")
+    print(f"[fetch_email] Parsed {len(changes)} change notice(s) -> {CHANGES_OUT}")
 except Exception as e:
     print("Change-notice fetch skipped:", e)
 
