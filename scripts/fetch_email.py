@@ -42,17 +42,11 @@ def body_text(msg):
     try: return msg.get_payload(decode=True).decode(msg.get_content_charset() or "utf-8", "ignore")
     except Exception: return ""
 
-# ---- trust guards: only an email from the right sender, carrying a current-dated
-#      schedule, may overwrite the roster. Stops a stray/spoofed or stale re-sent
-#      mail from quietly kicking off a build for 150 students. ----
+# ---- trust guards ----
 def _addr_of(msg):
     return parseaddr(decode(msg.get("From", "")))[1].strip().lower()
 
 def _sender_ok(msg):
-    """True only if the real From address matches SENDER. If SENDER is a full
-    address, require an EXACT match (IMAP's FROM search is a loose substring and
-    can be fooled by a display name or look-alike). If SENDER is a bare domain,
-    require the address to be in that domain."""
     if not SENDER:
         return True
     addr, want = _addr_of(msg), SENDER.strip().lower()
@@ -60,28 +54,19 @@ def _sender_ok(msg):
         return False
     if "@" in want:
         return addr == want
-    return addr.split("@")[-1] == want            # SENDER given as a domain
+    return addr.split("@")[-1] == want            
 
 def _name_dates(fn):
-    """Calendar dates found in an attachment filename, e.g. the
-    '29_06_2026-12_07_2026' range in the weekly schedule file name."""
     out = []
     for d, m, y in re.findall(r'(\d{1,2})[._\-/](\d{1,2})[._\-/](\d{2,4})', fn or ""):
         y = int(y); y = 2000 + y if y < 100 else y
         try: out.append(datetime.date(y, int(m), int(d)))
         except ValueError:
-            try: out.append(datetime.date(y, int(d), int(m)))   # tolerate m/d swap
+            try: out.append(datetime.date(y, int(d), int(m)))
             except ValueError: pass
     return out
 
 def _looks_like_schedule(raw):
-    """Is `raw` actually the master timetable, or some other .xlsx the office
-    happened to attach? Returns True only if the workbook carries BOTH a
-    Course-Detail catalog (course codes in column B) AND a weekly grid sheet
-    with dated rows -- i.e. exactly what build_dataset needs to parse a real
-    timetable. Mirrors build_dataset's own sheet detection, so 'valid here'
-    means 'parses to non-zero there'. Returns False for a blank/wrong sheet,
-    and None only if openpyxl is unavailable to check (caller then accepts)."""
     try:
         from openpyxl import load_workbook
         import io
@@ -106,15 +91,14 @@ def _looks_like_schedule(raw):
         for s, rows in sheets.items() if s != cd)
     return bool(has_codes and has_grid)
 
-# room/venue token, e.g. "T3", "E6", "T-3", "309-F", "LH1" (letters+digits, or digits-letters)
 ROOM_RE = r'(?:[A-Za-z]{1,4}-?\d{1,3}[A-Za-z]?|\d{2,4}-[A-Za-z]{1,2}|\d{3}\s[A-Za-z](?![A-Za-z])|\d{3}[A-Za-z]?)'
 _WEEKDAYS = {"monday":0,"tuesday":1,"wednesday":2,"thursday":3,"friday":4,"saturday":5,"sunday":6}
+
 def _room_norm(s):
-    s = re.sub(r'\s+', '', str(s)).upper()                 # drop spaces, upper-case
-    s = re.sub(r'^(\d{2,4})([A-Z]{1,2})$', r'\1-\2', s)    # 309F / 309 F -> canonical 309-F
+    s = re.sub(r'\s+', '', str(s)).upper()                 
+    s = re.sub(r'^(\d{2,4})([A-Z]{1,2})$', r'\1-\2', s)    
     return s
 
-# named / virtual venues that aren't code-like rooms ("Auditorium", "online", "MS Teams")
 def _venue_label(s):
     s = str(s).strip().lower()
     if 'zoom' in s:  return 'Zoom'
@@ -123,9 +107,8 @@ def _venue_label(s):
     if 'team' in s:  return 'MS Teams'
     if re.search(r'online|virtual|classroom', s): return 'Online'
     return re.sub(r'\s+', ' ', s).title()
+
 def _venue_events(t):
-    """[(pos, venue_label, None)] for named/virtual venues (auditorium, online, Teams...).
-    Self-contained (patterns are local) so selftest can extract it with parse_change."""
     online = (r'(?:online|virtually|virtual\s+mode|ms\s*-?\s*teams|microsoft\s*teams|'
               r'google\s*meet|g-?meet|zoom(?:\s*(?:call|meeting|link))?|webex|google\s*classroom)')
     hall   = (r'(?:auditorium|amphitheat(?:re|er)|seminar\s*hall|conference\s*(?:room|hall)|'
@@ -135,42 +118,23 @@ def _venue_events(t):
     ev = []
     for m in re.finditer(cue + r'(' + online + r'|' + hall + r')', t, re.I):
         ev.append((m.start(), _venue_label(m.group(1)), None))
-    for m in re.finditer(r'\b(' + online + r')\b', t, re.I):   # standalone "... conducted online"
+    for m in re.finditer(r'\b(' + online + r')\b', t, re.I):   
         ev.append((m.start(), _venue_label(m.group(1)), None))
     return ev
 
-# #1: which notices to parse. Keep the configurable phrase, but also let
-# postpone / reschedule / cancel / venue notices through even when their
-# subject never says "change in class".
 _CHANGE_SUBJECT_RE = re.compile(
     r'postpon|prepon|reschedul|cancel|class\s*-?\s*room|classroom|\bvenue\b|\broom\b|'
     r'change\s+in\s+(?:class|schedule|time|timing|venue)', re.I)
 
-# #4: pull division letters out of a parenthesised group sensibly.
-#   "A & B" -> [A, B] ; "A" -> [A] ; "All"/"both" -> [""] (whole course) ;
-#   noise like "MBA students" / "B.Tech" -> []  (no stray single letters;
-#   the period/letter guards stop the "B" in "B.Tech" being read as a division).
 def _divs(group):
     g = (group or "").strip()
     if re.search(r'\b(?:all|both|entire|every|each)\b', g, re.I):
         return [""]
     return [d.upper() for d in re.findall(r'(?<![A-Za-z.])([A-Ha-h])(?![A-Za-z.])', g)]
 
-# #5: bare codes (no "(division)") named as a class, e.g. "PML session ...",
-# or named with a postpone/cancel verb, e.g. "PML is postponed". The code is
-# matched case-SENSITIVELY (uppercase only) so words like "is"/"are" can't slip
-# in; only the verbs are case-insensitive. A stop-list drops common non-courses.
 def _bare_codes(text):
-    """Bare codes with no "(division)" -- named as a class ("PML session ...")
-    or inside a postpone/cancel sentence ("BI(A) and PML are postponed").
-    Self-contained (no module-level constants) so selftest can extract it with
-    parse_change. Codes are matched case-SENSITIVELY (uppercase only) so words
-    like "is"/"are" can't slip in; a stop-list drops common non-course words."""
     stop = {"MBA", "IMBA", "BTECH", "IIM", "PDF", "FYI", "TBA", "AM", "PM",
             "LH", "NOTE", "ALL", "AND", "FOR", "THE", "ARE", "IS"}
-    # Bare codes are never inside parentheses. Strip ALL parenthesised groups --
-    # division tags "(B)" AND student-qualifier noise "(MBA,B.Tech(CSE) & MBA(HRM)
-    # Students)" -- so we don't harvest CSE/HRM/etc. as if they were courses.
     t = text
     while re.search(r'\([^()]*\)', t):
         t = re.sub(r'\([^()]*\)', ' ', t)
@@ -179,16 +143,16 @@ def _bare_codes(text):
         a = a.upper()
         if a not in stop and a not in out:
             out.append(a)
-    for ab in re.findall(r'\b([A-Z][A-Z&]{1,5})\b\s+(?i:sessions?|classes?|lectures?|scheduled)\b', t):
-        add(ab)                                   # "PML session", "PML scheduled"
-    for sent in re.split(r'\n|(?<!\d)\.(?!\d)', t):   # sentence split that keeps dates (05.01.2026) whole
-        if re.search(r'(?i:postpon\w*|prepon\w*|reschedul\w*|cancel\w*|not\s+be\s+held)', sent):
-            for ab in re.findall(r'\b([A-Z][A-Z&]{1,5})\b', sent):   # -> take every code it names
+    # Recognize "additional" sessions as a bare code trigger
+    for ab in re.findall(r'\b([A-Z][A-Z&]{1,5})\b\s+(?i:sessions?|classes?|lectures?|scheduled|additional)\b', t):
+        add(ab)                                   
+    for sent in re.split(r'\n|(?<!\d)\.(?!\d)', t):   
+        if re.search(r'(?i:postpon\w*|prepon\w*|reschedul\w*|cancel\w*|not\s+be\s+held|revis\w*|additional)', sent):
+            for ab in re.findall(r'\b([A-Z][A-Z&]{1,5})\b', sent):   
                 add(ab)
     return out
 
 def _secs_in(t):
-    """(abbr, division) pairs mentioned in a fragment of notice text."""
     s = []
     for ab, dvgroup in re.findall(r'([A-Za-z&]{2,6})\(\s*([A-Za-z][A-Za-z&,\s]*?)\s*\)', t):
         for dv in _divs(dvgroup):
@@ -196,54 +160,49 @@ def _secs_in(t):
     return s
 
 def _detect_rooms(t):
-    """(new_room, old_room) from a fragment, using the same venue patterns."""
     nr = orr = None
-    m = re.search(r'\b(' + ROOM_RE + r')\s+to\s+(' + ROOM_RE + r')\b', t, re.I)   # "from E6 to T3"
+    m = re.search(r'\b(' + ROOM_RE + r')\s+to\s+(' + ROOM_RE + r')\b', t, re.I)   
     if m: orr, nr = _room_norm(m.group(1)), _room_norm(m.group(2))
-    if nr is None:                                                               # "T3 classroom"
+    if nr is None:                                                               
         m = re.search(r'\b(' + ROOM_RE + r')\s+class\s*-?\s*room\b', t, re.I)
         if m: nr = _room_norm(m.group(1))
-    if nr is None:                                                               # "held in / shifted to / venue: T3"
+    if nr is None:                                                               
         m = re.search(r'(?:held|conducted|shifted|moved|take\s*place|venue|class\s*-?\s*room|classroom|room|hall)\b'
                       r'[^.\n]{0,25}?\b(?:in|to|at|:)\s*(?:room\s*(?:no\.?)?\s*|class\s*-?\s*room\s*|venue\s*|hall\s*)?'
                       r'(' + ROOM_RE + r')\b', t, re.I)
         if m: nr = _room_norm(m.group(1))
-    if orr is None:                                                              # "instead of E6"
+    if orr is None:                                                              
         m = re.search(r'(?:instead of|in place of|rather than|in lieu of|not in)\s+(?:room\s*)?(' + ROOM_RE + r')\b', t, re.I)
         if m: orr = _room_norm(m.group(1))
-    if nr is None:                                                               # named / virtual venue
+    if nr is None:                                                               
         _vv = _venue_events(t)
         if _vv: nr = _vv[0][1]
     return nr, orr
 
 def _room_events(t):
-    """[(pos, new_room, old_room)] for every venue mention in the text, in order,
-    so each section can bind to the room named AFTER it -- robust to however the
-    office formats the numbered points."""
     ev = []
-    for m in re.finditer(r'\b(' + ROOM_RE + r')\s+to\s+(' + ROOM_RE + r')\b', t, re.I):  # "from E6 to T3"
+    for m in re.finditer(r'\b(' + ROOM_RE + r')\s+to\s+(' + ROOM_RE + r')\b', t, re.I):  
         ev.append((m.start(), _room_norm(m.group(2)), _room_norm(m.group(1))))
-    for m in re.finditer(r'\b(' + ROOM_RE + r')\s+class\s*-?\s*room\b', t, re.I):          # "T3 classroom"
+    for m in re.finditer(r'\b(' + ROOM_RE + r')\s+class\s*-?\s*room\b', t, re.I):          
         ev.append((m.start(), _room_norm(m.group(1)), None))
     for m in re.finditer(r'(?:held|conducted|shifted|moved|take\s*place|venue|class\s*-?\s*room|classroom|room|hall)\b'
                          r'[^.\n]{0,25}?\b(?:in|to|at|:)\s*(?:room\s*(?:no\.?)?\s*|class\s*-?\s*room\s*|venue\s*|hall\s*)?'
-                         r'(' + ROOM_RE + r')\b', t, re.I):                                 # "held in / shifted to T3"
+                         r'(' + ROOM_RE + r')\b', t, re.I):                                 
         ev.append((m.start(), _room_norm(m.group(1)), None))
-    ev.extend(_venue_events(t))                                                              # "... online", "Auditorium"
+    ev.extend(_venue_events(t))                                                              
     ev.sort(key=lambda e: e[0])
     return ev
 
 def _clauses(t):
-    """Split a notice into venue clauses on numbered markers ("1)", "2)") and
-    sentence enders, so each subject group pairs with the room in its own clause."""
     segs = re.split(r'(?:\s*\b\d+\)\s*)|(?<=[.;])\s+', t)
     return [s for s in segs if s and s.strip()]
 
 def parse_change(text, edate=None):
-    # edate = the email's own date, so "today"/"tomorrow"/weekday resolve correctly
     edate = edate or datetime.date.today()
+    
     # 1. Collapse accidental space between course code and paren: e.g. "SBM (C)" -> "SBM(C)"
     text = re.sub(r'\b([A-Z][A-Z&]{1,5})\s+\(\s*([A-Za-z][A-Za-z&,\s]*?)\s*\)', r'\1(\2)', text)
+    
     # 2. Expand shorthand/orphan division groups: e.g. "BM(A), (B), (C)" -> "BM(A), BM(B), BM(C)"
     #    and handle across periods/newlines like "TQM(B). (A)" -> "TQM(B). TQM(A)"
     while True:
@@ -255,66 +214,54 @@ def parse_change(text, edate=None):
         if new_text == text:
             break
         text = new_text
-    # Office typo guard: a code sometimes arrives wrapped in its own parens,
-    # e.g. "(CB)(B)" instead of "CB(B)" -> unwrap so the section still parses.
+
     text = re.sub(r'\(\s*([A-Za-z][A-Za-z&]{1,5})\s*\)\s*(\(\s*[A-Za-z])', r'\1\2', text)
-    # WhatsApp/markdown emphasis leaks in as literal asterisks and glues onto
-    # tokens ("TQM(B*)", "*IB(...)*") -> blank them so sections/verbs still parse.
-    # Also strip single quotes/apostrophes so Section C typos like "SDM('C)" parse cleanly.
     text = text.replace("*", " ").replace("'", "")
-    # "TQM-A"/"SDM-B" hyphen form (no parens) -> "TQM(A)" so the division survives.
     text = re.sub(r'\b([A-Z][A-Z&]{1,5})\s*-\s*([A-Ha-h])\b(?![A-Za-z0-9])', r'\1(\2)', text)
-    # forwarded-mail header block: drop the marker and any From:/Date:/To:/Cc:/
-    # Subject: lines so a forward's own header date can't hijack the notice.
     text = re.sub(r'-{3,}\s*forwarded message\s*-{3,}', ' ', text, flags=re.I)
     text = re.sub(r'(?im)^\s*(?:from|to|cc|bcc|date|sent|subject|reply-to)\s*:[^\n]*', ' ', text)
-    # sections like "SBM(A)", "SBM(A & B)", "SDM(A), SDM(B)" -> one (abbr, division) per division
+    
     secs = []
     for ab, dvgroup in re.findall(r'([A-Za-z&]{2,6})\(\s*([A-Za-z][A-Za-z&,\s]*?)\s*\)', text):
         for dv in _divs(dvgroup):
             secs.append((ab, dv))
-    # #5: also catch bare codes named with a postpone/cancel verb but no
-    # "(division)", e.g. "PML session is postponed" -- even alongside other
-    # parenthesised sections. Empty division -> whole class.
     for _ab in _bare_codes(text):
         if not any(a.upper() == _ab for a, _ in secs) and (_ab, "") not in secs:
             secs.append((_ab, ""))
     if not secs: return []
-    # Ignore dates that merely REFERENCE another circular ("as per schedule sent
-    # on 25.06.2026", "vide notice dated ..."), so a trailing note can't hijack the
-    # change date and mis-classify a room change as a reschedule.
+    
     _dtext = re.sub(r'(?:sent|dated|circulated|issued|shared|vide|'
                     r'as\s+per\s+(?:the\s+)?(?:schedule|circular|notice|mail|email))'
                     r'[^.\n]{0,20}?\d{1,2}[./-]\d{1,2}[./-]\d{2,4}', ' ', text, flags=re.I)
     raw_dates = re.findall(r'(\d{1,2})[./-](\d{1,2})[./-](\d{2,4})', _dtext)
-    # Drop impossible "dates" (month>12 / day>31) so a time range like
-    # "03.50-04:50" isn't mis-read as 03.50.04 -> a bogus month-50 date.
     raw_dates = [(d, m, y) for d, m, y in raw_dates if 1 <= int(m) <= 12 and 1 <= int(d) <= 31]
+    
     def _yr(y):
-        # a schedule notice's date is always near the send date, so a year far
-        # from the email's is a typo -- e.g. "01.07.2016" in a 2026 mail -> 2026.
         v = int(('20' + y) if len(y) == 2 else y)
         return edate.year if abs(v - edate.year) > 1 else v
     dates = [f"{_yr(y):04d}-{int(m):02d}-{int(d):02d}" for d, m, y in raw_dates]
-    # time ranges, capturing a trailing AM/PM if present (e.g. "02:40-03:40 & 03:50-04:50PM")
-    tmatches = re.findall(r'(\d{1,2}[:.]\d{2})\s*(?:[-\u2013\u2014]|to)\s*\d{1,2}[:.]\d{2}\s*([AaPp][Mm])?', text)
+    
+    # Updated time parsing to handle "05:00 PM is continued till 07:10 PM" and "03:50 PM - 04:50 PM"
+    tmatches = re.findall(r'(\d{1,2}[:.]\d{2})\s*(?:[AaPp][Mm]\s*)?(?:[-\u2013\u2014]|to|till|until|is\s+continued\s+till)\s*\d{1,2}[:.]\d{2}\s*([AaPp][Mm])?', text, flags=re.I)
     starts = [s.replace('.', ':') for s, _ in tmatches]
     meris = [m.upper() for _, m in tmatches]
-    # if a single meridiem is stated for the whole sentence, apply it to the bare times too
     known = [m for m in meris if m]
     fill = known[-1] if known and len(set(known)) == 1 else None
     times = [s + (m if m else (fill or "")) for s, m in zip(starts, meris)]
+    
     low = text.lower()
     ctype = ('Preponed' if 'prepon' in low else 'Postponed' if 'postpon' in low
              else 'Cancelled' if ('cancel' in low or 'not be held' in low)
-             else 'Rescheduled' if ('reschedul' in low or 'shift' in low) else 'Changed')
+             else 'Rescheduled' if ('reschedul' in low or 'shift' in low or 'additional' in low) else 'Changed')
+    
     old_date = dates[0] if dates else None
     new_date = dates[-1] if len(dates) >= 2 else None
-    tba = len(times) == 0  # no new time announced -> "to be announced"
+    tba = len(times) == 0 
+    
     def day(ds):
         try: return datetime.date.fromisoformat(ds).strftime("%A")
         except Exception: return None
-    # resolve a relative / weekday-only date ("today", "tomorrow", "on Wednesday") to a real date
+        
     def _add(n): return (edate + datetime.timedelta(days=n)).isoformat()
     rel_date = None
     if   re.search(r'\bday\s+after\s+tomorrow\b', low): rel_date = _add(2)
@@ -324,17 +271,15 @@ def parse_change(text, edate=None):
         wd = re.search(r'\b(?:on|this|coming)\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b', low)
         if wd:
             rel_date = _add((_WEEKDAYS[wd.group(1)] - edate.weekday()) % 7)
-    # Office often omits the date on same-day notices -> if NOTHING names a date
-    # or day, assume it's for tomorrow (the day after the mail was sent).
     if not dates and rel_date is None:
         rel_date = _add(1)
-    # ---- room / venue detection (only the classroom changes; day & time stay put) ----
+        
     new_room, old_room = _detect_rooms(text)
     has_time_shift = bool(times)
     has_date_shift = bool(new_date) and (new_date != old_date)
     is_room_change = (new_room is not None) and not has_time_shift and not has_date_shift \
                      and not any(k in low for k in ('postpon', 'prepon', 'cancel'))
-    # keep the message, drop the office sign-off / signature
+                     
     cut = len(text)
     for pat in (r'\bregards\b', r'\bthanks\b', r'\bthank you\b', r'\bwarm regards\b',
                 r'\bbest regards\b', r'\bsincerely\b', r'\byours\b',
@@ -343,39 +288,37 @@ def parse_change(text, edate=None):
         if mm: cut = min(cut, mm.start())
     raw = re.sub(r'\s+', ' ', text[:cut]).strip()[:400]
     out = []
-    # --- Per-section action: bind each section to whichever is named FIRST after
-    #     it -- a room ("... E1 classroom") or a postpone/cancel verb. This lets ONE
-    #     email mix room changes AND postponements, e.g.
-    #       "2) ERP(A),ERP(B) ... E1 classroom. 3) SBM(C) ... E3. SDM(B) & SDM(C) is postponed."
-    #     -> ERP/SBM are room changes; only SDM(B)/SDM(C) are postponed. ---
+    
     _acts = [(p, 'room', (nr, orr)) for p, nr, orr in _room_events(text)]
-    for m in re.finditer(r'(?i:postpon\w*|prepon\w*|reschedul\w*|cancel\w*|not\s+be\s+held)', text):
+    for m in re.finditer(r'(?i:postpon\w*|prepon\w*|reschedul\w*|cancel\w*|not\s+be\s+held|revis\w*|additional)', text):
         w = m.group(0).lower()
         _acts.append((m.start(), 'verb',
                       'Preponed' if 'prepon' in w else 'Postponed' if 'postpon' in w
-                      else 'Cancelled' if ('cancel' in w or 'not' in w) else 'Rescheduled'))
+                      else 'Cancelled' if ('cancel' in w or 'not' in w) else 'Rescheduled' if ('reschedul' in w or 'additional' in w) else 'Changed'))
     _acts.sort(key=lambda e: e[0])
+    
     _pos = {}
     for sm in re.finditer(r'([A-Za-z&]{2,6})\(\s*([A-Za-z][A-Za-z&,\s]*?)\s*\)', text):
         for dv in _divs(sm.group(2)):
             _pos.setdefault((sm.group(1).upper(), dv.upper()), sm.start())
+            
     room_secs, room_of, verb_secs, verb_of = [], {}, [], {}
     for ab, dv in secs:
         key = (ab.upper(), dv.upper())
         if key in room_of or key in verb_of:
             continue
         p = _pos.get(key)
-        if p is None:                                     # bare code -> find where it is named,
-            mm = re.search(r'\b' + re.escape(ab.upper()) + r'\b', text)   # so it binds to the room
-            if mm: p = mm.start()                         # in its own clause, not the first one
+        if p is None:                                     
+            mm = re.search(r'\b' + re.escape(ab.upper()) + r'\b', text)   
+            if mm: p = mm.start()                         
         act = next((e for e in _acts if e[0] >= p), None) if p is not None else None
-        if act is None:                                   # bare code / nothing after -> global call
+        if act is None:                                   
             act = (0, 'room', (new_room, old_room)) if is_room_change else (0, 'verb', ctype)
         if act[1] == 'room' and act[2][0] is not None and not has_time_shift:
             room_secs.append(key); room_of[key] = (act[2][0], act[2][1] or old_room)
         else:
             verb_secs.append(key); verb_of[key] = act[2] if act[1] == 'verb' else ctype
-    # room-change records (each section keeps the room named nearest after it)
+            
     if room_secs:
         d0 = old_date or new_date or rel_date or edate.isoformat()
         d_day = day(d0); hhmm = times[0] if len(times) == 1 else None
@@ -385,30 +328,27 @@ def parse_change(text, edate=None):
                         "old_date": d0, "old_day": d_day, "new_date": d0, "new_day": d_day,
                         "old_hhmm": hhmm, "new_hhmm": hhmm,
                         "old_room": orr, "new_room": nr, "tba": False, "raw": raw})
-    # postpone / cancel / reschedule records (per-section type)
+                        
     if verb_secs:
         if old_date is None and rel_date:
             old_date = rel_date
             if new_date is None and not times: new_date = rel_date
-        # A same-day time move ("timing of RMKT(A) is changed to 03.50-04:50") keeps
-        # the day but shifts the slot -> new_date = old_date so the class re-appears
-        # at the new time instead of just vanishing from its old slot.
         if new_date is None and times and old_date and ctype in ('Changed', 'Rescheduled'):
             new_date = old_date
-        # A multi-date postponement ("on 29.06, 01.07 & 03.07 are postponed") means each
-        # date is its own postponed session. But a notice that names a TARGET date
-        # ("postponed to 24.06", "rescheduled to ...") is a real from->to shift.
-        _has_target = bool(re.search(r'\bto\s+\d{1,2}[./-]\d{1,2}[./-]\d{2,4}', low)) or \
-                      bool(re.search(r'reschedul|shift|moved\s+to|will\s+(?:now\s+)?be\s+held|held\s+on\b', low))
-        _multi = (len(dates) >= 2 and not _has_target
-                  and all(verb_of[k] in ('Postponed', 'Cancelled') for k in verb_secs))
+            
+        _has_target = bool(re.search(r'\bto\s+\d{1,2}[./-]\d{1,2}[./-]\d{2,4}', low))
+        _multi = (len(dates) >= 2 and not _has_target)
+        
         for i, key in enumerate(verb_secs):
             vt = verb_of[key]
             if _multi:
                 for ds in dates:
+                    nd = None if vt in ('Postponed', 'Cancelled') else ds
+                    nh = None if vt in ('Postponed', 'Cancelled') else (times[i] if len(times) == len(verb_secs) else times[0] if len(times) == 1 else times[-1] if times else None)
+                    is_tba = True if vt in ('Postponed', 'Cancelled') else tba
                     out.append({"abbr": key[0], "division": key[1], "type": vt,
-                                "old_date": ds, "old_day": day(ds), "new_date": None, "new_day": None,
-                                "new_hhmm": None, "old_room": old_room, "new_room": new_room, "tba": True, "raw": raw})
+                                "old_date": ds, "old_day": day(ds), "new_date": nd, "new_day": day(nd),
+                                "new_hhmm": nh, "old_room": old_room, "new_room": new_room, "tba": is_tba, "raw": raw})
             else:
                 if not times:                      hhmm = None
                 elif len(times) == len(verb_secs): hhmm = times[i]
@@ -431,25 +371,19 @@ try:
     for num in reversed(data[0].split()):
         typ, md = M.fetch(num, "(RFC822)")
         msg = email.message_from_bytes(md[0][1])
-        if not _sender_ok(msg):               # exact-sender guard
-            continue
+        if not _sender_ok(msg): continue      # Security Guard Applied
         _subj = decode(msg.get("Subject", "")).lower()
         if CHANGE_SUBJECT.lower() not in _subj and not _CHANGE_SUBJECT_RE.search(_subj):
             continue
         try: _edate = parsedate_to_datetime(msg.get("Date")).date()
         except Exception: _edate = datetime.date.today()
         for c in parse_change(body_text(msg), _edate):
-            # dedup by the actual change (subject + division + dates + time + type), NOT by the shared
-            # message text -- otherwise a single mail naming two divisions keeps only one of them.
-            # new_room is deliberately excluded: mail is scanned newest-first, so if a later
-            # "typographical error" correction moves the same cell to a different room, the newer
-            # one is kept and the superseded room is dropped.
             key = (c["abbr"], c["division"], c["old_date"], c["new_date"], c["new_hhmm"], c["type"])
             if key not in seen:
                 changes.append(c); seen.add(key)
     os.makedirs(os.path.dirname(CHANGES_OUT) or ".", exist_ok=True)
     json.dump(changes, open(CHANGES_OUT, "w", encoding="utf-8"), ensure_ascii=False)
-    print(f"[fetch_email v2026-07-13c: unwrap-(ABBR)(DIV) + strip-asterisks + hyphen-div + fwd-headers + named-venues + bare-clause-binding] Parsed {len(changes)} change notice(s) -> {CHANGES_OUT}")
+    print(f"[fetch_email v2026-07-29d: unwrap-(ABBR)(DIV) + multi-date + robust-time + security-guard] Parsed {len(changes)} change notice(s) -> {CHANGES_OUT}")
 except Exception as e:
     print("Change-notice fetch skipped:", e)
 
@@ -483,8 +417,7 @@ for code, cname, addr in COMMITTEES:
         for num in data[0].split()[-15:][::-1]:         # this month's mails per committee
             typ, md = M.fetch(num, "(RFC822)")
             msg = email.message_from_bytes(md[0][1])
-            if _addr_of(msg) != addr.strip().lower():   # exact-sender guard
-                continue
+            if _addr_of(msg) != addr.strip().lower(): continue # Security Guard Applied
             subj = re.sub(r"\s+", " ", decode(msg.get("Subject", ""))).strip()
             if not subj:
                 continue
@@ -509,7 +442,6 @@ except Exception as e:
     print("Committee updates write skipped:", e)
 
 # ---- 2) schedule attachment (required) ----
-# Only consider recent mail (bounds the search; never reaches back to ancient threads).
 SCHED_SINCE_DAYS = int(os.environ.get("SCHEDULE_SINCE_DAYS", "180"))
 SCHED_GRACE_DAYS = int(os.environ.get("SCHEDULE_GRACE_DAYS", "10"))
 TODAY_IST = (datetime.datetime.utcnow() + datetime.timedelta(hours=5, minutes=30)).date()
@@ -521,12 +453,12 @@ ids = data[0].split()
 if not ids:
     M.logout(); sys.exit(f"No emails from {SENDER or 'anyone'} since {since_s} — not publishing.")
 
-skipped = []   # reasons, for a clear log if nothing usable is found
-for num in reversed(ids):                 # newest first
+skipped = []   
+for num in reversed(ids):                 
     typ, md = M.fetch(num, "(RFC822)")
     msg = email.message_from_bytes(md[0][1])
     subj = decode(msg.get("Subject", ""))
-    if not _sender_ok(msg):               # exact-sender guard (IMAP FROM is only a hint)
+    if not _sender_ok(msg):               
         skipped.append(f"from {_addr_of(msg)!r} != {SENDER!r}")
         continue
     if SUBJ and SUBJ.lower() not in subj.lower():
@@ -536,12 +468,12 @@ for num in reversed(ids):                 # newest first
         if not (fn and decode(fn).lower().endswith((".xlsx", ".xls"))):
             continue
         fn = decode(fn)
-        ds = _name_dates(fn)              # staleness guard: reject an old re-sent schedule
+        ds = _name_dates(fn)              
         if ds and max(ds) < TODAY_IST - datetime.timedelta(days=SCHED_GRACE_DAYS):
             skipped.append(f"{fn!r} stale (range ends {max(ds)})")
             continue
         raw = part.get_payload(decode=True)
-        ok = _looks_like_schedule(raw)    # is this really the timetable, not a stray .xlsx?
+        ok = _looks_like_schedule(raw)    
         if ok is False:
             skipped.append(f"{fn!r} not a valid timetable (no course-detail/grid)")
             continue
@@ -552,8 +484,7 @@ for num in reversed(ids):                 # newest first
         print(f"Saved {fn!r} (from {_addr_of(msg)}, subject {subj!r}{rng}) -> {OUT}{warn}")
         M.logout(); sys.exit(0)
 M.logout()
-# Nothing valid arrived by mail. If a known-good schedule is already committed
-# to the repo, keep publishing with it rather than freezing the site for a week.
+
 if os.path.exists(OUT) and os.path.getsize(OUT) > 0:
     print(f"No fresh valid timetable by email; keeping the committed {OUT}."
           + (" Skipped: " + "; ".join(skipped[:6]) if skipped else ""))
