@@ -390,26 +390,45 @@ try:
                 changes.append(c); seen.add(key)
                 
     # --- START OF FORCED MANUAL OVERRIDE ---
-    forced_changes = [
-        # PML Postponements (July 29 & 31)
-        {"abbr": "PML", "division": "", "type": "Postponed", "old_date": "2026-07-29", "old_day": "Wednesday", "new_date": None, "new_day": None, "old_hhmm": None, "new_hhmm": None, "old_room": None, "new_room": None, "tba": True, "raw": "MANUAL OVERRIDE: PML Postponed"},
-        {"abbr": "PML", "division": "", "type": "Postponed", "old_date": "2026-07-31", "old_day": "Friday", "new_date": None, "new_day": None, "old_hhmm": None, "new_hhmm": None, "old_room": None, "new_room": None, "tba": True, "raw": "MANUAL OVERRIDE: PML Postponed"},
+    # 1. Strip out any automatically parsed changes for these specific classes 
+    # so they don't duplicate or conflict with our manual overrides below.
+    override_targets = {"PML", "SBM", "SDM", "S&DM"}
+    changes = [c for c in changes if c.get("abbr") not in override_targets]
 
+    forced_changes = [
+        # --- CANCEL ORIGINAL SESSIONS ON 29TH AND 31ST ---
+        # PML
+        {"abbr": "PML", "division": "", "type": "Postponed", "old_date": "2026-07-29", "old_day": "Wednesday", "new_date": None, "new_day": None, "old_hhmm": None, "new_hhmm": None, "old_room": None, "new_room": None, "tba": True, "raw": "MANUAL OVERRIDE: Cancelled"},
+        {"abbr": "PML", "division": "", "type": "Postponed", "old_date": "2026-07-31", "old_day": "Friday", "new_date": None, "new_day": None, "old_hhmm": None, "new_hhmm": None, "old_room": None, "new_room": None, "tba": True, "raw": "MANUAL OVERRIDE: Cancelled"},
+        
+        # SBM C
+        {"abbr": "SBM", "division": "C", "type": "Cancelled", "old_date": "2026-07-29", "old_day": "Wednesday", "new_date": None, "new_day": None, "old_hhmm": None, "new_hhmm": None, "old_room": None, "new_room": None, "tba": True, "raw": "MANUAL OVERRIDE: Cancelled"},
+        {"abbr": "SBM", "division": "C", "type": "Cancelled", "old_date": "2026-07-31", "old_day": "Friday", "new_date": None, "new_day": None, "old_hhmm": None, "new_hhmm": None, "old_room": None, "new_room": None, "tba": True, "raw": "MANUAL OVERRIDE: Cancelled"},
+        
+        # S&DM C (Using S&DM to match your UI)
+        {"abbr": "S&DM", "division": "C", "type": "Cancelled", "old_date": "2026-07-29", "old_day": "Wednesday", "new_date": None, "new_day": None, "old_hhmm": None, "new_hhmm": None, "old_room": None, "new_room": None, "tba": True, "raw": "MANUAL OVERRIDE: Cancelled"},
+        {"abbr": "S&DM", "division": "C", "type": "Cancelled", "old_date": "2026-07-31", "old_day": "Friday", "new_date": None, "new_day": None, "old_hhmm": None, "new_hhmm": None, "old_room": None, "new_room": None, "tba": True, "raw": "MANUAL OVERRIDE: Cancelled"},
+        
+        # S&DM B
+        {"abbr": "S&DM", "division": "B", "type": "Cancelled", "old_date": "2026-07-29", "old_day": "Wednesday", "new_date": None, "new_day": None, "old_hhmm": None, "new_hhmm": None, "old_room": None, "new_room": None, "tba": True, "raw": "MANUAL OVERRIDE: Cancelled"},
+        {"abbr": "S&DM", "division": "B", "type": "Cancelled", "old_date": "2026-07-31", "old_day": "Friday", "new_date": None, "new_day": None, "old_hhmm": None, "new_hhmm": None, "old_room": None, "new_room": None, "tba": True, "raw": "MANUAL OVERRIDE: Cancelled"},
+
+        # --- ADD NEW SESSIONS ON 30TH AND 1ST ---
         # SBM (C) in E3 (30.07.2026)
         {"abbr": "SBM", "division": "C", "type": "Rescheduled", "old_date": "2026-07-30", "old_day": "Thursday", "new_date": "2026-07-30", "new_day": "Thursday", "old_hhmm": None, "new_hhmm": "05:00PM", "old_room": None, "new_room": "E3", "tba": False, "raw": "MANUAL OVERRIDE: SBM (C) in E3"},
-        {"abbr": "SBM", "division": "C", "type": "Rescheduled", "old_date": "2026-07-30", "old_day": "Thursday", "new_date": "2026-07-30", "new_day": "Thursday", "old_hhmm": None, "new_hhmm": "06:00PM", "old_room": None, "new_room": "E3", "tba": False, "raw": "MANUAL OVERRIDE: SBM (C) in E3"},
+        {"abbr": "SBM", "division": "C", "type": "Rescheduled", "old_date": "2026-07-30", "old_day": "Thursday", "new_date": "2026-07-30", "new_day": "Thursday", "old_hhmm": None, "new_hhmm": "06:10PM", "old_room": None, "new_room": "E3", "tba": False, "raw": "MANUAL OVERRIDE: SBM (C) in E3"},
         
         # SBM (C) in E3 (01.08.2026)
         {"abbr": "SBM", "division": "C", "type": "Rescheduled", "old_date": "2026-08-01", "old_day": "Saturday", "new_date": "2026-08-01", "new_day": "Saturday", "old_hhmm": None, "new_hhmm": "05:00PM", "old_room": None, "new_room": "E3", "tba": False, "raw": "MANUAL OVERRIDE: SBM (C) in E3"},
-        {"abbr": "SBM", "division": "C", "type": "Rescheduled", "old_date": "2026-08-01", "old_day": "Saturday", "new_date": "2026-08-01", "new_day": "Saturday", "old_hhmm": None, "new_hhmm": "06:00PM", "old_room": None, "new_room": "E3", "tba": False, "raw": "MANUAL OVERRIDE: SBM (C) in E3"},
+        {"abbr": "SBM", "division": "C", "type": "Rescheduled", "old_date": "2026-08-01", "old_day": "Saturday", "new_date": "2026-08-01", "new_day": "Saturday", "old_hhmm": None, "new_hhmm": "06:10PM", "old_room": None, "new_room": "E3", "tba": False, "raw": "MANUAL OVERRIDE: SBM (C) in E3"},
 
-        # SDM (C) in E2 (30.07.2026 & 01.08.2026)
-        {"abbr": "SDM", "division": "C", "type": "Changed", "old_date": "2026-07-30", "old_day": "Thursday", "new_date": "2026-07-30", "new_day": "Thursday", "old_hhmm": None, "new_hhmm": "06:10PM", "old_room": None, "new_room": "E2", "tba": False, "raw": "MANUAL OVERRIDE: SDM (C) in E2"},
-        {"abbr": "SDM", "division": "C", "type": "Changed", "old_date": "2026-08-01", "old_day": "Saturday", "new_date": "2026-08-01", "new_day": "Saturday", "old_hhmm": None, "new_hhmm": "06:10PM", "old_room": None, "new_room": "E2", "tba": False, "raw": "MANUAL OVERRIDE: SDM (C) in E2"},
+        # S&DM (C) in E2 (30.07.2026 & 01.08.2026)
+        {"abbr": "S&DM", "division": "C", "type": "Rescheduled", "old_date": "2026-07-30", "old_day": "Thursday", "new_date": "2026-07-30", "new_day": "Thursday", "old_hhmm": None, "new_hhmm": "06:10PM", "old_room": None, "new_room": "E2", "tba": False, "raw": "MANUAL OVERRIDE: S&DM (C) in E2"},
+        {"abbr": "S&DM", "division": "C", "type": "Rescheduled", "old_date": "2026-08-01", "old_day": "Saturday", "new_date": "2026-08-01", "new_day": "Saturday", "old_hhmm": None, "new_hhmm": "06:10PM", "old_room": None, "new_room": "E2", "tba": False, "raw": "MANUAL OVERRIDE: S&DM (C) in E2"},
 
-        # SDM (B) in E2 (30.07.2026 & 01.08.2026)
-        {"abbr": "SDM", "division": "B", "type": "Changed", "old_date": "2026-07-30", "old_day": "Thursday", "new_date": "2026-07-30", "new_day": "Thursday", "old_hhmm": None, "new_hhmm": "07:20PM", "old_room": None, "new_room": "E2", "tba": False, "raw": "MANUAL OVERRIDE: SDM (B) in E2"},
-        {"abbr": "SDM", "division": "B", "type": "Changed", "old_date": "2026-08-01", "old_day": "Saturday", "new_date": "2026-08-01", "new_day": "Saturday", "old_hhmm": None, "new_hhmm": "07:20PM", "old_room": None, "new_room": "E2", "tba": False, "raw": "MANUAL OVERRIDE: SDM (B) in E2"}
+        # S&DM (B) in E2 (30.07.2026 & 01.08.2026)
+        {"abbr": "S&DM", "division": "B", "type": "Rescheduled", "old_date": "2026-07-30", "old_day": "Thursday", "new_date": "2026-07-30", "new_day": "Thursday", "old_hhmm": None, "new_hhmm": "07:20PM", "old_room": None, "new_room": "E2", "tba": False, "raw": "MANUAL OVERRIDE: S&DM (B) in E2"},
+        {"abbr": "S&DM", "division": "B", "type": "Rescheduled", "old_date": "2026-08-01", "old_day": "Saturday", "new_date": "2026-08-01", "new_day": "Saturday", "old_hhmm": None, "new_hhmm": "07:20PM", "old_room": None, "new_room": "E2", "tba": False, "raw": "MANUAL OVERRIDE: S&DM (B) in E2"}
     ]
     changes.extend(forced_changes)
     # --- END OF FORCED MANUAL OVERRIDE ---
