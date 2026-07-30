@@ -430,6 +430,18 @@ try:
         {"abbr": "S&DM", "division": "B", "type": "Rescheduled", "old_date": "2026-07-30", "old_day": "Thursday", "new_date": "2026-07-30", "new_day": "Thursday", "old_hhmm": None, "new_hhmm": "07:20PM", "old_room": None, "new_room": "E2", "tba": False, "raw": "MANUAL OVERRIDE: S&DM (B) in E2"},
         {"abbr": "S&DM", "division": "B", "type": "Rescheduled", "old_date": "2026-08-01", "old_day": "Saturday", "new_date": "2026-08-01", "new_day": "Saturday", "old_hhmm": None, "new_hhmm": "07:20PM", "old_room": None, "new_room": "E2", "tba": False, "raw": "MANUAL OVERRIDE: S&DM (B) in E2"}
     ]
+
+    # --- ENTIRE WEEK ROOM CHANGES FOR ALL DIVISIONS (July 27 - Aug 1) ---
+    week_dates = [
+        ("2026-07-27", "Monday"), ("2026-07-28", "Tuesday"), ("2026-07-29", "Wednesday"),
+        ("2026-07-30", "Thursday"), ("2026-07-31", "Friday"), ("2026-08-01", "Saturday")
+    ]
+    for d_date, d_day in week_dates:
+        for div in ["A", "B", "C", ""]:
+            forced_changes.append({"abbr": "SBM", "division": div, "type": "Room Change", "old_date": d_date, "old_day": d_day, "new_date": d_date, "new_day": d_day, "old_hhmm": None, "new_hhmm": None, "old_room": None, "new_room": "E3", "tba": False, "raw": "MANUAL OVERRIDE: SBM -> E3"})
+            forced_changes.append({"abbr": "S&DM", "division": div, "type": "Room Change", "old_date": d_date, "old_day": d_day, "new_date": d_date, "new_day": d_day, "old_hhmm": None, "new_hhmm": None, "old_room": None, "new_room": "E2", "tba": False, "raw": "MANUAL OVERRIDE: S&DM -> E2"})
+            forced_changes.append({"abbr": "SDM", "division": div, "type": "Room Change", "old_date": d_date, "old_day": d_day, "new_date": d_date, "new_day": d_day, "old_hhmm": None, "new_hhmm": None, "old_room": None, "new_room": "E2", "tba": False, "raw": "MANUAL OVERRIDE: SDM -> E2"})
+
     changes.extend(forced_changes)
     # --- END OF FORCED MANUAL OVERRIDE ---
 
