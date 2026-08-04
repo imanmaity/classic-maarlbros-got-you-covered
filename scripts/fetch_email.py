@@ -2,6 +2,13 @@
 """Fetch from the admin's email via IMAP:
   1) the newest schedule .xlsx attachment  -> argv[1] (default rosters/schedule_latest.xlsx)
   2) recent "Change in class schedule" notices -> data/changes.json (parsed)
+
+Env vars (set as GitHub repository secrets):
+  MAIL_USER, MAIL_PASS, SENDER, IMAP_HOST (default imap.gmail.com),
+  MAIL_SUBJECT (optional, required substring in the schedule email's subject),
+  CHANGE_SUBJECT (optional, default "change in class")
+Exits non-zero if no schedule attachment is found (so a stale week is never published).
+Change parsing is best-effort and never fails the build.
 """
 import imaplib, email, os, sys, re, json, datetime
 from email.header import decode_header
@@ -14,7 +21,6 @@ USER = os.environ.get("MAIL_USER"); PWD = os.environ.get("MAIL_PASS")
 SENDER = os.environ.get("SENDER", "mba.im@nirmauni.ac.in")
 SUBJ = os.environ.get("MAIL_SUBJECT", "")
 CHANGE_SUBJECT = os.environ.get("CHANGE_SUBJECT", "change in class")
-
 if not (USER and PWD):
     sys.exit("MAIL_USER / MAIL_PASS not set.")
 
@@ -36,14 +42,18 @@ def body_text(msg):
     try: return msg.get_payload(decode=True).decode(msg.get_content_charset() or "utf-8", "ignore")
     except Exception: return ""
 
+# ---- trust guards ----
 def _addr_of(msg):
     return parseaddr(decode(msg.get("From", "")))[1].strip().lower()
 
 def _sender_ok(msg):
-    if not SENDER: return True
+    if not SENDER:
+        return True
     addr, want = _addr_of(msg), SENDER.strip().lower()
-    if not addr: return False
-    if "@" in want: return addr == want
+    if not addr:
+        return False
+    if "@" in want:
+        return addr == want
     return addr.split("@")[-1] == want            
 
 def _name_dates(fn):
@@ -189,13 +199,6 @@ def _clauses(t):
 def parse_change(text, edate=None):
     edate = edate or datetime.date.today()
     
-    # --- NEW: Trailing mail global room shift interceptor ---
-    # Captures statements like "all the classes that are scheduled in T6 will be held in T1" 
-    # and automatically replaces T6 with T1 everywhere else in the parsed text.
-    for m in re.finditer(r'all.*?(?:classes|sessions).*?(?:scheduled|allotted).*?(?:in|at)\s+([A-Za-z0-9-]+).*?(?:held|shifted|moved|conducted).*?(?:in|to|at)\s+(?:classroom\s*|room\s*)?([A-Za-z0-9-]+)', text, re.I):
-        old_r, new_r = m.group(1), m.group(2)
-        text = re.sub(r'\b' + re.escape(old_r) + r'\b', new_r, text, flags=re.I)
-
     text = re.sub(r'from\s*05:00\s*[Pp][Mm]\s*is\s*continued\s*till\s*07:10\s*[Pp][Mm]', '05:00 PM to 06:00 PM and 06:10 PM to 07:10 PM', text, flags=re.I)
     text = re.sub(r'\b([A-Z][A-Z&]{1,5})\s+\(\s*([A-Za-z][A-Za-z&,\s]*?)\s*\)', r'\1(\2)', text)
     while True:
@@ -368,8 +371,6 @@ M = imaplib.IMAP4_SSL(HOST); M.login(USER, PWD); M.select("INBOX")
 
 # ---- 1) change notices (best effort) ----
 changes, seen = [], set()
-latest_status = set() # NEW: Tracker to drop ghost postponements
-
 since = (datetime.date.today() - datetime.timedelta(days=14)).strftime("%d-%b-%Y")
 crit = ["FROM", SENDER, "SINCE", since] if SENDER else ["SINCE", since]
 try:
@@ -378,27 +379,62 @@ try:
         typ, md = M.fetch(num, "(RFC822)")
         msg = email.message_from_bytes(md[0][1])
         if not _sender_ok(msg): continue      
-        
         _subj = decode(msg.get("Subject", "")).lower()
-        # NEW: Allows emails with "allocation" in the subject to pass through
-        if CHANGE_SUBJECT.lower() not in _subj and not _CHANGE_SUBJECT_RE.search(_subj) and "allocation" not in _subj:
+        if CHANGE_SUBJECT.lower() not in _subj and not _CHANGE_SUBJECT_RE.search(_subj):
             continue
-            
         try: _edate = parsedate_to_datetime(msg.get("Date")).date()
         except Exception: _edate = datetime.date.today()
-        
         for c in parse_change(body_text(msg), _edate):
             key = (c["abbr"], c["division"], c["old_date"], c["new_date"], c["new_hhmm"], c["type"])
-            class_date_key = (c["abbr"], c["division"], c["old_date"])
-            
             if key not in seen:
-                # NEW: If we already parsed a newer, valid room allocation for this day, skip any older postponements!
-                if class_date_key in latest_status and c["type"] in ("Postponed", "Cancelled"):
-                    continue
-                    
-                changes.append(c)
-                seen.add(key)
-                latest_status.add(class_date_key)
+                changes.append(c); seen.add(key)
+                
+    # --- START OF FORCED MANUAL OVERRIDE ---
+    # 1. Strip out automatically parsed changes for these specific classes
+    # to avoid duplication.
+    override_targets = {"FSA", "I&PM", "SDM", "S&DM", "MBC", "BM", "MFS", "SBM", "ERP", "TQM"}
+    changes = [c for c in changes if c.get("abbr") not in override_targets]
+
+    forced_changes = []
+
+    # Final classroom mapping (All T6 instructions shifted directly to T1)
+    room_mapping = {
+        "T1": [
+            ("FSA", "A"), ("I&PM", "B"), ("I&PM", "C"), ("SDM", "A"), ("S&DM", "A"),
+            ("MBC", "A"), ("I&PM", "A"),
+            ("BM", "A"), ("BM", "B"), ("BM", "C"), ("MFS", "A"), ("MFS", "B"),
+            ("SBM", "A"), ("SBM", "B")
+        ],
+        "E2": [("ERP", "A"), ("ERP", "B"), ("SDM", "B"), ("SDM", "C"), ("S&DM", "B"), ("S&DM", "C")],
+        "E3": [("TQM", "A"), ("TQM", "B"), ("SBM", "C")]
+    }
+
+    # Apply the overrides ONLY for Tuesday, August 4
+    target_dates = [
+        ("2026-08-04", "Tuesday")
+    ]
+
+    for d_date, d_day in target_dates:
+        for new_room, class_list in room_mapping.items():
+            for abbr, div in class_list:
+                forced_changes.append({
+                    "abbr": abbr,
+                    "division": div,
+                    "type": "Room Change",
+                    "old_date": d_date,
+                    "old_day": d_day,
+                    "new_date": d_date,
+                    "new_day": d_day,
+                    "old_hhmm": None,
+                    "new_hhmm": None,
+                    "old_room": None,
+                    "new_room": new_room,
+                    "tba": False,
+                    "raw": f"MANUAL OVERRIDE: {abbr} ({div}) -> {new_room}"
+                })
+
+    changes.extend(forced_changes)
+    # --- END OF FORCED MANUAL OVERRIDE ---
 
     os.makedirs(os.path.dirname(CHANGES_OUT) or ".", exist_ok=True)
     json.dump(changes, open(CHANGES_OUT, "w", encoding="utf-8"), ensure_ascii=False)
