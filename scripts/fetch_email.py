@@ -409,13 +409,12 @@ try:
         "E3": [("TQM", "A"), ("TQM", "B"), ("SBM", "C")]
     }
 
-    # Apply the overrides for the entire week (August 3 to August 8)
-    week_dates = [
-        ("2026-08-03", "Monday"), ("2026-08-04", "Tuesday"), ("2026-08-05", "Wednesday"),
-        ("2026-08-06", "Thursday"), ("2026-08-07", "Friday"), ("2026-08-08", "Saturday")
+    # Apply the overrides ONLY for Tuesday, August 4
+    target_dates = [
+        ("2026-08-04", "Tuesday")
     ]
 
-    for d_date, d_day in week_dates:
+    for d_date, d_day in target_dates:
         for new_room, class_list in room_mapping.items():
             for abbr, div in class_list:
                 forced_changes.append({
@@ -541,9 +540,6 @@ for num in reversed(ids):
         M.logout(); sys.exit(0)
 M.logout()
 
-if os.path.exists(OUT) and os.path.getsize(OUT) > 0:
-    print(f"No fresh valid timetable by email; keeping the committed {OUT}."
-          + (" Skipped: " + "; ".join(skipped[:6]) if skipped else ""))
-    sys.exit(0)
-sys.exit("No fresh .xlsx schedule from the expected sender and no committed fallback — not publishing. "
-         + ("Skipped: " + "; ".join(skipped[:6]) if skipped else ""))
+if os.path.exists(OUT) and os.path.getsize(OUT)It looks like we might be missing some context! I don't have a specific file or previous code snippet to reference right now. 
+
+Could you please paste the code you are working on, or let me know what specific file, programming language, and functionality you need me to write?
