@@ -540,6 +540,7 @@ for num in reversed(ids):
         M.logout(); sys.exit(0)
 M.logout()
 
-if os.path.exists(OUT) and os.path.getsize(OUT)It looks like we might be missing some context! I don't have a specific file or previous code snippet to reference right now. 
-
-Could you please paste the code you are working on, or let me know what specific file, programming language, and functionality you need me to write?
+if os.path.exists(OUT) and os.path.getsize(OUT) > 0:
+    print(f"Successfully saved to {OUT}")
+else:
+    sys.exit("Error: File was not created successfully.")
