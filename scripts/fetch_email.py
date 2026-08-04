@@ -390,57 +390,49 @@ try:
                 changes.append(c); seen.add(key)
                 
     # --- START OF FORCED MANUAL OVERRIDE ---
-    # 1. Strip out any automatically parsed changes for these specific classes 
-    # so they don't duplicate or conflict with our manual overrides below.
-    override_targets = {"PML", "SBM", "SDM", "S&DM"}
+    # 1. Strip out automatically parsed changes for these specific classes
+    # to avoid duplication.
+    override_targets = {"FSA", "I&PM", "SDM", "S&DM", "MBC", "BM", "MFS", "SBM", "ERP", "TQM"}
     changes = [c for c in changes if c.get("abbr") not in override_targets]
 
-    forced_changes = [
-        # --- CANCEL ORIGINAL SESSIONS ON 29TH AND 31ST ---
-        # PML
-        {"abbr": "PML", "division": "", "type": "Postponed", "old_date": "2026-07-29", "old_day": "Wednesday", "new_date": None, "new_day": None, "old_hhmm": None, "new_hhmm": None, "old_room": None, "new_room": None, "tba": True, "raw": "MANUAL OVERRIDE: Cancelled"},
-        {"abbr": "PML", "division": "", "type": "Postponed", "old_date": "2026-07-31", "old_day": "Friday", "new_date": None, "new_day": None, "old_hhmm": None, "new_hhmm": None, "old_room": None, "new_room": None, "tba": True, "raw": "MANUAL OVERRIDE: Cancelled"},
-        
-        # SBM C
-        {"abbr": "SBM", "division": "C", "type": "Cancelled", "old_date": "2026-07-29", "old_day": "Wednesday", "new_date": None, "new_day": None, "old_hhmm": None, "new_hhmm": None, "old_room": None, "new_room": None, "tba": True, "raw": "MANUAL OVERRIDE: Cancelled"},
-        {"abbr": "SBM", "division": "C", "type": "Cancelled", "old_date": "2026-07-31", "old_day": "Friday", "new_date": None, "new_day": None, "old_hhmm": None, "new_hhmm": None, "old_room": None, "new_room": None, "tba": True, "raw": "MANUAL OVERRIDE: Cancelled"},
-        
-        # S&DM C (Using S&DM to match your UI)
-        {"abbr": "S&DM", "division": "C", "type": "Cancelled", "old_date": "2026-07-29", "old_day": "Wednesday", "new_date": None, "new_day": None, "old_hhmm": None, "new_hhmm": None, "old_room": None, "new_room": None, "tba": True, "raw": "MANUAL OVERRIDE: Cancelled"},
-        {"abbr": "S&DM", "division": "C", "type": "Cancelled", "old_date": "2026-07-31", "old_day": "Friday", "new_date": None, "new_day": None, "old_hhmm": None, "new_hhmm": None, "old_room": None, "new_room": None, "tba": True, "raw": "MANUAL OVERRIDE: Cancelled"},
-        
-        # S&DM B
-        {"abbr": "S&DM", "division": "B", "type": "Cancelled", "old_date": "2026-07-29", "old_day": "Wednesday", "new_date": None, "new_day": None, "old_hhmm": None, "new_hhmm": None, "old_room": None, "new_room": None, "tba": True, "raw": "MANUAL OVERRIDE: Cancelled"},
-        {"abbr": "S&DM", "division": "B", "type": "Cancelled", "old_date": "2026-07-31", "old_day": "Friday", "new_date": None, "new_day": None, "old_hhmm": None, "new_hhmm": None, "old_room": None, "new_room": None, "tba": True, "raw": "MANUAL OVERRIDE: Cancelled"},
+    forced_changes = []
 
-        # --- ADD NEW SESSIONS ON 30TH AND 1ST ---
-        # SBM (C) in E3 (30.07.2026)
-        {"abbr": "SBM", "division": "C", "type": "Rescheduled", "old_date": "2026-07-30", "old_day": "Thursday", "new_date": "2026-07-30", "new_day": "Thursday", "old_hhmm": None, "new_hhmm": "05:00PM", "old_room": None, "new_room": "E3", "tba": False, "raw": "MANUAL OVERRIDE: SBM (C) in E3"},
-        {"abbr": "SBM", "division": "C", "type": "Rescheduled", "old_date": "2026-07-30", "old_day": "Thursday", "new_date": "2026-07-30", "new_day": "Thursday", "old_hhmm": None, "new_hhmm": "06:10PM", "old_room": None, "new_room": "E3", "tba": False, "raw": "MANUAL OVERRIDE: SBM (C) in E3"},
-        
-        # SBM (C) in E3 (01.08.2026)
-        {"abbr": "SBM", "division": "C", "type": "Rescheduled", "old_date": "2026-08-01", "old_day": "Saturday", "new_date": "2026-08-01", "new_day": "Saturday", "old_hhmm": None, "new_hhmm": "05:00PM", "old_room": None, "new_room": "E3", "tba": False, "raw": "MANUAL OVERRIDE: SBM (C) in E3"},
-        {"abbr": "SBM", "division": "C", "type": "Rescheduled", "old_date": "2026-08-01", "old_day": "Saturday", "new_date": "2026-08-01", "new_day": "Saturday", "old_hhmm": None, "new_hhmm": "06:10PM", "old_room": None, "new_room": "E3", "tba": False, "raw": "MANUAL OVERRIDE: SBM (C) in E3"},
+    # Final classroom mapping (All T6 instructions shifted directly to T1)
+    room_mapping = {
+        "T1": [
+            ("FSA", "A"), ("I&PM", "B"), ("I&PM", "C"), ("SDM", "A"), ("S&DM", "A"),
+            ("MBC", "A"), ("I&PM", "A"),
+            ("BM", "A"), ("BM", "B"), ("BM", "C"), ("MFS", "A"), ("MFS", "B"),
+            ("SBM", "A"), ("SBM", "B")
+        ],
+        "E2": [("ERP", "A"), ("ERP", "B"), ("SDM", "B"), ("SDM", "C"), ("S&DM", "B"), ("S&DM", "C")],
+        "E3": [("TQM", "A"), ("TQM", "B"), ("SBM", "C")]
+    }
 
-        # S&DM (C) in E2 (30.07.2026 & 01.08.2026)
-        {"abbr": "S&DM", "division": "C", "type": "Rescheduled", "old_date": "2026-07-30", "old_day": "Thursday", "new_date": "2026-07-30", "new_day": "Thursday", "old_hhmm": None, "new_hhmm": "06:10PM", "old_room": None, "new_room": "E2", "tba": False, "raw": "MANUAL OVERRIDE: S&DM (C) in E2"},
-        {"abbr": "S&DM", "division": "C", "type": "Rescheduled", "old_date": "2026-08-01", "old_day": "Saturday", "new_date": "2026-08-01", "new_day": "Saturday", "old_hhmm": None, "new_hhmm": "06:10PM", "old_room": None, "new_room": "E2", "tba": False, "raw": "MANUAL OVERRIDE: S&DM (C) in E2"},
-
-        # S&DM (B) in E2 (30.07.2026 & 01.08.2026)
-        {"abbr": "S&DM", "division": "B", "type": "Rescheduled", "old_date": "2026-07-30", "old_day": "Thursday", "new_date": "2026-07-30", "new_day": "Thursday", "old_hhmm": None, "new_hhmm": "07:20PM", "old_room": None, "new_room": "E2", "tba": False, "raw": "MANUAL OVERRIDE: S&DM (B) in E2"},
-        {"abbr": "S&DM", "division": "B", "type": "Rescheduled", "old_date": "2026-08-01", "old_day": "Saturday", "new_date": "2026-08-01", "new_day": "Saturday", "old_hhmm": None, "new_hhmm": "07:20PM", "old_room": None, "new_room": "E2", "tba": False, "raw": "MANUAL OVERRIDE: S&DM (B) in E2"}
-    ]
-
-    # --- ENTIRE WEEK ROOM CHANGES FOR ALL DIVISIONS (July 27 - Aug 1) ---
+    # Apply the overrides for the entire week (August 3 to August 8)
     week_dates = [
-        ("2026-07-27", "Monday"), ("2026-07-28", "Tuesday"), ("2026-07-29", "Wednesday"),
-        ("2026-07-30", "Thursday"), ("2026-07-31", "Friday"), ("2026-08-01", "Saturday")
+        ("2026-08-03", "Monday"), ("2026-08-04", "Tuesday"), ("2026-08-05", "Wednesday"),
+        ("2026-08-06", "Thursday"), ("2026-08-07", "Friday"), ("2026-08-08", "Saturday")
     ]
+
     for d_date, d_day in week_dates:
-        for div in ["A", "B", "C", ""]:
-            forced_changes.append({"abbr": "SBM", "division": div, "type": "Room Change", "old_date": d_date, "old_day": d_day, "new_date": d_date, "new_day": d_day, "old_hhmm": None, "new_hhmm": None, "old_room": None, "new_room": "E3", "tba": False, "raw": "MANUAL OVERRIDE: SBM -> E3"})
-            forced_changes.append({"abbr": "S&DM", "division": div, "type": "Room Change", "old_date": d_date, "old_day": d_day, "new_date": d_date, "new_day": d_day, "old_hhmm": None, "new_hhmm": None, "old_room": None, "new_room": "E2", "tba": False, "raw": "MANUAL OVERRIDE: S&DM -> E2"})
-            forced_changes.append({"abbr": "SDM", "division": div, "type": "Room Change", "old_date": d_date, "old_day": d_day, "new_date": d_date, "new_day": d_day, "old_hhmm": None, "new_hhmm": None, "old_room": None, "new_room": "E2", "tba": False, "raw": "MANUAL OVERRIDE: SDM -> E2"})
+        for new_room, class_list in room_mapping.items():
+            for abbr, div in class_list:
+                forced_changes.append({
+                    "abbr": abbr,
+                    "division": div,
+                    "type": "Room Change",
+                    "old_date": d_date,
+                    "old_day": d_day,
+                    "new_date": d_date,
+                    "new_day": d_day,
+                    "old_hhmm": None,
+                    "new_hhmm": None,
+                    "old_room": None,
+                    "new_room": new_room,
+                    "tba": False,
+                    "raw": f"MANUAL OVERRIDE: {abbr} ({div}) -> {new_room}"
+                })
 
     changes.extend(forced_changes)
     # --- END OF FORCED MANUAL OVERRIDE ---
